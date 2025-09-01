@@ -33,6 +33,33 @@ scripts/ci/.venv/bin/python scripts/ci/validate_origin.py
 
 Must pass before any commits to main. Validates required origin documents and exec_graph structure.
 
+## CLI Development
+
+**Build, test, and run** the NEXOS CLI:
+
+```bash
+# Build the workspace
+cargo build --workspace
+
+# Run tests
+cargo test --workspace
+
+# Run CLI commands
+./target/debug/nexoscli --help
+./target/debug/nexoscli issue new --title "example"
+./target/debug/nexoscli --output json issue list
+
+# Check event log
+cat .nexoscli/log/events.jsonl
+```
+
+**Development cycle:**
+1. Make changes to core or plugins
+2. Run `cargo build --workspace` to compile
+3. Test with `cargo test --workspace`
+4. Verify CLI functionality manually
+5. Check event logs for proper instrumentation
+
 ## Folder Rule
 
 Any bounded context (folder) must have a one-page README with project_brief front-matter and a link to its parent. Child NS optional; if present, it only tightens budgets.
