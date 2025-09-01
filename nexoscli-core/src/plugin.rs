@@ -1,10 +1,11 @@
 use clap::{ArgMatches, Command};
-use schemars::{schema::RootSchema, JsonSchema};
+use schemars::schema::RootSchema;
 use serde::Serialize;
 
 use crate::Result;
 use crate::providers::Providers;
 use crate::event::EventWriter;
+use crate::envelope::Envelope;
 
 #[derive(Clone, Copy, Debug)]
 pub enum OutputFormat { Text, Json, Yaml }
@@ -28,6 +29,54 @@ impl CommandContext {
             OutputFormat::Yaml => println!("{}", serde_yaml::to_string(data).unwrap()),
             OutputFormat::Text => println!("{}", serde_json::to_string_pretty(data).unwrap()),
         }
+    }
+
+    /// Render & event-write a success envelope in one go.
+    pub fn ok<T: serde::Serialize>(&self, plugin: &str, command: &str, data: T) -> i32 {
+        // write canonical event first
+        let _ = self.events.write(plugin, command, &data, 0);
+
+        // render a stable envelope
+        let env = Envelope::ok(&self.providers.run_id, plugin, command, data);
+        match self.output {
+            OutputFormat::Json => println!("{}", serde_json::to_string_pretty(&env).unwrap()),
+            OutputFormat::Yaml => println!("{}", serde_yaml::to_string(&env).unwrap()),
+            OutputFormat::Text => println!("{}", serde_json::to_string_pretty(&env).unwrap()),
+        }
+        0
+    }
+
+    /// Render & event-write a failure envelope—use for recoverable/expected errors.
+    pub fn err(
+        &self,
+        plugin: &str,
+        command: &str,
+        code: &str,
+        message: &str,
+        suggestion: Option<&str>,
+        exit_code: i32,
+    ) -> i32 {
+        let env = Envelope::err(
+            &self.providers.run_id,
+            plugin,
+            command,
+            code,
+            message,
+            suggestion.map(|s| s.to_string()),
+        );
+        let _ = self.events.write(
+            plugin,
+            command,
+            &serde_json::json!({"error": { "code": code, "message": message }}),
+            exit_code,
+        );
+
+        match self.output {
+            OutputFormat::Json => println!("{}", serde_json::to_string_pretty(&env).unwrap()),
+            OutputFormat::Yaml => println!("{}", serde_yaml::to_string(&env).unwrap()),
+            OutputFormat::Text => println!("{}", serde_json::to_string_pretty(&env).unwrap()),
+        }
+        exit_code
     }
 }
 

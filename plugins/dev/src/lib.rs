@@ -39,6 +39,7 @@ impl Plugin for DevPlugin {
                   .about("Initialize .nexoscli/ (Plan/Apply, idempotent)")
                   .arg(Arg::new("dry-run").long("dry-run").action(ArgAction::SetTrue).help("Show plan only"))
                   .arg(Arg::new("yes").long("yes").action(ArgAction::SetTrue).help("Apply without prompt"))
+                  .arg(Arg::new("with-config").long("with-config").action(ArgAction::SetTrue).help("Create .nexoscli/config.toml with defaults"))
               )
         )
     }
@@ -48,7 +49,8 @@ impl Plugin for DevPlugin {
             Some(("init", m)) => {
                 let dry_run = m.get_flag("dry-run");
                 let yes = m.get_flag("yes");
-                let run = span!(Level::INFO, "dev.init", dry_run, yes);
+                let with_config = m.get_flag("with-config");
+                let run = span!(Level::INFO, "dev.init", dry_run, yes, with_config);
                 let _g = run.enter();
 
                 let root = std::env::current_dir()?;
@@ -65,11 +67,16 @@ impl Plugin for DevPlugin {
                 if needs_gitignore_line(&gitignore, ".nexoscli/log/")? {
                     actions.push(format!("append_gitignore {}", gitignore.display()));
                 }
+                if with_config {
+                    let cfg = dot.join("config.toml");
+                    if !cfg.exists() {
+                        actions.push(format!("write_file {}", cfg.display()));
+                    }
+                }
 
                 if dry_run && !yes {
-                    ctx.events.write("dev", "init.plan", &serde_json::json!({ "actions": actions }), 0)?;
-                    ctx.render(&serde_json::json!({"data": DevInitResult{ planned_actions: actions, applied: false }, "errors": [], "meta": {}}));
-                    return Ok(0);
+                    let exit = ctx.ok("dev", "init.plan", &serde_json::json!({ "actions": actions }));
+                    return Ok(exit);
                 }
 
                 // Apply
@@ -87,10 +94,23 @@ impl Plugin for DevPlugin {
                 if needs_gitignore_line(&gitignore, ".nexoscli/log/")? {
                     append_gitignore_line(&gitignore, ".nexoscli/log/")?;
                 }
+                if with_config {
+                    let cfg = dot.join("config.toml");
+                    if !cfg.exists() {
+                        let content = r#"
+[output]
+default = "json"
 
-                ctx.events.write("dev", "init.apply", &serde_json::json!({ "actions": actions }), 0)?;
-                ctx.render(&serde_json::json!({"data": DevInitResult{ planned_actions: actions, applied: true }, "errors": [], "meta": {}}));
-                Ok(0)
+[telemetry]
+enabled = false
+endpoint = ""
+"#;
+                        fs::write(&cfg, content.trim_start())?;
+                    }
+                }
+
+                let exit = ctx.ok("dev", "init.apply", &serde_json::json!({ "actions": actions }));
+                Ok(exit)
             }
             _ => Ok(2),
         }

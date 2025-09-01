@@ -26,6 +26,7 @@ tokio = { workspace = true, optional = true }
 # Plugin deps (feature flaggable later)
 nexoscli-plugin-issue = { path = "../plugins/issue" }
 nexoscli-plugin-dev = { path = "../plugins/dev" }
+nexoscli-plugin-graph = { path = "../plugins/graph" }
 
 [features]
 default = []

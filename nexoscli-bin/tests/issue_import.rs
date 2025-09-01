@@ -30,5 +30,6 @@ fn import_from_file_json() {
         .args(["issue","list","--output","json"])
         .assert()
         .success()
-        .stdout(contains("\"count\": 2"));
+        .stdout(contains("ISS-0001"))
+        .stdout(contains("ISS-0002"));
 }

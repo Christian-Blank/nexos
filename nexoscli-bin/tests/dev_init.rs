@@ -13,7 +13,7 @@ fn dev_init_plan_and_apply() {
         .args(["dev","init","--dry-run","--output","json"])
         .assert()
         .success()
-        .stdout(contains("\"planned_actions\""));
+        .stdout(contains("\"actions\""));
 
     // Apply
     Command::cargo_bin("nexoscli").unwrap()
@@ -21,7 +21,7 @@ fn dev_init_plan_and_apply() {
         .args(["dev","init","--yes","--output","json"])
         .assert()
         .success()
-        .stdout(contains("\"applied\": true"));
+        .stdout(contains("\"actions\""));
 
     // Idempotent
     Command::cargo_bin("nexoscli").unwrap()
@@ -29,5 +29,5 @@ fn dev_init_plan_and_apply() {
         .args(["dev","init","--dry-run","--output","json"])
         .assert()
         .success()
-        .stdout(contains("\"planned_actions\": []"));
+        .stdout(contains("\"actions\": []"));
 }

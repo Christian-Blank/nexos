@@ -1,0 +1,12 @@
+{
+  "id": "ISS-0008",
+  "title": "envelope test",
+  "body": null,
+  "labels": [
+    "test",
+    "envelope"
+  ],
+  "state": "open",
+  "created_at": "2025-09-01T10:28:54.116215Z",
+  "updated_at": "2025-09-01T10:28:54.116215Z"
+}

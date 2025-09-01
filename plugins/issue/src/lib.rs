@@ -167,9 +167,8 @@ impl Plugin for IssuePlugin {
                 let path = dir.join(format!("{id}.json"));
                 fs::write(&path, serde_json::to_vec_pretty(&issue)?)?;
 
-                ctx.events.write("issue", "new", &issue, 0)?;
-                ctx.render(&serde_json::json!({ "data": issue, "errors": [], "meta": { "ok": true } }));
-                Ok(0)
+                let exit = ctx.ok("issue", "new", &issue);
+                Ok(exit)
             }
             Some(("list", m)) => {
                 let state = m.get_one::<String>("state").map(|s| s.as_str()).unwrap_or("all");
@@ -192,8 +191,8 @@ impl Plugin for IssuePlugin {
                     "closed" => items.iter().filter(|i| matches!(i.state, IssueState::Closed)).collect(),
                     _ => items.iter().collect(),
                 };
-                ctx.render(&serde_json::json!({ "data": { "items": filtered }, "errors": [], "meta": { "count": filtered.len() } }));
-                Ok(0)
+                let exit = ctx.ok("issue", "list", &serde_json::json!({ "items": filtered }));
+                Ok(exit)
             }
             Some(("show", m)) => {
                 let id = m.get_one::<String>("id").unwrap();
@@ -201,8 +200,8 @@ impl Plugin for IssuePlugin {
                 let path = root.join(".nexoscli").join("issues").join(format!("{id}.json"));
                 let bytes = fs::read(&path)?;
                 let issue: Issue = serde_json::from_slice(&bytes)?;
-                ctx.render(&serde_json::json!({ "data": issue, "errors": [], "meta": {} }));
-                Ok(0)
+                let exit = ctx.ok("issue", "show", &issue);
+                Ok(exit)
             }
             Some(("close", m)) => {
                 let id = m.get_one::<String>("id").unwrap().to_string();
@@ -212,9 +211,8 @@ impl Plugin for IssuePlugin {
                 issue.state = IssueState::Closed;
                 issue.updated_at = now();
                 fs::write(&path, serde_json::to_vec_pretty(&issue)?)?;
-                ctx.events.write("issue", "close", &serde_json::json!({ "id": id }), 0)?;
-                ctx.render(&serde_json::json!({ "data": { "id": issue.id, "state": "closed" }, "errors": [], "meta": {} }));
-                Ok(0)
+                let exit = ctx.ok("issue", "close", &serde_json::json!({ "id": issue.id, "state": "closed" }));
+                Ok(exit)
             }
             Some(("import", m)) => {
                 let from = m.get_one::<String>("from").unwrap().as_str();
@@ -222,8 +220,13 @@ impl Plugin for IssuePlugin {
                 let id_strategy = m.get_one::<String>("id-strategy").unwrap().as_str();
 
                 if from != "file" {
-                    ctx.render(&serde_json::json!({"data": null, "errors":[{"code":"issue.import.unsupported","message":"only --from file is supported in v0"}], "meta":{}}));
-                    return Ok(2);
+                    return Ok(ctx.err(
+                        "issue","import",
+                        "issue.import.unsupported",
+                        "only --from file is supported in v0",
+                        Some("use: issue import --from file --path <json>"),
+                        2
+                    ));
                 }
                 
                 let run = span!(Level::INFO, "issue.import", from, path, id_strategy);
@@ -272,9 +275,8 @@ impl Plugin for IssuePlugin {
                     created.push(id.clone());
                 }
 
-                ctx.events.write("issue", "import", &serde_json::json!({"from":"file","path":path,"created":created}), 0)?;
-                ctx.render(&serde_json::json!({"data":{"created":created}, "errors":[], "meta":{}}));
-                Ok(0)
+                let exit = ctx.ok("issue", "import", &serde_json::json!({"from":"file","path": path, "created": created }));
+                Ok(exit)
             }
             _ => Ok(2),
         }

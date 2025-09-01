@@ -815,6 +815,7 @@ dependencies = [
  "clap_mangen",
  "nexoscli-core",
  "nexoscli-plugin-dev",
+ "nexoscli-plugin-graph",
  "nexoscli-plugin-issue",
  "opentelemetry",
  "opentelemetry-otlp",
@@ -862,6 +863,18 @@ dependencies = [
  "serde_json",
  "time",
  "tracing",
+]
+
+[[package]]
+name = "nexoscli-plugin-graph"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "nexoscli-core",
+ "serde",
+ "serde_json",
+ "serde_yaml",
 ]
 
 [[package]]
