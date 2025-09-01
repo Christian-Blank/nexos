@@ -1,16 +1,19 @@
 use clap::{ArgMatches, Command};
-use schemars::schema::RootSchema;
-use serde::Serialize;
+use schemars::{schema::RootSchema, JsonSchema};
+use serde::{Serialize, Deserialize};
 
 use crate::Result;
 use crate::providers::Providers;
 use crate::event::EventWriter;
 use crate::envelope::Envelope;
+use crate::config::Config;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
 pub enum OutputFormat { Text, Json, Yaml }
 
 pub struct CommandContext {
+    pub config: std::sync::Arc<Config>,
     pub providers: std::sync::Arc<Providers>,
     pub events: EventWriter,
     pub verbosity: u8,
@@ -18,10 +21,16 @@ pub struct CommandContext {
 }
 
 impl CommandContext {
-    pub fn new(providers: std::sync::Arc<Providers>, verbosity: u8, output: OutputFormat) -> Self {
+    pub fn new(
+        providers: std::sync::Arc<Providers>,
+        config: std::sync::Arc<Config>,
+        verbosity: u8,
+        output: OutputFormat,
+    ) -> Self {
         let events = EventWriter::new(providers.clone());
-        Self { providers, events, verbosity, output }
+        Self { config, providers, events, verbosity, output }
     }
+
 
     pub fn render<T: serde::Serialize>(&self, data: &T) {
         match self.output {

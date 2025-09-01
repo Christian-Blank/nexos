@@ -10,9 +10,14 @@ use nexoscli_core::{
     plugin::{CommandContext, OutputFormat},
     providers::Providers,
     registry::PluginRegistry,
+    config::Config,
 };
 
 fn main() -> anyhow::Result<()> {
+    // 0) Working dir and config
+    let cwd = std::env::current_dir()?;
+    let config = std::sync::Arc::new(Config::load(&cwd));
+
     // 1) Register plugins
     let mut registry = PluginRegistry::new();
     registry.register(Box::new(nexoscli_plugin_issue::IssuePlugin::new()));
@@ -20,8 +25,8 @@ fn main() -> anyhow::Result<()> {
     registry.register(Box::new(nexoscli_plugin_graph::GraphPlugin::new()));
     registry.register(Box::new(nexoscli_plugin_demo::DemoPlugin::new()));
 
-    // 2) Build the full app (globals + plugin subcommands) and parse once
-    let app = compose_app(&registry);
+    // 2) Build the full app with config-driven default output
+    let app = compose_app(&registry, &config);
     let matches = app.clone().get_matches();
 
     // 3) Globals
@@ -35,10 +40,9 @@ fn main() -> anyhow::Result<()> {
     // 4) Telemetry
     telemetry::init_tracing("nexoscli", env!("CARGO_PKG_VERSION"), verbose);
 
-    // 5) Context
-    let cwd = std::env::current_dir()?;
+    // 5) Providers and context
     let providers = Providers::new(cwd).arc();
-    let ctx = CommandContext::new(providers.clone(), verbose, output);
+    let ctx = CommandContext::new(providers.clone(), config.clone(), verbose, output);
 
     // 6) Root span
     let run_span = span!(
@@ -82,7 +86,7 @@ fn main() -> anyhow::Result<()> {
         }
         Some(("completions", m)) => {
             let shell = m.get_one::<String>("shell").unwrap().as_str();
-            let mut cmd = compose_app(&registry);
+            let mut cmd = compose_app(&registry, &config);
             match shell {
                 "bash" => generate(Bash, &mut cmd, "nexoscli", &mut io::stdout()),
                 "zsh"  => generate(Zsh,  &mut cmd, "nexoscli", &mut io::stdout()),
@@ -91,7 +95,7 @@ fn main() -> anyhow::Result<()> {
             }
         }
         Some(("man", _)) => {
-            let man = Man::new(compose_app(&registry));
+            let man = Man::new(compose_app(&registry, &config));
             man.render(&mut io::stdout())?;
         }
         Some((plugin_name, sub_matches)) => {
@@ -109,7 +113,7 @@ fn main() -> anyhow::Result<()> {
             }
         }
         None => {
-            let mut app = compose_app(&registry);
+            let mut app = compose_app(&registry, &config);
             app.print_help().unwrap();
             println!();
         }
@@ -119,7 +123,13 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn compose_app(registry: &PluginRegistry) -> Command {
+fn compose_app(registry: &PluginRegistry, cfg: &Config) -> Command {
+    let default_output = match cfg.output.default {
+        OutputFormat::Json => "json",
+        OutputFormat::Yaml => "yaml",
+        OutputFormat::Text => "text",
+    };
+
     let app = Command::new("nexoscli")
         .about("System CLI with plugin architecture")
         .arg(
@@ -135,7 +145,7 @@ fn compose_app(registry: &PluginRegistry) -> Command {
                 .long("output")
                 .help("Output format")
                 .value_parser(["text", "json", "yaml"])
-                .default_value("text")
+                .default_value(default_output)
                 .global(true),
         )
         .subcommand(Command::new("version").about("Show version"))

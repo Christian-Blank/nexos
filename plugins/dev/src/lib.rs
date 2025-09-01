@@ -76,6 +76,23 @@ struct PluginsCheckResult {
     items: Vec<PluginCheck>,
 }
 
+// ---------- NEW: doctor command ----------
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct DoctorArgs {}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct DoctorCheck {
+    name: String,
+    ok: bool,
+    detail: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct DoctorResult {
+    ready: bool,
+    checks: Vec<DoctorCheck>,
+}
+
 // ---------- Dev plugin ----------
 pub struct DevPlugin;
 impl DevPlugin { pub fn new() -> Self { Self } }
@@ -119,6 +136,11 @@ impl Plugin for DevPlugin {
                                 .about("Verify structure and registration for all plugins/*")
                                 .arg(Arg::new("fix-readmes").long("fix-readmes").action(ArgAction::SetTrue).help("Create missing README.md with template"))
                         )
+                )
+                // dev doctor
+                .subcommand(
+                    Command::new("doctor")
+                        .about("Verify local setup (dotdir, event log write, config, OTEL envs)")
                 )
         )
     }
@@ -373,6 +395,61 @@ endpoint = ""
                 Ok(2)
             }
 
+            // ---------------- dev doctor ----------------
+            Some(("doctor", _)) => {
+                use nexoscli_core::providers::Clock;
+                let cwd = std::env::current_dir()?;
+                let dot = cwd.join(".nexoscli");
+                let log = dot.join("log").join("events.jsonl");
+
+                let mut checks = Vec::new();
+
+                // dotdir present
+                let dot_ok = dot.exists();
+                checks.push(DoctorCheck {
+                    name: "dotdir_exists".into(),
+                    ok: dot_ok,
+                    detail: dot.display().to_string(),
+                });
+
+                // event log write (append via event writer)
+                let event_ok = ctx.events.write(
+                    "dev",
+                    "doctor.ping",
+                    &serde_json::json!({"ping": true, "ts": Clock::now_rfc3339()}),
+                    0,
+                ).is_ok();
+                checks.push(DoctorCheck {
+                    name: "event_log_writable".into(),
+                    ok: event_ok,
+                    detail: log.display().to_string(),
+                });
+
+                // config load
+                let cfg = &ctx.config;
+                let cfg_detail = format!(
+                    "output.default={:?}, telemetry.enabled={}, endpoint={:?}",
+                    cfg.output.default, cfg.telemetry.enabled, cfg.telemetry.endpoint
+                );
+                checks.push(DoctorCheck {
+                    name: "config_loaded".into(),
+                    ok: true,
+                    detail: cfg_detail,
+                });
+
+                // OTEL env (optional)
+                let otel = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok();
+                checks.push(DoctorCheck {
+                    name: "otel_endpoint_env_present".into(),
+                    ok: otel.is_some(),
+                    detail: otel.unwrap_or_else(|| "(not set; optional)".into()),
+                });
+
+                let ready = dot_ok && event_ok; // config and OTEL are not required for 'ready'
+                let exit = ctx.ok("dev", "doctor", &DoctorResult { ready, checks });
+                return Ok(exit);
+            }
+
             _ => Ok(2),
         }
     }
@@ -399,6 +476,13 @@ endpoint = ""
                 about: "Verify plugin folder structure and registration".to_string(),
                 args_schema: schema_for!(PluginsCheckArgs),
                 result_schema: schema_for!(PluginsCheckResult),
+            },
+            // doctor
+            ToolSpec {
+                name: "dev.doctor".to_string(),
+                about: "Verify local setup (dotdir, event log write, config, OTEL envs)".to_string(),
+                args_schema: schema_for!(DoctorArgs),
+                result_schema: schema_for!(DoctorResult),
             },
         ]
     }

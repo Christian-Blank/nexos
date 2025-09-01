@@ -8,7 +8,11 @@ use {
     tracing_opentelemetry::OpenTelemetryLayer,
 };
 
-pub fn init_tracing(service_name: &str, version: &str, verbosity: u8) {
+pub fn init_tracing(
+    #[cfg_attr(not(feature = "otel"), allow(unused_variables))] service_name: &str,
+    #[cfg_attr(not(feature = "otel"), allow(unused_variables))] version: &str,
+    verbosity: u8,
+) {
     let level = match verbosity { 0 => "info", 1 => "debug", _ => "trace" };
     let env_filter = EnvFilter::from_default_env().add_directive(level.parse().unwrap());
 

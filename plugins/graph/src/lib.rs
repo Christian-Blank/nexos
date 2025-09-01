@@ -9,6 +9,7 @@ use nexoscli_core::Result;
 
 #[derive(Debug, Deserialize)]
 struct ExecGraph {
+    #[allow(dead_code)]
     id: String,
     nodes: Vec<Node>,
 }
@@ -18,6 +19,7 @@ struct Node {
     id: String,
     #[serde(default)]
     #[serde(rename = "type")]
+    #[allow(dead_code)]
     kind: Option<String>,
     #[serde(default)]
     deps: Vec<String>, // dependencies this node relies on
