@@ -105,6 +105,10 @@ struct DoctorCiCheck {
     name: String,
     ok: bool,
     detail: String,
+    #[serde(default)]
+    severity: String,          // "info" | "error"
+    #[serde(default)]
+    fix: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -206,7 +210,9 @@ impl Plugin for DevPlugin {
                         .arg(Arg::new("ci").long("ci").action(ArgAction::SetTrue)
                              .help("Aggregate repo checks and exit non-zero on failure"))
                         .arg(Arg::new("checks").long("checks").value_name("CSV")
-                             .help("Subset of checks: graph,plugins,config,events,tools (default: all)"))
+                             .help("Subset of checks: graph,plugins,config,events,tools,cline (default: all)"))
+                        .arg(Arg::new("require").long("require").value_name("CSV")
+                             .help("Checks that must pass (comma-separated). If any fails -> non-zero. Example: --require cline"))
                 )
                 // dev telemetry
                 .subcommand(
@@ -478,7 +484,7 @@ endpoint = ""
                     let want: std::collections::HashSet<String> = m
                         .get_one::<String>("checks")
                         .map(|csv| csv.split(',').map(|s| s.trim().to_string()).collect())
-                        .unwrap_or_else(|| ["graph","plugins","config","events","tools"]
+                        .unwrap_or_else(|| ["graph","plugins","config","events","tools","cline"]
                             .into_iter().map(|s| s.to_string()).collect());
 
                     let mut checks = Vec::<DoctorCiCheck>::new();
@@ -491,6 +497,8 @@ endpoint = ""
                             ok: true,
                             detail: format!("output.default={:?} telemetry.enabled={} endpoint={:?}",
                                 cfg.output.default, cfg.telemetry.enabled, cfg.telemetry.endpoint),
+                            severity: "info".into(),
+                            fix: None,
                         });
                     }
 
@@ -502,6 +510,8 @@ endpoint = ""
                             name: "event_log_writable".into(),
                             ok,
                             detail: p.display().to_string(),
+                            severity: if ok { "info".into() } else { "error".into() },
+                            fix: if ok { None } else { Some("Ensure .nexoscli/log/ directory is writable".into()) },
                         });
                     }
 
@@ -513,6 +523,8 @@ endpoint = ""
                             name: "graph_check".into(),
                             ok,
                             detail: if ok { "OK".into() } else { format!("errors: {}", val.get("errors").unwrap_or(&serde_json::json!(null))) },
+                            severity: if ok { "info".into() } else { "error".into() },
+                            fix: if ok { None } else { Some("Run 'nexoscli graph check' to see specific issues".into()) },
                         });
                     }
 
@@ -524,6 +536,8 @@ endpoint = ""
                             name: "plugins_check".into(),
                             ok,
                             detail: if ok { "OK".into() } else { format!("errors: {}", val.get("errors").unwrap_or(&serde_json::json!(null))) },
+                            severity: if ok { "info".into() } else { "error".into() },
+                            fix: if ok { None } else { Some("Run 'nexoscli dev plugins check' to see specific plugin issues".into()) },
                         });
                     }
 
@@ -536,19 +550,83 @@ endpoint = ""
                             name: "tools_export".into(),
                             ok,
                             detail: format!("tools={}", n),
+                            severity: if ok { "info".into() } else { "error".into() },
+                            fix: None,
                         });
                     }
 
-                    let ok = checks.iter().all(|c| c.ok);
-                    if ok {
-                        let exit = ctx.ok("dev","doctor.ci",&DoctorCiResult{ ok, checks });
+                    // cline (informational unless required)
+                    if want.contains("cline") {
+                        let mut ok = true;
+                        let mut detail = String::new();
+                        let mut fix = None;
+
+                        // call cline locate
+                        let (code, val) = run_cli_json(&cwd, &["cline","locate"])?;
+                        if code != 0 {
+                            ok = false;
+                            detail = "cline locate failed".into();
+                        } else {
+                            let sel = val["data"]["selected"].as_str();
+                            if sel.is_none() {
+                                ok = false;
+                                detail = "no Cline storage found".into();
+                                fix = Some("If in Dev Container, mount your host globalStorage; or set NEXOS_CLINE_STORAGE=/path/to/.../tasks".into());
+                            } else {
+                                // dry-run import of a few recent files
+                                let storage = sel.unwrap();
+                                let (c2, v2) = run_cli_json(&cwd, &["cline","import","--storage",storage,"--since","7d","--limit","5","--dry-run"])?;
+                                ok = ok && (c2 == 0);
+                                if ok {
+                                    let imp = v2["data"]["imported"].as_u64().unwrap_or(0);
+                                    detail = format!("storage={} imported~{}", storage, imp);
+                                } else {
+                                    detail = format!("import dry-run failed for {}", storage);
+                                    fix = Some("Inspect storage path; ensure readable JSON files under tasks/".into());
+                                }
+                            }
+                        }
+
+                        checks.push(DoctorCiCheck {
+                            name: "cline".into(),
+                            ok,
+                            detail,
+                            severity: if ok { "info".into() } else { "info".into() }, // soft by default
+                            fix,
+                        });
+                    }
+
+                    // Determine required checks (via flag or env)
+                    let mut required: std::collections::HashSet<String> = m
+                        .get_one::<String>("require")
+                        .map(|csv| csv.split(',').map(|s| s.trim().to_string()).collect())
+                        .unwrap_or_default();
+                    if std::env::var("NEXOS_CLINE_REQUIRED").ok().as_deref() == Some("1") {
+                        required.insert("cline".into());
+                    }
+
+                    // Graph and plugins are critical by default
+                    let critical_by_default = ["graph_check", "plugins_check"];
+                    
+                    let ok_all = checks.iter().all(|c| {
+                        if required.contains(&c.name) || critical_by_default.contains(&c.name.as_str()) { 
+                            c.ok 
+                        } else { 
+                            true 
+                        }
+                    });
+                    
+                    if ok_all {
+                        let exit = ctx.ok("dev","doctor.ci",&DoctorCiResult{ ok: true, checks });
                         return Ok(exit);
                     } else {
-                        // include failing checks in message; exit non-zero
-                        let failing: Vec<_> = checks.iter().filter(|c| !c.ok).map(|c| c.name.clone()).collect();
+                        // include failing required and critical by default checks in message; exit non-zero
+                        let failing: Vec<_> = checks.iter().filter(|c| {
+                            (required.contains(&c.name) || critical_by_default.contains(&c.name.as_str())) && !c.ok
+                        }).map(|c| c.name.clone()).collect();
                         let exit = ctx.err("dev","doctor.ci","doctor.ci.failed",
-                            &format!("Failing checks: {}", failing.join(",")),
-                            Some("Run subcommands above to see details (graph check, dev plugins check, tools export)"),
+                            &format!("Critical checks failed: {}", failing.join(",")),
+                            Some("Run with --checks to inspect sub-checks; see devcontainer mounts for cline"),
                             2);
                         return Ok(exit);
                     }

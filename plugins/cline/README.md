@@ -1,9 +1,31 @@
-# Cline Plugin — Task History Integration
+# Cline Plugin — Task History Integration (Phase 10)
 
-Cline task history import plugin for nexoscli.
-Provides read-only integration with Cline AI task history and checkpoints across multiple editors.
+Enhanced Cline task history import plugin for nexoscli with bulletproof cross-platform discovery and idempotent import capabilities.
+Provides read-only integration with Cline AI task history across multiple editors with robust storage detection and SHA256-based change tracking.
 
 ---
+
+## Phase 10 Enhancements
+
+### Bulletproof Cross-Platform Discovery
+- **Multi-layer discovery**: Environment overrides → devcontainer/remote paths → user globalStorage
+- **Environment variable support**: 
+  - `NEXOS_CLINE_STORAGE` - Override storage path discovery
+  - `NEXOS_CLINE_TEST_ROOT` - Testing root directory override
+- **Expanded editor support**: Code, Cursor, VSCodium, Windsurf, Code - Insiders, code-oss
+- **Platform-agnostic**: Automatic platform detection and path resolution
+
+### Idempotent Import with SHA256 Indexing
+- **Change detection**: SHA256-based comparison prevents duplicate imports
+- **State tracking**: Reports `created`, `changed`, `unchanged`, `busy`, `invalid` states
+- **Busy file handling**: Uses `spin_sleep` to handle files being actively written
+- **Atomic operations**: Safe concurrent access to task storage
+
+### Doctor Integration
+- **CI/CD integration**: `dev doctor --ci` includes Cline storage checks
+- **Configurable enforcement**: Soft-fail default with `--require cline` strict mode
+- **Environment variable support**: `NEXOS_CLINE_REQUIRED=1` for CI environments
+- **Health reporting**: Validates Cline storage accessibility and task availability
 
 ## Commands
 

@@ -746,9 +746,7 @@ Then nexoscli cline locate should pick /workspaces/vscode-globalStorage/saoudriz
 
 ⸻
 
-6) Next (once this lands)
+6) Next (once this lands) - Add this to the ROADMAP_NEXT.md as possible future steps
 	•	cline tail: file‑watcher (notify crate) that ingests on change and emits a cline.task.updated event.
 	•	Patch capture after term run: record git diff --name-status and write patch files under .nexoscli/patches/.
 	•	Replay: nexoscli replay thread <id> that replays term run commands and applies recorded patches (dry‑run first).
-
-If you want, I can hand you the cline tail watcher next as a tiny, opt‑in background command that respects your “no hidden background work” rule (it runs only while the command is active).
