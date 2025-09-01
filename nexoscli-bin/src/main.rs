@@ -74,14 +74,17 @@ fn main() -> anyhow::Result<()> {
                         specs.extend(p.tool_specs());
                     }
                 }
-                println!(
-                    "{}",
-                    serde_json::to_string_pretty(&serde_json::json!({
+                let exit = ctx.ok(
+                    "core",
+                    "tools.export",
+                    &serde_json::json!({
+                        "tools": specs,
                         "toolset": "nexoscli",
-                        "version": env!("CARGO_PKG_VERSION"),
-                        "commands": specs
-                    }))?
+                        "version": env!("CARGO_PKG_VERSION")
+                    })
                 );
+                telemetry::shutdown_tracing();
+                std::process::exit(exit);
             }
         }
         Some(("completions", m)) => {
