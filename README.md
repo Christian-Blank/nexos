@@ -41,8 +41,9 @@ flowchart LR
 
   subgraph Plugins (Domains)
     P1[issue (local)]
-    P2[agents (future)]
-    P3[connectors (future)]
+    P2[dev (generators)]
+    P3[agents (future)]
+    P4[connectors (future)]
   end
 
   G --> P1

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+use tracing::{span, Level};
 
 use nexoscli_core::plugin::{CommandContext, Plugin, ToolSpec};
 use nexoscli_core::Result;
@@ -128,6 +129,13 @@ impl Plugin for IssuePlugin {
                         .about("Close an issue")
                         .arg(Arg::new("id").required(true))
                         .arg(Arg::new("reason").long("reason").required(false).value_name("TEXT")),
+                )
+                .subcommand(
+                    Command::new("import")
+                        .about("Import issues (read-only adapter)")
+                        .arg(Arg::new("from").long("from").required(true).value_parser(["file"]))
+                        .arg(Arg::new("path").long("path").required(true).value_name("FILE"))
+                        .arg(Arg::new("id-strategy").long("id-strategy").value_parser(["next","keep"]).default_value("next"))
                 ),
         )
     }
@@ -206,6 +214,66 @@ impl Plugin for IssuePlugin {
                 fs::write(&path, serde_json::to_vec_pretty(&issue)?)?;
                 ctx.events.write("issue", "close", &serde_json::json!({ "id": id }), 0)?;
                 ctx.render(&serde_json::json!({ "data": { "id": issue.id, "state": "closed" }, "errors": [], "meta": {} }));
+                Ok(0)
+            }
+            Some(("import", m)) => {
+                let from = m.get_one::<String>("from").unwrap().as_str();
+                let path = m.get_one::<String>("path").unwrap();
+                let id_strategy = m.get_one::<String>("id-strategy").unwrap().as_str();
+
+                if from != "file" {
+                    ctx.render(&serde_json::json!({"data": null, "errors":[{"code":"issue.import.unsupported","message":"only --from file is supported in v0"}], "meta":{}}));
+                    return Ok(2);
+                }
+                
+                let run = span!(Level::INFO, "issue.import", from, path, id_strategy);
+                let _g = run.enter();
+                
+                let root = std::env::current_dir()?;
+                let dir = root.join(".nexoscli").join("issues");
+                std::fs::create_dir_all(&dir)?;
+
+                // Expect a JSON array: [{title, body?, labels?}] (id? if --id-strategy keep)
+                let bytes = std::fs::read(path)?;
+                let items: serde_json::Value = serde_json::from_slice(&bytes)?;
+                let arr = items.as_array().ok_or_else(|| anyhow::anyhow!("expected JSON array"))?;
+
+                let mut created: Vec<String> = Vec::new();
+                for v in arr {
+                    let title = v.get("title").and_then(|x| x.as_str()).unwrap_or("").to_string();
+                    if title.is_empty() { continue; }
+                    let body = v.get("body").and_then(|x| x.as_str()).map(|s| s.to_string());
+                    let labels: Vec<String> = if let Some(lv) = v.get("labels") {
+                        if let Some(a) = lv.as_array() {
+                            a.iter().filter_map(|x| x.as_str()).map(|s| s.to_string()).collect()
+                        } else if let Some(s) = lv.as_str() {
+                            s.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
+                        } else { vec![] }
+                    } else { vec![] };
+
+                    let id = if id_strategy == "keep" {
+                        v.get("id").and_then(|x| x.as_str()).map(|s| s.to_string()).unwrap_or_else(|| next_id(&dir).unwrap())
+                    } else {
+                        next_id(&dir)?
+                    };
+
+                    let now_s = now();
+                    let issue = Issue {
+                        id: id.clone(),
+                        title,
+                        body,
+                        labels,
+                        state: IssueState::Open,
+                        created_at: now_s.clone(),
+                        updated_at: now_s,
+                    };
+                    let path = dir.join(format!("{id}.json"));
+                    fs::write(&path, serde_json::to_vec_pretty(&issue)?)?;
+                    created.push(id.clone());
+                }
+
+                ctx.events.write("issue", "import", &serde_json::json!({"from":"file","path":path,"created":created}), 0)?;
+                ctx.render(&serde_json::json!({"data":{"created":created}, "errors":[], "meta":{}}));
                 Ok(0)
             }
             _ => Ok(2),

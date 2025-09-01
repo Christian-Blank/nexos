@@ -1,0 +1,14 @@
+[package]
+name = "nexoscli-plugin-dev"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nexoscli-core = { path = "../../nexoscli-core" }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+schemars = { workspace = true }
+clap = { workspace = true }
+time = { workspace = true }
+tracing = { workspace = true }

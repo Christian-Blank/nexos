@@ -1,0 +1,12 @@
+{
+  "id": "ISS-0007",
+  "title": "Second Issue",
+  "body": "This is a test issue",
+  "labels": [
+    "feature",
+    "enhancement"
+  ],
+  "state": "open",
+  "created_at": "2025-09-01T10:07:57.145655Z",
+  "updated_at": "2025-09-01T10:07:57.145655Z"
+}

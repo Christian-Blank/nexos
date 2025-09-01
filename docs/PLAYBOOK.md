@@ -18,20 +18,6 @@
 **Ready:** problem ≤ 3 sentences; DRI named; deps listed; ≤ 8 binary acceptance criteria; added to exec_graph.  
 **Done:** E2E passes; JSON outputs stable; event written; spans present; brief README snippet updated if surface changed; short demo/evidence linked.
 
-## CI Validation
-
-**Origin validation** runs before any changes to ensure structural integrity:
-
-```bash
-# Install CI dependencies (once)
-uv venv scripts/ci/.venv
-uv pip install --python scripts/ci/.venv/bin/python pyyaml
-
-# Run validation
-scripts/ci/.venv/bin/python scripts/ci/validate_origin.py
-```
-
-Must pass before any commits to main. Validates required origin documents and exec_graph structure.
 
 ## CLI Development
 
@@ -59,6 +45,43 @@ cat .nexoscli/log/events.jsonl
 3. Test with `cargo test --workspace`
 4. Verify CLI functionality manually
 5. Check event logs for proper instrumentation
+
+## New Project Setup
+
+**Initialize a new project** with dev ergonomics:
+
+```bash
+# Plan what will be created (dry-run)
+./target/debug/nexoscli dev init --dry-run --output json
+
+# Apply initialization (idempotent)
+./target/debug/nexoscli dev init --yes --output json
+
+# Manual init (prompts for confirmation)
+./target/debug/nexoscli dev init
+```
+
+This creates `.nexoscli/` directory, `manifest.toml`, and updates `.gitignore`.
+
+## Issue Import
+
+**Import issues from external sources**:
+
+```bash
+# Create a JSON file with issues
+echo '[{"title":"Bug fix","labels":["p0","bug"],"body":"Details here"}]' > issues.json
+
+# Import from file (auto-increment IDs)
+./target/debug/nexoscli issue import --from file --path issues.json --output json
+
+# Import preserving existing IDs
+./target/debug/nexoscli issue import --from file --path issues.json --id-strategy keep --output json
+
+# Verify import worked
+./target/debug/nexoscli issue list --output json
+```
+
+Expected JSON format: `[{"title": "required", "body": "optional", "labels": ["array","or","string,separated"]}]`
 
 ## OTEL Development
 
