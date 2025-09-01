@@ -1,0 +1,15 @@
+[project]
+name = "nexos-ci"
+version = "0.1.0"
+description = "CI validation scripts for NEXOS project"
+requires-python = ">=3.8"
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+validate-origin = "validate_origin:main"

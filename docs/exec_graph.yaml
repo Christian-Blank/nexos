@@ -1,0 +1,4 @@
+id: EG-NEXOS-v0
+nodes:
+  - { id: F0.1-nexoscli-issue-local, type: feature, deps: [] }
+  - { id: AI-${TODAY}-initialize-nexoscli, type: issue, deps: [] }
