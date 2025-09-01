@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+use std::process::Command as Proc;
+use time::{format_description::well_known::Rfc3339, OffsetDateTime, Duration};
 use tracing::{span, Level};
 
 use nexoscli_core::plugin::{CommandContext, Plugin, ToolSpec};
@@ -78,7 +79,12 @@ struct PluginsCheckResult {
 
 // ---------- NEW: doctor command ----------
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-struct DoctorArgs {}
+struct DoctorArgs {
+    #[serde(default)]
+    ci: bool,
+    #[serde(default)]
+    checks: Option<String>,
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 struct DoctorCheck {
@@ -91,6 +97,43 @@ struct DoctorCheck {
 struct DoctorResult {
     ready: bool,
     checks: Vec<DoctorCheck>,
+}
+
+// ---------- NEW: Doctor CI structs ----------
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct DoctorCiCheck {
+    name: String,
+    ok: bool,
+    detail: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct DoctorCiResult {
+    ok: bool,
+    checks: Vec<DoctorCiCheck>,
+}
+
+// ---------- NEW: Telemetry structs ----------
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct TelemetryReportArgs {
+    #[serde(default)]
+    since: Option<String>, // "24h" | "7d" | RFC3339
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct TelemetryByCommand {
+    plugin: String,
+    command: String,
+    count: u64,
+    success: u64,
+    fail: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct TelemetryReport {
+    total_events: u64,
+    window_start: Option<String>,
+    by_command: Vec<TelemetryByCommand>,
 }
 
 // ---------- Dev plugin ----------
@@ -141,6 +184,20 @@ impl Plugin for DevPlugin {
                 .subcommand(
                     Command::new("doctor")
                         .about("Verify local setup (dotdir, event log write, config, OTEL envs)")
+                        .arg(Arg::new("ci").long("ci").action(ArgAction::SetTrue)
+                             .help("Aggregate repo checks and exit non-zero on failure"))
+                        .arg(Arg::new("checks").long("checks").value_name("CSV")
+                             .help("Subset of checks: graph,plugins,config,events,tools (default: all)"))
+                )
+                // dev telemetry
+                .subcommand(
+                    Command::new("telemetry").about("Observability and analytics")
+                        .subcommand(
+                            Command::new("report")
+                                .about("Aggregate events.jsonl → counts by command (success/fail)")
+                                .arg(Arg::new("since").long("since").value_name("WINDOW")
+                                     .help("24h | 7d | RFC3339 (inclusive)"))
+                        )
                 )
         )
     }
@@ -396,58 +453,194 @@ endpoint = ""
             }
 
             // ---------------- dev doctor ----------------
-            Some(("doctor", _)) => {
-                use nexoscli_core::providers::Clock;
-                let cwd = std::env::current_dir()?;
-                let dot = cwd.join(".nexoscli");
-                let log = dot.join("log").join("events.jsonl");
+            Some(("doctor", m)) => {
+                if m.get_flag("ci") {
+                    let cwd = std::env::current_dir()?;
+                    let want: std::collections::HashSet<String> = m
+                        .get_one::<String>("checks")
+                        .map(|csv| csv.split(',').map(|s| s.trim().to_string()).collect())
+                        .unwrap_or_else(|| ["graph","plugins","config","events","tools"]
+                            .into_iter().map(|s| s.to_string()).collect());
 
-                let mut checks = Vec::new();
+                    let mut checks = Vec::<DoctorCiCheck>::new();
 
-                // dotdir present
-                let dot_ok = dot.exists();
-                checks.push(DoctorCheck {
-                    name: "dotdir_exists".into(),
-                    ok: dot_ok,
-                    detail: dot.display().to_string(),
-                });
+                    // config
+                    if want.contains("config") {
+                        let cfg = &ctx.config;
+                        checks.push(DoctorCiCheck {
+                            name: "config_loaded".into(),
+                            ok: true,
+                            detail: format!("output.default={:?} telemetry.enabled={} endpoint={:?}",
+                                cfg.output.default, cfg.telemetry.enabled, cfg.telemetry.endpoint),
+                        });
+                    }
 
-                // event log write (append via event writer)
-                let event_ok = ctx.events.write(
-                    "dev",
-                    "doctor.ping",
-                    &serde_json::json!({"ping": true, "ts": Clock::now_rfc3339()}),
-                    0,
-                ).is_ok();
-                checks.push(DoctorCheck {
-                    name: "event_log_writable".into(),
-                    ok: event_ok,
-                    detail: log.display().to_string(),
-                });
+                    // events: try to write a ping
+                    if want.contains("events") {
+                        let ok = ctx.events.write("dev","doctor.ci.ping",&serde_json::json!({"ping":true}),0).is_ok();
+                        let p = std::path::PathBuf::from(".nexoscli/log/events.jsonl");
+                        checks.push(DoctorCiCheck {
+                            name: "event_log_writable".into(),
+                            ok,
+                            detail: p.display().to_string(),
+                        });
+                    }
 
-                // config load
-                let cfg = &ctx.config;
-                let cfg_detail = format!(
-                    "output.default={:?}, telemetry.enabled={}, endpoint={:?}",
-                    cfg.output.default, cfg.telemetry.enabled, cfg.telemetry.endpoint
-                );
-                checks.push(DoctorCheck {
-                    name: "config_loaded".into(),
-                    ok: true,
-                    detail: cfg_detail,
-                });
+                    // graph
+                    if want.contains("graph") {
+                        let (code, val) = run_cli_json(&cwd, &["graph","check"])?;
+                        let ok = code == 0 && val.get("errors").and_then(|e| e.as_array()).map(|a| a.is_empty()).unwrap_or(true);
+                        checks.push(DoctorCiCheck {
+                            name: "graph_check".into(),
+                            ok,
+                            detail: if ok { "OK".into() } else { format!("errors: {}", val.get("errors").unwrap_or(&serde_json::json!(null))) },
+                        });
+                    }
 
-                // OTEL env (optional)
-                let otel = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok();
-                checks.push(DoctorCheck {
-                    name: "otel_endpoint_env_present".into(),
-                    ok: otel.is_some(),
-                    detail: otel.unwrap_or_else(|| "(not set; optional)".into()),
-                });
+                    // plugins
+                    if want.contains("plugins") {
+                        let (code, val) = run_cli_json(&cwd, &["dev","plugins","check"])?;
+                        let ok = code == 0;
+                        checks.push(DoctorCiCheck {
+                            name: "plugins_check".into(),
+                            ok,
+                            detail: if ok { "OK".into() } else { format!("errors: {}", val.get("errors").unwrap_or(&serde_json::json!(null))) },
+                        });
+                    }
 
-                let ready = dot_ok && event_ok; // config and OTEL are not required for 'ready'
-                let exit = ctx.ok("dev", "doctor", &DoctorResult { ready, checks });
-                return Ok(exit);
+                    // tools
+                    if want.contains("tools") {
+                        let (code, val) = run_cli_json(&cwd, &["tools","export"])?;
+                        let ok = code == 0 && val["data"]["tools"].as_array().map(|a| !a.is_empty()).unwrap_or(false);
+                        let n = val["data"]["tools"].as_array().map(|a| a.len()).unwrap_or(0);
+                        checks.push(DoctorCiCheck {
+                            name: "tools_export".into(),
+                            ok,
+                            detail: format!("tools={}", n),
+                        });
+                    }
+
+                    let ok = checks.iter().all(|c| c.ok);
+                    if ok {
+                        let exit = ctx.ok("dev","doctor.ci",&DoctorCiResult{ ok, checks });
+                        return Ok(exit);
+                    } else {
+                        // include failing checks in message; exit non-zero
+                        let failing: Vec<_> = checks.iter().filter(|c| !c.ok).map(|c| c.name.clone()).collect();
+                        let exit = ctx.err("dev","doctor.ci","doctor.ci.failed",
+                            &format!("Failing checks: {}", failing.join(",")),
+                            Some("Run subcommands above to see details (graph check, dev plugins check, tools export)"),
+                            2);
+                        return Ok(exit);
+                    }
+                } else {
+                    // Original doctor logic
+                    use nexoscli_core::providers::Clock;
+                    let cwd = std::env::current_dir()?;
+                    let dot = cwd.join(".nexoscli");
+                    let log = dot.join("log").join("events.jsonl");
+
+                    let mut checks = Vec::new();
+
+                    // dotdir present
+                    let dot_ok = dot.exists();
+                    checks.push(DoctorCheck {
+                        name: "dotdir_exists".into(),
+                        ok: dot_ok,
+                        detail: dot.display().to_string(),
+                    });
+
+                    // event log write (append via event writer)
+                    let event_ok = ctx.events.write(
+                        "dev",
+                        "doctor.ping",
+                        &serde_json::json!({"ping": true, "ts": Clock::now_rfc3339()}),
+                        0,
+                    ).is_ok();
+                    checks.push(DoctorCheck {
+                        name: "event_log_writable".into(),
+                        ok: event_ok,
+                        detail: log.display().to_string(),
+                    });
+
+                    // config load
+                    let cfg = &ctx.config;
+                    let cfg_detail = format!(
+                        "output.default={:?}, telemetry.enabled={}, endpoint={:?}",
+                        cfg.output.default, cfg.telemetry.enabled, cfg.telemetry.endpoint
+                    );
+                    checks.push(DoctorCheck {
+                        name: "config_loaded".into(),
+                        ok: true,
+                        detail: cfg_detail,
+                    });
+
+                    // OTEL env (optional)
+                    let otel = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok();
+                    checks.push(DoctorCheck {
+                        name: "otel_endpoint_env_present".into(),
+                        ok: otel.is_some(),
+                        detail: otel.unwrap_or_else(|| "(not set; optional)".into()),
+                    });
+
+                    let ready = dot_ok && event_ok; // config and OTEL are not required for 'ready'
+                    let exit = ctx.ok("dev", "doctor", &DoctorResult { ready, checks });
+                    return Ok(exit);
+                }
+            }
+
+            // ---------------- dev telemetry ----------------
+            Some(("telemetry", tm)) => {
+                if let Some(("report", m)) = tm.subcommand() {
+                    let since_s = m.get_one::<String>("since").cloned();
+                    let since_ts: Option<OffsetDateTime> = match since_s.as_deref() {
+                        None => None,
+                        Some(s) if s.ends_with("h") => s[..s.len()-1].parse::<i64>().ok().map(|h| OffsetDateTime::now_utc() - Duration::hours(h)),
+                        Some(s) if s.ends_with("d") => s[..s.len()-1].parse::<i64>().ok().map(|d| OffsetDateTime::now_utc() - Duration::days(d)),
+                        Some(s) => OffsetDateTime::parse(s, &Rfc3339).ok(),
+                    };
+
+                    let log = std::env::current_dir()?.join(".nexoscli").join("log").join("events.jsonl");
+                    let mut rows = Vec::<serde_json::Value>::new();
+                    if log.exists() {
+                        for line in std::fs::read_to_string(&log)?.lines() {
+                            if let Ok(v) = serde_json::from_str::<serde_json::Value>(line) {
+                                let ts_ok = match (&since_ts, v.get("ts").and_then(|x| x.as_str())) {
+                                    (None, _) => true,
+                                    (Some(since), Some(ts)) => OffsetDateTime::parse(ts, &Rfc3339).ok().map(|t| t >= *since).unwrap_or(true),
+                                    _ => true,
+                                };
+                                if ts_ok { rows.push(v); }
+                            }
+                        }
+                    }
+
+                    use std::collections::BTreeMap;
+                    let mut by: BTreeMap<(String,String),(u64,u64,u64)> = BTreeMap::new(); // (p,c)->(count,success,fail)
+                    for v in &rows {
+                        let p = v.get("plugin").and_then(|x| x.as_str()).unwrap_or("-");
+                        let c = v.get("command").and_then(|x| x.as_str()).unwrap_or("-");
+                        let code = v.get("exit_code").and_then(|x| x.as_i64()).unwrap_or(0);
+                        let e = by.entry((p.to_string(), c.to_string())).or_insert((0,0,0));
+                        e.0 += 1;
+                        if code == 0 { e.1 += 1; } else { e.2 += 1; }
+                    }
+                    let mut out = Vec::<TelemetryByCommand>::new();
+                    for ((p,c),(cnt,ok,fail)) in by.into_iter() {
+                        out.push(TelemetryByCommand{ plugin: p, command: c, count: cnt, success: ok, fail });
+                    }
+                    // sort by count desc
+                    out.sort_by(|a,b| b.count.cmp(&a.count));
+
+                    let r = TelemetryReport {
+                        total_events: rows.len() as u64,
+                        window_start: since_ts.map(|t| t.format(&Rfc3339).unwrap()),
+                        by_command: out,
+                    };
+                    let exit = ctx.ok("dev","telemetry.report",&r);
+                    return Ok(exit);
+                }
+                Ok(2)
             }
 
             _ => Ok(2),
@@ -480,9 +673,16 @@ endpoint = ""
             // doctor
             ToolSpec {
                 name: "dev.doctor".to_string(),
-                about: "Verify local setup (dotdir, event log write, config, OTEL envs)".to_string(),
+                about: "Verify local setup (dotdir, event log write, config, OTEL envs); --ci aggregates checks".to_string(),
                 args_schema: schema_for!(DoctorArgs),
-                result_schema: schema_for!(DoctorResult),
+                result_schema: schema_for!(DoctorCiResult),
+            },
+            // telemetry report
+            ToolSpec {
+                name: "dev.telemetry.report".to_string(),
+                about: "Aggregate events.jsonl → counts by command".to_string(),
+                args_schema: schema_for!(TelemetryReportArgs),
+                result_schema: schema_for!(TelemetryReport),
             },
         ]
     }
@@ -706,4 +906,19 @@ fn plugin_readme(name: &str, desc: &str) -> String {
 - Keep outputs using the core envelope (`ctx.ok / ctx.err`) to stay machine-friendly.
 
 "#)
+}
+
+// ===== Phase 7 helpers =====
+
+fn run_cli_json(cwd: &Path, args: &[&str]) -> anyhow::Result<(i32, serde_json::Value)> {
+    let exe = std::env::current_exe()?;
+    let mut a: Vec<&str> = args.to_vec();
+    if !a.iter().any(|x| *x == "--output") {
+        a.push("--output"); a.push("json");
+    }
+    let out = Proc::new(exe).current_dir(cwd).args(&a).output()?;
+    let code = out.status.code().unwrap_or(-1);
+    let val: serde_json::Value = serde_json::from_slice(&out.stdout)
+        .map_err(|e| anyhow::anyhow!("stdout not JSON for {:?}: {}", a, e))?;
+    Ok((code, val))
 }

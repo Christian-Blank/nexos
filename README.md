@@ -131,10 +131,14 @@ The global graph is composed from these locals; changes bubble up via evidence a
 ⸻
 
 Current status
+	•	**Phase 7 Complete**: CI doctor mode and telemetry reporting
+	•	✅ CI aggregation via `dev doctor --ci` (exits non-zero on failures)
+	•	✅ Telemetry reporting via `dev telemetry report` (events.jsonl analytics)
+	•	✅ Comprehensive test coverage for both new features
 	•	**Phase 6 Complete**: GitHub integration and TracePack bundles
 	•	✅ Read-only GitHub adapter for issue import (fixture-based testing)
 	•	✅ TracePack bundles (build/verify with SHA-256 integrity checking)
-	•	✅ Complete end-to-end test coverage (11 comprehensive tests)
+	•	✅ Complete end-to-end test coverage (13 comprehensive tests)
 	•	Foundation (Origin Pack v0):
 	•	✅ North Star, Project Brief, Execution Graph, ADR-0001, Playbook
 	•	✅ Walking skeleton CLI + issue plugin with JSON outputs, event log, spans

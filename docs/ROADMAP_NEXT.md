@@ -18,9 +18,25 @@
    - Promote selected `plugins.<name>` TOML blocks to structs as needed (when >2 fields used).
    - Policy: only type a block when two commands read the same fields.
 
-4) **Doctor: CI mode**
+## Recently Completed
+4) **Doctor: CI mode** ✅
    - `dev doctor --ci` returns non-zero on any failing readiness check.
-   - Adds check: `plugins check` OK, `graph check` OK.
+   - Adds check: `plugins check` OK, `graph check` OK, `tools export` OK.
+   - **Phase 7 Complete**: Implemented with CI aggregation and telemetry reporting.
+
+## New Ready-to-pull (Phase 7 follow-ups)
+
+5) **Doctor: enhanced diagnostics**
+   - `dev doctor --print-plan` to show which subcommands it runs and their args.
+   - `dev doctor --check bundles` → run bundle verify against current FS for the latest bundle.
+
+6) **Telemetry: error analytics**
+   - Record `error_code` in event lines → unlock error leaderboard.
+   - Add `--top 10` and `--group-by plugin|command` flags to telemetry report.
+
+7) **Telemetry: duration tracking**
+   - Include `dur_ms` in events from the envelope writer (computed around each command).
+   - Extend telemetry report to show performance metrics.
 
 ## Principles (unchanged)
 - Ground truth is `events.jsonl`.
