@@ -1,6 +1,7 @@
 use clap::{ArgMatches, Command};
 use schemars::{schema::RootSchema, JsonSchema};
 use serde::{Serialize, Deserialize};
+use std::time::Instant;
 
 use crate::Result;
 use crate::providers::Providers;
@@ -18,6 +19,7 @@ pub struct CommandContext {
     pub events: EventWriter,
     pub verbosity: u8,
     pub output: OutputFormat,
+    pub started_at: Instant,
 }
 
 impl CommandContext {
@@ -28,7 +30,18 @@ impl CommandContext {
         output: OutputFormat,
     ) -> Self {
         let events = EventWriter::new(providers.clone());
-        Self { config, providers, events, verbosity, output }
+        Self { 
+            config, 
+            providers, 
+            events, 
+            verbosity, 
+            output,
+            started_at: Instant::now(),
+        }
+    }
+
+    fn dur_ms(&self) -> u64 {
+        self.started_at.elapsed().as_millis() as u64
     }
 
 
@@ -42,11 +55,12 @@ impl CommandContext {
 
     /// Render & event-write a success envelope in one go.
     pub fn ok<T: serde::Serialize>(&self, plugin: &str, command: &str, data: T) -> i32 {
-        // write canonical event first
-        let _ = self.events.write(plugin, command, &data, 0);
+        let payload = serde_json::to_value(&data).unwrap_or(serde_json::json!({}));
+        let dur = self.dur_ms();
+        let _ = self.events.write(plugin, command, &payload, 0, None, Some(dur));
 
         // render a stable envelope
-        let env = Envelope::ok(&self.providers.run_id, plugin, command, data);
+        let env = Envelope::ok(&self.providers.run_id, plugin, command, data, Some(dur));
         match self.output {
             OutputFormat::Json => println!("{}", serde_json::to_string_pretty(&env).unwrap()),
             OutputFormat::Yaml => println!("{}", serde_yaml::to_string(&env).unwrap()),
@@ -65,6 +79,10 @@ impl CommandContext {
         suggestion: Option<&str>,
         exit_code: i32,
     ) -> i32 {
+        let dur = self.dur_ms();
+        let payload = serde_json::json!({"error": { "code": code, "message": message, "hint": suggestion }});
+        let _ = self.events.write(plugin, command, &payload, exit_code, Some(code), Some(dur));
+
         let env = Envelope::err(
             &self.providers.run_id,
             plugin,
@@ -72,12 +90,7 @@ impl CommandContext {
             code,
             message,
             suggestion.map(|s| s.to_string()),
-        );
-        let _ = self.events.write(
-            plugin,
-            command,
-            &serde_json::json!({"error": { "code": code, "message": message }}),
-            exit_code,
+            Some(dur),
         );
 
         match self.output {

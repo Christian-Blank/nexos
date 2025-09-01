@@ -24,19 +24,33 @@
    - Adds check: `plugins check` OK, `graph check` OK, `tools export` OK.
    - **Phase 7 Complete**: Implemented with CI aggregation and telemetry reporting.
 
-## New Ready-to-pull (Phase 7 follow-ups)
-
-5) **Doctor: enhanced diagnostics**
-   - `dev doctor --print-plan` to show which subcommands it runs and their args.
-   - `dev doctor --check bundles` → run bundle verify against current FS for the latest bundle.
-
-6) **Telemetry: error analytics**
+## Recently Completed (Phase 8)
+5) **Telemetry: error analytics** ✅
    - Record `error_code` in event lines → unlock error leaderboard.
-   - Add `--top 10` and `--group-by plugin|command` flags to telemetry report.
+   - **Phase 8 Complete**: Events now include `error_code` field; telemetry report shows error leaderboard.
 
-7) **Telemetry: duration tracking**
+6) **Telemetry: duration tracking** ✅
    - Include `dur_ms` in events from the envelope writer (computed around each command).
    - Extend telemetry report to show performance metrics.
+   - **Phase 8 Complete**: Events include `dur_ms`; envelopes include `duration_ms` in meta; telemetry shows p50/p90/avg latency and slowest commands.
+
+## New Ready-to-pull (Future enhancements)
+
+7) **Durations per phase**
+   - Emit `dur_ms_parse`, `dur_ms_persist`, etc., by capturing start/stop inside RAII parse/validate/persist/render guards.
+
+8) **Histogram buckets**
+   - Add optional `latency_bucket` to events for faster coarse aggregation.
+
+9) **CLI table output**
+   - Add `--output table` for dev telemetry report with nice columns.
+
+10) **Error code catalog**
+    - Maintain a small map code → human name.
+
+11) **Doctor: enhanced diagnostics**
+    - `dev doctor --print-plan` to show which subcommands it runs and their args.
+    - `dev doctor --check bundles` → run bundle verify against current FS for the latest bundle.
 
 ## Principles (unchanged)
 - Ground truth is `events.jsonl`.

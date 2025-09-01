@@ -131,10 +131,15 @@ The global graph is composed from these locals; changes bubble up via evidence a
 ⸻
 
 Current status
+	•	**Phase 8 Complete**: Observability loop with duration tracking and error analytics
+	•	✅ Per-run durations (`dur_ms`) added to events and envelopes
+	•	✅ Error codes tracking for failure analytics and leaderboards
+	•	✅ Enhanced telemetry with performance metrics (p50/p90/avg latency)
+	•	✅ Error leaderboards and slowest commands identification
+	•	✅ Comprehensive test coverage for all observability features
 	•	**Phase 7 Complete**: CI doctor mode and telemetry reporting
 	•	✅ CI aggregation via `dev doctor --ci` (exits non-zero on failures)
 	•	✅ Telemetry reporting via `dev telemetry report` (events.jsonl analytics)
-	•	✅ Comprehensive test coverage for both new features
 	•	**Phase 6 Complete**: GitHub integration and TracePack bundles
 	•	✅ Read-only GitHub adapter for issue import (fixture-based testing)
 	•	✅ TracePack bundles (build/verify with SHA-256 integrity checking)

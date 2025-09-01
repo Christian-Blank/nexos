@@ -127,6 +127,23 @@ struct TelemetryByCommand {
     count: u64,
     success: u64,
     fail: u64,
+    p50_ms: Option<u64>,
+    p90_ms: Option<u64>,
+    avg_ms: Option<u64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct ErrorCodeRow {
+    error_code: String,
+    count: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct SlowRow {
+    plugin: String,
+    command: String,
+    p90_ms: u64,
+    count: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -134,6 +151,8 @@ struct TelemetryReport {
     total_events: u64,
     window_start: Option<String>,
     by_command: Vec<TelemetryByCommand>,
+    errors_by_code: Vec<ErrorCodeRow>,
+    slowest_commands: Vec<SlowRow>,
 }
 
 // ---------- Dev plugin ----------
@@ -477,7 +496,7 @@ endpoint = ""
 
                     // events: try to write a ping
                     if want.contains("events") {
-                        let ok = ctx.events.write("dev","doctor.ci.ping",&serde_json::json!({"ping":true}),0).is_ok();
+                        let ok = ctx.events.write("dev","doctor.ci.ping",&serde_json::json!({"ping":true}),0,None,None).is_ok();
                         let p = std::path::PathBuf::from(".nexoscli/log/events.jsonl");
                         checks.push(DoctorCiCheck {
                             name: "event_log_writable".into(),
@@ -556,6 +575,8 @@ endpoint = ""
                         "doctor.ping",
                         &serde_json::json!({"ping": true, "ts": Clock::now_rfc3339()}),
                         0,
+                        None,
+                        None,
                     ).is_ok();
                     checks.push(DoctorCheck {
                         name: "event_log_writable".into(),
@@ -615,27 +636,69 @@ endpoint = ""
                         }
                     }
 
-                    use std::collections::BTreeMap;
-                    let mut by: BTreeMap<(String,String),(u64,u64,u64)> = BTreeMap::new(); // (p,c)->(count,success,fail)
+                    use std::collections::{BTreeMap, HashMap};
+                    
+                    // per (plugin,command)
+                    let mut by_durs: HashMap<(String,String), Vec<u64>> = HashMap::new();
+                    let mut by_counts: HashMap<(String,String), (u64,u64,u64)> = HashMap::new(); // count, success, fail
+                    let mut errors: HashMap<String, u64> = HashMap::new();
+
                     for v in &rows {
-                        let p = v.get("plugin").and_then(|x| x.as_str()).unwrap_or("-");
-                        let c = v.get("command").and_then(|x| x.as_str()).unwrap_or("-");
+                        let p = v.get("plugin").and_then(|x| x.as_str()).unwrap_or("-").to_string();
+                        let c = v.get("command").and_then(|x| x.as_str()).unwrap_or("-").to_string();
                         let code = v.get("exit_code").and_then(|x| x.as_i64()).unwrap_or(0);
-                        let e = by.entry((p.to_string(), c.to_string())).or_insert((0,0,0));
+                        let dur = v.get("dur_ms").and_then(|x| x.as_u64());
+
+                        let e = by_counts.entry((p.clone(), c.clone())).or_insert((0,0,0));
                         e.0 += 1;
                         if code == 0 { e.1 += 1; } else { e.2 += 1; }
+
+                        if let Some(ms) = dur {
+                            by_durs.entry((p.clone(), c.clone())).or_default().push(ms);
+                        }
+
+                        if let Some(ec) = v.get("error_code").and_then(|x| x.as_str()) {
+                            if !ec.is_empty() { *errors.entry(ec.to_string()).or_insert(0) += 1; }
+                        }
                     }
-                    let mut out = Vec::<TelemetryByCommand>::new();
-                    for ((p,c),(cnt,ok,fail)) in by.into_iter() {
-                        out.push(TelemetryByCommand{ plugin: p, command: c, count: cnt, success: ok, fail });
+
+                    // build rows with percentiles
+                    let mut by_command: Vec<TelemetryByCommand> = Vec::new();
+                    for (key, (cnt, ok, fail)) in by_counts.into_iter() {
+                        let durs = by_durs.remove(&key).unwrap_or_default();
+                        let mut durs_sorted = durs.clone();
+                        durs_sorted.sort_unstable();
+                        let row = TelemetryByCommand {
+                            plugin: key.0,
+                            command: key.1,
+                            count: cnt, success: ok, fail,
+                            p50_ms: percentile(&durs_sorted, 50.0),
+                            p90_ms: percentile(&durs_sorted, 90.0),
+                            avg_ms:  average(&durs_sorted),
+                        };
+                        by_command.push(row);
                     }
-                    // sort by count desc
-                    out.sort_by(|a,b| b.count.cmp(&a.count));
+                    by_command.sort_by(|a,b| b.count.cmp(&a.count));
+
+                    // error leaderboard
+                    let mut errors_by_code: Vec<ErrorCodeRow> = errors.into_iter()
+                        .map(|(k,v)| ErrorCodeRow{ error_code: k, count: v })
+                        .collect();
+                    errors_by_code.sort_by(|a,b| b.count.cmp(&a.count));
+
+                    // slowest by p90
+                    let mut slow: Vec<SlowRow> = by_command.iter()
+                        .filter_map(|r| r.p90_ms.map(|p| SlowRow{ plugin: r.plugin.clone(), command: r.command.clone(), p90_ms: p, count: r.count }))
+                        .collect();
+                    slow.sort_by(|a,b| b.p90_ms.cmp(&a.p90_ms).then(b.count.cmp(&a.count)));
+                    if slow.len() > 5 { slow.truncate(5); }
 
                     let r = TelemetryReport {
                         total_events: rows.len() as u64,
                         window_start: since_ts.map(|t| t.format(&Rfc3339).unwrap()),
-                        by_command: out,
+                        by_command,
+                        errors_by_code,
+                        slowest_commands: slow,
                     };
                     let exit = ctx.ok("dev","telemetry.report",&r);
                     return Ok(exit);
@@ -680,7 +743,7 @@ endpoint = ""
             // telemetry report
             ToolSpec {
                 name: "dev.telemetry.report".to_string(),
-                about: "Aggregate events.jsonl → counts by command".to_string(),
+                about: "Aggregate events.jsonl → counts, p50/p90/avg, error leaderboard".to_string(),
                 args_schema: schema_for!(TelemetryReportArgs),
                 result_schema: schema_for!(TelemetryReport),
             },
@@ -692,6 +755,20 @@ endpoint = ""
 
 fn fmt<T: AsRef<Path>>(s: T) -> String { s.as_ref().display().to_string() }
 fn pstr(p: &PathBuf) -> String { p.display().to_string() }
+
+// Percentile and average calculations
+fn percentile(sorted: &Vec<u64>, pct: f64) -> Option<u64> {
+    if sorted.is_empty() { return None; }
+    let n = sorted.len() as f64;
+    let idx = (pct * (n - 1.0) / 100.0).round() as usize;
+    sorted.get(idx).copied()
+}
+
+fn average(v: &Vec<u64>) -> Option<u64> {
+    if v.is_empty() { return None; }
+    let s: u128 = v.iter().map(|&x| x as u128).sum();
+    Some((s / (v.len() as u128)) as u64)
+}
 
 fn to_camel(s: &str) -> String {
     let mut out = String::new();

@@ -1,6 +1,4 @@
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
-use hex::encode as hex_encode;
 use std::sync::Arc;
 use tracing::info;
 
@@ -26,26 +24,47 @@ pub struct EventWriter {
 impl EventWriter {
     pub fn new(providers: Arc<Providers>) -> Self { Self { providers } }
 
-    pub fn write<T: serde::Serialize>(&self, plugin: &str, command: &str, data: &T, exit_code: i32) -> Result<()> {
-        let payload = serde_json::to_vec(data)?;
-        let mut hasher = Sha256::new();
-        hasher.update(&payload);
-        let content_hash = format!("sha256:{}", hex_encode(hasher.finalize()));
+    /// Write a run event with optional error_code and duration.
+    pub fn write(
+        &self,
+        plugin: &str,
+        command: &str,
+        content: &serde_json::Value,
+        exit_code: i32,
+        error_code: Option<&str>,
+        dur_ms: Option<u64>,
+    ) -> Result<()> {
+        use sha2::{Digest, Sha256};
+        let bytes = serde_json::to_vec(content).unwrap_or_default();
+        let mut h = Sha256::new();
+        h.update(&bytes);
+        let content_hash = format!("sha256:{:x}", h.finalize());
 
-        let ev = Event {
-            ts: Clock::now_rfc3339(),
-            run_id: &self.providers.run_id,
-            plugin,
-            command,
-            data,
-            exit_code,
-            content_hash: content_hash.clone(),
-        };
-        let line = serde_json::to_string(&ev)?;
-        Io::append_line(&self.providers.event_log_path, &line)?;
+        let line = serde_json::json!({
+            "ts": Clock::now_rfc3339(),
+            "run_id": self.providers.run_id,
+            "plugin": plugin,
+            "command": command,
+            "exit_code": exit_code,
+            "error_code": error_code,
+            "dur_ms": dur_ms,
+            "content_hash": content_hash,
+            "data": content,
+        });
+        self.append_line(&line)
+    }
 
+    fn append_line(&self, line: &serde_json::Value) -> Result<()> {
+        let line_str = serde_json::to_string(line)?;
+        Io::append_line(&self.providers.event_log_path, &line_str)?;
+        
         // Mirror as a span event (handy during dev)
-        info!(target: "nexos.event", plugin, command, exit_code, %content_hash, "event_written");
+        info!(target: "nexos.event", 
+              plugin = line["plugin"].as_str().unwrap_or(""), 
+              command = line["command"].as_str().unwrap_or(""), 
+              exit_code = line["exit_code"].as_i64().unwrap_or(0),
+              content_hash = line["content_hash"].as_str().unwrap_or(""),
+              "event_written");
         Ok(())
     }
 }
