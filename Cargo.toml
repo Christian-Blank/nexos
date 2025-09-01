@@ -1,5 +1,5 @@
 [workspace]
-members = ["nexoscli-core", "nexoscli-bin", "plugins/issue", "plugins/dev", "plugins/graph", "plugins/demo", "plugins/bundle",
+members = ["nexoscli-core", "nexoscli-bin", "plugins/issue", "plugins/dev", "plugins/graph", "plugins/demo", "plugins/bundle", "plugins/cline", "plugins/term",
 ]
 resolver = "2"
 
@@ -41,5 +41,6 @@ tokio = { version = "1.37", features = ["rt-multi-thread", "macros"] }
 assert_cmd = "2.0"
 predicates = "3.1"
 tempfile = "3.10"
+filetime = "0.2"
 
 # Cargo aliases (placed in ~/.cargo/config.toml or use directly: cargo run --manifest-path nexoscli-bin/Cargo.toml --)

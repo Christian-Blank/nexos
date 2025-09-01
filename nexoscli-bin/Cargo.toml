@@ -31,6 +31,8 @@ nexoscli-plugin-issue = { path = "../plugins/issue" }
 nexoscli-plugin-dev = { path = "../plugins/dev" }
 nexoscli-plugin-graph = { path = "../plugins/graph" }
 nexoscli-plugin-bundle = { path = "../plugins/bundle" }
+nexoscli-plugin-cline = { path = "../plugins/cline" }
+nexoscli-plugin-term = { path = "../plugins/term" }
 
 [features]
 default = []
@@ -41,3 +43,4 @@ assert_cmd = { workspace = true }
 predicates = { workspace = true }
 tempfile = { workspace = true }
 serde_yaml = { workspace = true }
+filetime = { workspace = true }
