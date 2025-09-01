@@ -1,5 +1,6 @@
 use clap::{Arg, ArgMatches, Command};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use schemars::{schema_for, JsonSchema};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
@@ -111,8 +112,44 @@ impl Plugin for GraphPlugin {
     }
 
     fn tool_specs(&self) -> Vec<ToolSpec> {
-        vec![]
+        vec![
+            ToolSpec {
+                name: "graph.check".to_string(),
+                about: "Validate docs/exec_graph.yaml (acyclic, unique ids)".to_string(),
+                args_schema: schema_for!(GraphCheckArgs),
+                result_schema: schema_for!(CheckSummary),
+            },
+            ToolSpec {
+                name: "graph.impact".to_string(),
+                about: "List nodes impacted (downstream) by the given id".to_string(),
+                args_schema: schema_for!(GraphImpactArgs),
+                result_schema: schema_for!(GraphImpactResult),
+            },
+        ]
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct GraphCheckArgs {
+    #[serde(default = "default_graph_file")]
+    pub file: String,
+}
+
+fn default_graph_file() -> String {
+    "docs/exec_graph.yaml".to_string()
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct GraphImpactArgs {
+    pub id: String,
+    #[serde(default = "default_graph_file")]
+    pub file: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct GraphImpactResult {
+    pub id: String,
+    pub impacted: Vec<String>,
 }
 
 fn load_graph(path: &str) -> anyhow::Result<ExecGraph> {
@@ -120,7 +157,7 @@ fn load_graph(path: &str) -> anyhow::Result<ExecGraph> {
     Ok(serde_yaml::from_slice(&bytes)?)
 }
 
-#[derive(serde::Serialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 struct CheckSummary {
     node_count: usize,
     unique_ids: bool,

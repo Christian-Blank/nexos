@@ -39,3 +39,4 @@ otel = ["opentelemetry", "opentelemetry_sdk", "opentelemetry-otlp", "tracing-ope
 assert_cmd = { workspace = true }
 predicates = { workspace = true }
 tempfile = { workspace = true }
+serde_yaml = { workspace = true }
