@@ -18,6 +18,7 @@ fn main() -> anyhow::Result<()> {
     registry.register(Box::new(nexoscli_plugin_issue::IssuePlugin::new()));
     registry.register(Box::new(nexoscli_plugin_dev::DevPlugin::new()));
     registry.register(Box::new(nexoscli_plugin_graph::GraphPlugin::new()));
+    registry.register(Box::new(nexoscli_plugin_demo::DemoPlugin::new()));
 
     // 2) Build the full app (globals + plugin subcommands) and parse once
     let app = compose_app(&registry);

@@ -814,6 +814,7 @@ dependencies = [
  "clap_complete",
  "clap_mangen",
  "nexoscli-core",
+ "nexoscli-plugin-demo",
  "nexoscli-plugin-dev",
  "nexoscli-plugin-graph",
  "nexoscli-plugin-issue",
@@ -849,6 +850,19 @@ dependencies = [
  "time",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "nexoscli-plugin-demo"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "nexoscli-core",
+ "schemars",
+ "serde",
+ "serde_json",
+ "time",
 ]
 
 [[package]]

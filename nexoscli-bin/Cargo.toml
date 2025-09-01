@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+nexoscli-plugin-demo = { path = "../plugins/demo" }
+
+
 nexoscli-core = { path = "../nexoscli-core" }
 anyhow = { workspace = true }
 clap = { workspace = true }
