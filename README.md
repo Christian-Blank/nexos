@@ -131,14 +131,17 @@ The global graph is composed from these locals; changes bubble up via evidence a
 ⸻
 
 Current status
-	•	Origin Pack v0 in place:
-	•	North Star, Project Brief, Execution Graph, ADR-0001, Playbook
-	•	First slice (implemented):
-	•	Walking skeleton CLI + issue plugin (local) with JSON outputs, event log, and spans
-	•	OpenTelemetry integration with Jaeger UI for distributed tracing
-	•	JSON Schema export for AI tool integration (nexoscli tools export)
-	•	Dev container with full observability stack
-	•	Shell completions and man page generation
+	•	**Phase 6 Complete**: GitHub integration and TracePack bundles
+	•	✅ Read-only GitHub adapter for issue import (fixture-based testing)
+	•	✅ TracePack bundles (build/verify with SHA-256 integrity checking)
+	•	✅ Complete end-to-end test coverage (11 comprehensive tests)
+	•	Foundation (Origin Pack v0):
+	•	✅ North Star, Project Brief, Execution Graph, ADR-0001, Playbook
+	•	✅ Walking skeleton CLI + issue plugin with JSON outputs, event log, spans
+	•	✅ OpenTelemetry integration with Jaeger UI for distributed tracing
+	•	✅ JSON Schema export for AI tool integration (nexoscli tools export)
+	•	✅ Dev container with full observability stack
+	•	✅ Shell completions and man page generation
 
 Check the Execution Graph for the active feature/issue: docs/exec_graph.yaml
 

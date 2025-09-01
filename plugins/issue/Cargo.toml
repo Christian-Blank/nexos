@@ -12,3 +12,4 @@ schemars = { workspace = true }
 clap = { workspace = true }
 time = { workspace = true }
 tracing = { workspace = true }
+reqwest = { workspace = true }

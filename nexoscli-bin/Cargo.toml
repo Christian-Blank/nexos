@@ -30,6 +30,7 @@ tokio = { workspace = true, optional = true }
 nexoscli-plugin-issue = { path = "../plugins/issue" }
 nexoscli-plugin-dev = { path = "../plugins/dev" }
 nexoscli-plugin-graph = { path = "../plugins/graph" }
+nexoscli-plugin-bundle = { path = "../plugins/bundle" }
 
 [features]
 default = []
