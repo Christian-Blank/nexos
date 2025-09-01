@@ -8,12 +8,27 @@ nexoscli-core = { path = "../nexoscli-core" }
 anyhow = { workspace = true }
 clap = { workspace = true }
 serde_json = { workspace = true }
+serde_yaml = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 uuid = { workspace = true }
+schemars = { workspace = true }
+clap_complete = { workspace = true }
+clap_mangen = { workspace = true }
+
+# Optional OTEL stack (feature-gated)
+opentelemetry = { workspace = true, optional = true }
+opentelemetry_sdk = { workspace = true, optional = true }
+opentelemetry-otlp = { workspace = true, optional = true }
+tracing-opentelemetry = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
 
 # Plugin deps (feature flaggable later)
 nexoscli-plugin-issue = { path = "../plugins/issue" }
+
+[features]
+default = []
+otel = ["opentelemetry", "opentelemetry_sdk", "opentelemetry-otlp", "tracing-opentelemetry", "tokio"]
 
 [dev-dependencies]
 assert_cmd = { workspace = true }

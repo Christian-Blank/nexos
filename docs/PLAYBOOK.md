@@ -60,6 +60,41 @@ cat .nexoscli/log/events.jsonl
 4. Verify CLI functionality manually
 5. Check event logs for proper instrumentation
 
+## OTEL Development
+
+**Observability stack** for development with OpenTelemetry:
+
+```bash
+# Dev container (recommended)
+# Open in VS Code -> Dev Containers: Reopen in Container
+# Automatically starts OTel collector + Jaeger
+
+# Build with OTEL support
+cargo build --workspace --features otel
+
+# Run with observability (spans → Jaeger UI)
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 \
+RUST_LOG=info \
+./target/debug/nexoscli --features otel issue new --title "traced command"
+
+# View spans: http://localhost:16686 (Jaeger UI)
+# Service: nexoscli, spans: run → execute with plugin context
+```
+
+**Tools & Schema Export:**
+```bash
+# Export JSON schemas for all commands
+./target/debug/nexoscli tools export
+
+# Generate shell completions
+./target/debug/nexoscli completions bash > nexoscli.bash
+
+# Generate man page  
+./target/debug/nexoscli man
+```
+
+**Event Log Structure:** `.nexoscli/log/events.jsonl` with content hashing for integrity.
+
 ## Folder Rule
 
 Any bounded context (folder) must have a one-page README with project_brief front-matter and a link to its parent. Child NS optional; if present, it only tightens budgets.

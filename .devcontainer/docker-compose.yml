@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspaces/nexos:cached
+    working_dir: /workspaces/nexos
+    command: sleep infinity
+    environment:
+      # Enable OTEL by default inside the dev container
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_TRACES_SAMPLER: always_on
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otelcol:4317
+    depends_on:
+      - otelcol
+      - jaeger
+
+  otelcol:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"  # OTLP gRPC
+      - "4318:4318"  # OTLP HTTP
+      - "13133:13133" # health_check
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:13133/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    environment:
+      - LOG_LEVEL=info
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "14250:14250"   # gRPC ingest for collector's jaeger exporter
+      - "14268:14268"   # HTTP ingest (not strictly needed here)

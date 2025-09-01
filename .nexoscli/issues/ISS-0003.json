@@ -1,0 +1,9 @@
+{
+  "id": "ISS-0003",
+  "title": "feat(cli/tools-export): syscli tools export --output json for JSON Schemas",
+  "body": null,
+  "labels": [],
+  "state": "open",
+  "created_at": "2025-09-01T06:50:07.283654Z",
+  "updated_at": "2025-09-01T06:50:07.283654Z"
+}

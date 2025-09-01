@@ -1,7 +1,8 @@
-use std::sync::Arc;
 use clap::{ArgMatches, Command};
+use schemars::{schema::RootSchema, JsonSchema};
+use serde::Serialize;
 
-use crate::{Result};
+use crate::Result;
 use crate::providers::Providers;
 use crate::event::EventWriter;
 
@@ -9,14 +10,14 @@ use crate::event::EventWriter;
 pub enum OutputFormat { Text, Json, Yaml }
 
 pub struct CommandContext {
-    pub providers: Arc<Providers>,
+    pub providers: std::sync::Arc<Providers>,
     pub events: EventWriter,
     pub verbosity: u8,
     pub output: OutputFormat,
 }
 
 impl CommandContext {
-    pub fn new(providers: Arc<Providers>, verbosity: u8, output: OutputFormat) -> Self {
+    pub fn new(providers: std::sync::Arc<Providers>, verbosity: u8, output: OutputFormat) -> Self {
         let events = EventWriter::new(providers.clone());
         Self { providers, events, verbosity, output }
     }
@@ -25,12 +26,17 @@ impl CommandContext {
         match self.output {
             OutputFormat::Json => println!("{}", serde_json::to_string_pretty(data).unwrap()),
             OutputFormat::Yaml => println!("{}", serde_yaml::to_string(data).unwrap()),
-            OutputFormat::Text => {
-                // default fallback for text: JSON dump for now
-                println!("{}", serde_json::to_string_pretty(data).unwrap());
-            }
+            OutputFormat::Text => println!("{}", serde_json::to_string_pretty(data).unwrap()),
         }
     }
+}
+
+#[derive(Debug, Serialize)]
+pub struct ToolSpec {
+    pub name: String,            // e.g., "issue.new"
+    pub about: String,           // human hint
+    pub args_schema: RootSchema,
+    pub result_schema: RootSchema,
 }
 
 pub trait Plugin: Send + Sync {
@@ -39,7 +45,7 @@ pub trait Plugin: Send + Sync {
     fn describe(&self) -> &'static str;
 
     fn augment_commands(&self, app: Command) -> Command;
-
-    /// sub_matches are the matches for this plugin's root subcommand
     fn execute(&self, sub_matches: &ArgMatches, ctx: &CommandContext) -> Result<i32>;
+
+    fn tool_specs(&self) -> Vec<ToolSpec> { vec![] }
 }

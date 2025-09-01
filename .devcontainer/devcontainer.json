@@ -1,0 +1,17 @@
+{
+  "name": "nexos dev",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "dev",
+  "workspaceFolder": "/workspaces/nexos",
+  "postCreateCommand": "cargo build -p nexoscli",
+  "forwardPorts": [4317, 4318, 16686, 13133],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "serayuzgur.crates"
+      ]
+    }
+  }
+}

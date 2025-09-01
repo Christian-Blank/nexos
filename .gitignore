@@ -95,5 +95,5 @@ pids/
 coverage/
 *.lcov
 
-# NEXOS specific
-.nexoscli/
+# dev/runtime artifacts
+.nexoscli/log/

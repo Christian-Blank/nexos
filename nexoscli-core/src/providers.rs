@@ -1,8 +1,8 @@
-use std::fs::{OpenOptions};
+use std::fs::OpenOptions;
 use std::io::Write;
-use std::path::{PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
-use time::{OffsetDateTime, format_description::well_known::Rfc3339};
+use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -49,7 +49,7 @@ pub struct Providers {
 
 impl Providers {
     pub fn new(cwd: PathBuf) -> Self {
-        let run = std::env::var("nexoscli_RUN_ID").unwrap_or_else(|_| Entropy::uuid_v4());
+        let run = std::env::var("NEXOS_RUN_ID").unwrap_or_else(|_| Entropy::uuid_v4());
         let path = cwd.join(".nexoscli").join("log").join("events.jsonl");
         Self { run_id: run, event_log_path: path }
     }

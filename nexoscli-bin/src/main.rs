@@ -1,18 +1,24 @@
+mod telemetry;
+
 use clap::{Arg, ArgAction, Command};
+use clap_complete::{generate, shells::{Bash, Zsh, Fish}};
+use clap_mangen::Man;
+use tracing::{info, span, Level};
+use std::io;
+
 use nexoscli_core::{
     plugin::{CommandContext, OutputFormat},
     providers::Providers,
     registry::PluginRegistry,
 };
-use tracing_subscriber::EnvFilter;
 
 fn main() -> anyhow::Result<()> {
     // 1) Register plugins
     let mut registry = PluginRegistry::new();
     registry.register(Box::new(nexoscli_plugin_issue::IssuePlugin::new()));
 
-    // 2) Build the full app (globals + plugin subcommands), then parse once
-    let mut app = compose_app(&registry);
+    // 2) Build the full app (globals + plugin subcommands) and parse once
+    let app = compose_app(&registry);
     let matches = app.clone().get_matches();
 
     // 3) Globals
@@ -23,54 +29,96 @@ fn main() -> anyhow::Result<()> {
         _ => OutputFormat::Text,
     };
 
-    // 4) Logging
-    let level = match verbose {
-        0 => "info",
-        1 => "debug",
-        _ => "trace",
-    };
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env().add_directive(level.parse().unwrap()))
-        .with_writer(std::io::stderr)
-        .init();
+    // 4) Telemetry
+    telemetry::init_tracing("nexoscli", env!("CARGO_PKG_VERSION"), verbose);
 
     // 5) Context
     let cwd = std::env::current_dir()?;
     let providers = Providers::new(cwd).arc();
-    let ctx = CommandContext::new(providers, verbose, output);
+    let ctx = CommandContext::new(providers.clone(), verbose, output);
 
-    // 6) Route
+    // 6) Root span
+    let run_span = span!(
+        Level::INFO,
+        "run",
+        run_id = %providers.run_id,
+        cli_output = matches.get_one::<String>("output").map(|s| s.as_str()).unwrap_or("text")
+    );
+    let _run_g = run_span.enter();
+
+    // 7) Route
     match matches.subcommand() {
         Some(("version", _)) => {
+            info!("version");
             println!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"));
         }
         Some(("plugins", _)) => {
+            info!("plugins");
             for p in registry.iter() {
                 println!("{} v{} - {}", p.name(), p.version(), p.describe());
             }
         }
+        Some(("tools", m)) => {
+            if let Some(("export", em)) = m.subcommand() {
+                let filter = em.get_one::<String>("plugin").map(|s| s.as_str());
+                let mut specs = Vec::new();
+                for p in registry.iter() {
+                    if filter.is_none() || filter == Some(p.name()) {
+                        specs.extend(p.tool_specs());
+                    }
+                }
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "toolset": "nexoscli",
+                        "version": env!("CARGO_PKG_VERSION"),
+                        "commands": specs
+                    }))?
+                );
+            }
+        }
+        Some(("completions", m)) => {
+            let shell = m.get_one::<String>("shell").unwrap().as_str();
+            let mut cmd = compose_app(&registry);
+            match shell {
+                "bash" => generate(Bash, &mut cmd, "nexoscli", &mut io::stdout()),
+                "zsh"  => generate(Zsh,  &mut cmd, "nexoscli", &mut io::stdout()),
+                "fish" => generate(Fish, &mut cmd, "nexoscli", &mut io::stdout()),
+                _ => unreachable!(),
+            }
+        }
+        Some(("man", _)) => {
+            let man = Man::new(compose_app(&registry));
+            man.render(&mut io::stdout())?;
+        }
         Some((plugin_name, sub_matches)) => {
+            let exec_span = span!(Level::INFO, "execute", plugin = plugin_name);
+            let _exec_g = exec_span.enter();
             if let Some(plugin) = registry.get(plugin_name) {
                 let code = plugin.execute(sub_matches, &ctx)?;
+                info!(exit_code = code, "done");
+                telemetry::shutdown_tracing();
                 std::process::exit(code);
             } else {
                 eprintln!("Unknown plugin: {}", plugin_name);
+                telemetry::shutdown_tracing();
                 std::process::exit(2);
             }
         }
         None => {
+            let mut app = compose_app(&registry);
             app.print_help().unwrap();
             println!();
         }
     }
 
+    telemetry::shutdown_tracing();
     Ok(())
 }
 
 fn compose_app(registry: &PluginRegistry) -> Command {
     let app = Command::new("nexoscli")
         .about("System CLI with plugin architecture")
-        // Global flags (work anywhere in the command line)
         .arg(
             Arg::new("verbose")
                 .short('v')
@@ -88,7 +136,28 @@ fn compose_app(registry: &PluginRegistry) -> Command {
                 .global(true),
         )
         .subcommand(Command::new("version").about("Show version"))
-        .subcommand(Command::new("plugins").about("List registered plugins"));
+        .subcommand(Command::new("plugins").about("List registered plugins"))
+        .subcommand(
+            Command::new("tools")
+                .about("Tools & schemas")
+                .subcommand(
+                    Command::new("export")
+                        .about("Export tools manifest (JSON)")
+                        .arg(
+                            Arg::new("plugin")
+                                .long("plugin")
+                                .value_name("NAME")
+                                .help("Filter to one plugin"),
+                        ),
+                ),
+        )
+        .subcommand(
+            Command::new("completions")
+                .about("Generate shell completions")
+                .arg(Arg::new("shell").value_parser(["bash", "zsh", "fish"]).required(true)),
+        )
+        .subcommand(Command::new("man").about("Print man page to stdout"));
 
+    // add plugin subcommands
     registry.augment_all(app)
 }

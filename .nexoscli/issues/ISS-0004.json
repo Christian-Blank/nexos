@@ -1,0 +1,9 @@
+{
+  "id": "ISS-0004",
+  "title": "test(e2e): add E2E for show and close; assert JSON shapes and event log",
+  "body": null,
+  "labels": [],
+  "state": "open",
+  "created_at": "2025-09-01T06:50:12.021537Z",
+  "updated_at": "2025-09-01T06:50:12.021537Z"
+}

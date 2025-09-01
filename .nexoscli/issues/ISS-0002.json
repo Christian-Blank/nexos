@@ -1,0 +1,9 @@
+{
+  "id": "ISS-0002",
+  "title": "feat(core/telemetry): add span lifecycle around command execution",
+  "body": null,
+  "labels": [],
+  "state": "open",
+  "created_at": "2025-09-01T06:50:02.682986Z",
+  "updated_at": "2025-09-01T06:50:02.682986Z"
+}

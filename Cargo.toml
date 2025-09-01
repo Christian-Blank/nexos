@@ -12,14 +12,29 @@ anyhow = "1.0"
 thiserror = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+serde_yaml = "0.9"
+schemars = { version = "0.8", features = ["derive"] }
+sha2 = "0.10"
+hex = "0.4"
 clap = { version = "4.5", features = ["derive"] }
+clap_complete = "4.5"
+clap_mangen = "0.2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter","fmt","json"] }
 uuid = { version = "1.8", features = ["v4","serde"] }
 time = { version = "0.3", features = ["macros","formatting","parsing","serde-well-known"] }
 dirs = "5.0"
 
+# OpenTelemetry (feature-gated in bin crate)
+opentelemetry = { version = "0.23", features = ["trace"], default-features = false }
+opentelemetry_sdk = { version = "0.23", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.16", features = ["tonic"] }
+tracing-opentelemetry = "0.24"
+tokio = { version = "1.37", features = ["rt-multi-thread", "macros"] }
+
 # test deps (workspace-scoped)
 assert_cmd = "2.0"
 predicates = "3.1"
 tempfile = "3.10"
+
+# Cargo aliases (placed in ~/.cargo/config.toml or use directly: cargo run --manifest-path nexoscli-bin/Cargo.toml --)
