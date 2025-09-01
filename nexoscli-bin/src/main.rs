@@ -27,6 +27,7 @@ fn main() -> anyhow::Result<()> {
     registry.register(Box::new(nexoscli_plugin_bundle::BundlePlugin::new()));
     registry.register(Box::new(nexoscli_plugin_cline::ClinePlugin::new()));
     registry.register(Box::new(nexoscli_plugin_term::TermPlugin::new()));
+    registry.register(Box::new(nexoscli_plugin_rules::RulesPlugin::new()));
 
     // 2) Build the full app with config-driven default output
     let app = compose_app(&registry, &config);

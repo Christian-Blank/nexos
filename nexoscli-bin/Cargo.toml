@@ -33,6 +33,7 @@ nexoscli-plugin-graph = { path = "../plugins/graph" }
 nexoscli-plugin-bundle = { path = "../plugins/bundle" }
 nexoscli-plugin-cline = { path = "../plugins/cline" }
 nexoscli-plugin-term = { path = "../plugins/term" }
+nexoscli-plugin-rules = { path = "../plugins/rules" }
 
 [features]
 default = []

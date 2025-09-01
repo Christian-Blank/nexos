@@ -224,6 +224,15 @@ impl Plugin for DevPlugin {
                                      .help("24h | 7d | RFC3339 (inclusive)"))
                         )
                 )
+                // dev docs
+                .subcommand(
+                    Command::new("docs").about("Documentation utilities")
+                        .subcommand(
+                            Command::new("build")
+                                .about("Generate CLI reference and Rules doc")
+                                .arg(Arg::new("open").long("open").action(ArgAction::SetTrue))
+                        )
+                )
         )
     }
 
@@ -596,6 +605,23 @@ endpoint = ""
                         });
                     }
 
+                    // rules (soft by default)
+                    if want.contains("rules") {
+                        let (code_lint, _v1) = run_cli_json(&cwd, &["rules","lint"])?;
+                        let ok_lint = code_lint == 0;
+                        // also ensure export works for cline & human
+                        let (code_ec, _v2) = run_cli_json(&cwd, &["rules","export","--for","cline","--out",".clinerules/compiled.md"])?;
+                        let (code_eh, _v3) = run_cli_json(&cwd, &["rules","export","--for","human","--out","docs/RULES.md"])?;
+                        let ok = ok_lint && code_ec == 0 && code_eh == 0;
+                        checks.push(DoctorCiCheck{
+                            name: "rules".into(),
+                            ok,
+                            detail: if ok { "lint & export OK".into() } else { "rules lint/export failed".into() },
+                            severity: "info".into(),
+                            fix: Some("Run `nexoscli rules init` then `nexoscli rules lint`".into()),
+                        });
+                    }
+
                     // Determine required checks (via flag or env)
                     let mut required: std::collections::HashSet<String> = m
                         .get_one::<String>("require")
@@ -780,6 +806,46 @@ endpoint = ""
                     };
                     let exit = ctx.ok("dev","telemetry.report",&r);
                     return Ok(exit);
+                }
+                Ok(2)
+            }
+
+            // ---------------- dev docs ----------------
+            Some(("docs", dm)) => {
+                if let Some(("build", m)) = dm.subcommand() {
+                    let cwd = std::env::current_dir()?;
+                    // 1) Top-level help
+                    let (_c1, help) = run_cli_text(&cwd, &["--help"])?;
+                    // 2) tools export (machine specs)
+                    let (_c2, tools) = run_cli_json(&cwd, &["tools","export"])?;
+                    // 3) rules export (humans)
+                    let (_c3, _v3) = run_cli_json(&cwd, &["rules","export","--for","human","--out","docs/RULES.md"])?;
+
+                    fs::create_dir_all("docs")?;
+                    let mut md = String::new();
+                    md.push_str("# NEXOS CLI Reference (generated)\n\n");
+                    md.push_str("## Top-level Help\n\n```\n");
+                    md.push_str(&help);
+                    md.push_str("\n```\n\n");
+
+                    md.push_str("## Tool Specs (for agents)\n\n");
+                    let tools_arr = tools["data"]["tools"].as_array().cloned().unwrap_or_default();
+                    for t in tools_arr {
+                        let name = t["name"].as_str().unwrap_or("-");
+                        let about = t["about"].as_str().unwrap_or("-");
+                        md.push_str(&format!("### `{}`\n\n{}\n\n", name, about));
+                    }
+                    fs::write("docs/CLI_REFERENCE.md", md.as_bytes())?;
+
+                    // Optionally open
+                    if m.get_flag("open") {
+                        #[cfg(target_os="macos")] { let _ = std::process::Command::new("open").arg("docs/CLI_REFERENCE.md").status(); }
+                        #[cfg(target_os="linux")] { let _ = std::process::Command::new("xdg-open").arg("docs/CLI_REFERENCE.md").status(); }
+                    }
+
+                    let out = serde_json::json!({"written": ["docs/CLI_REFERENCE.md", "docs/RULES.md"]});
+                    let code = ctx.ok("dev","docs.build",&out);
+                    return Ok(code);
                 }
                 Ok(2)
             }
@@ -1076,4 +1142,11 @@ fn run_cli_json(cwd: &Path, args: &[&str]) -> anyhow::Result<(i32, serde_json::V
     let val: serde_json::Value = serde_json::from_slice(&out.stdout)
         .map_err(|e| anyhow::anyhow!("stdout not JSON for {:?}: {}", a, e))?;
     Ok((code, val))
+}
+
+fn run_cli_text(cwd: &Path, args: &[&str]) -> anyhow::Result<(i32, String)> {
+    let exe = std::env::current_exe()?;
+    let out = Proc::new(exe).current_dir(cwd).args(args).output()?;
+    let code = out.status.code().unwrap_or(-1);
+    Ok((code, String::from_utf8_lossy(&out.stdout).to_string()))
 }

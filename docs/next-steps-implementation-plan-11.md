@@ -581,7 +581,7 @@ nexoscli dev doctor --ci --checks rules --require rules
 
 ⸻
 
-9) Suggested follow‑ups (pin; do later)
+9) Suggested follow‑ups (pin; add them to ROADMAP_NEXT.md as possible future tasks)
 	•	rules propose: scaffold rules/proposals/CP-YYYYMMDD-*.md from telemetry (top error codes) and recent events.
 	•	rules drift: detect stale last_reviewed and page the rules DRI.
 	•	dev docs build --watch: rebuild on plugin/rules changes.
