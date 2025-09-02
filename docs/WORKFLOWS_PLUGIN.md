@@ -234,3 +234,112 @@ Examples:
 
 - Override drift intentionally
   ./target/debug/nexoscli workflow run --spec docs/workflows/WF-timer-demo.yaml --allow-change-ids-drift --output json
+
+## Temporal Outbox (Phase 22 — T‑1)
+
+This phase introduces a “temporal outbox adapter” that offloads workflow execution by emitting JSON envelopes to a local outbox directory rather than executing steps inline. No SDK/network calls are made; a future worker can consume these envelopes.
+
+- New flag added to commands (default remains local):
+  - workflow run ... --engine {local|temporal}
+  - workflow signal ... --engine {local|temporal}
+- When --engine temporal is used, envelopes are written to:
+  - .nexoscli/engine/outbox/
+- Local engine behavior is unchanged and remains the default.
+
+Usage
+- Run a workflow to the outbox:
+  ./target/debug/nexoscli workflow run --spec .nexoscli/workflows/WF-demo/spec.yaml --engine temporal --output json
+- Send a signal as an outbox envelope:
+  ./target/debug/nexoscli workflow signal --id WF-demo --name pause --engine temporal --output json
+
+Behavior
+- workflow run --engine temporal:
+  - Reads/validates the spec; does not execute steps locally.
+  - Emits:
+    - "start" envelope once per run
+    - one schedule envelope per step:
+      - "activity.schedule" for activity steps
+      - "timer.schedule" for timer steps
+      - "child.start" for child workflow steps
+  - Updates .nexoscli/workflows/<id>/determinism.json with engine:"temporal".
+  - Does not gate on run.change_ids drift (local engine continues to gate).
+- workflow signal --engine temporal:
+  - Emits a "signal" envelope (instead of writing to the workflow’s signals mailbox).
+
+Envelope shape (common fields)
+- op: string — "start" | "activity.schedule" | "timer.schedule" | "child.start" | "signal"
+- workflow: string — workflow id
+- run_id: string — "WF-RUN-<uuid4>"
+- key: string — workflow id (partitioning key)
+- name: string (optional) — present for "signal"
+- attrs: object
+  - build_id: string | null
+  - change_ids: string[]
+  - spec_sha256: string
+  - search_attributes: object
+  - memo: object
+- body: object — op-specific payload
+- ts: string — RFC3339
+
+Examples
+- Start:
+  {
+    "op": "start",
+    "workflow": "WF-demo",
+    "run_id": "WF-RUN-...",
+    "key": "WF-demo",
+    "attrs": {
+      "build_id": "build-A",
+      "change_ids": ["CH_V1"],
+      "spec_sha256": "sha256:...",
+      "search_attributes": {"task_queue":"nexos"},
+      "memo": {}
+    },
+    "body": { "spec_path": ".nexoscli/workflows/WF-demo/spec.yaml", "step_count": 2 },
+    "ts": "2025-09-02T17:50:00Z"
+  }
+
+- Activity schedule:
+  {
+    "op": "activity.schedule",
+    "workflow": "WF-demo",
+    "run_id": "WF-RUN-...",
+    "key": "WF-demo",
+    "attrs": { ...same as above... },
+    "body": {
+      "step_id": "a1",
+      "activity": "dev.plugins.check",
+      "args": {},
+      "idempotent": true,
+      "retry": { "max_attempts": 1, "backoff_ms": 100 },
+      "timeouts": {},
+      "resources": []
+    },
+    "ts": "2025-09-02T17:50:00Z"
+  }
+
+- Timer schedule:
+  {
+    "op": "timer.schedule",
+    "body": { "step_id": "t1", "duration_ms": 1000 },
+    ...common fields...
+  }
+
+- Child start:
+  {
+    "op": "child.start",
+    "body": { "step_id": "c1", "spec": "docs/workflows/WF-child.yaml", "wait": true, "inherit_search_attributes": true },
+    ...common fields...
+  }
+
+- Signal:
+  {
+    "op": "signal",
+    "workflow": "WF-demo",
+    "run_id": "WF-RUN-...",
+    "key": "WF-demo",
+    "name": "pause",
+    "attrs": { "build_id": null, "change_ids": [], "spec_sha256": "", "search_attributes": {}, "memo": {} },
+    "body": {},
+    "ts": "2025-09-02T17:50:05Z"
+  }

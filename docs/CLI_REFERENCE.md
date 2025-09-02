@@ -14,16 +14,16 @@ Commands:
   completions  Generate shell completions
   man          Print man page to stdout
   term         Run commands with provenance (non-interactive)
-  issue        Issue management
-  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
-  rules        Rules management (init/lint/export)
-  cline        Cline task history (locate/import) with idempotent ingest
-  bundle       TracePack bundles
-  dev          Developer utilities
-  demo         Demo plugin
   replay       Replay/extract TracePacks from logged runs
-  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
   graph        Graph tools
+  dev          Developer utilities
+  bundle       TracePack bundles
+  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
+  cline        Cline task history (locate/import) with idempotent ingest
+  rules        Rules management (init/lint/export)
+  issue        Issue management
+  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
+  demo         Demo plugin
   help         Print this message or the help of the given subcommand(s)
 
 Options:
@@ -34,46 +34,6 @@ Options:
 ```
 
 ## Tool Specs (for agents)
-
-### `workflow.init`
-
-Create a workflow spec template
-
-### `workflow.plan`
-
-Plan (idempotency-aware)
-
-### `workflow.run`
-
-Run a workflow spec sequentially
-
-### `workflow.status`
-
-Show effects, history, visibility
-
-### `workflow.signal`
-
-Send a signal to a running workflow
-
-### `workflow.query`
-
-Query workflow runtime state
-
-### `workflow.list`
-
-List workflows (visibility index)
-
-### `workflow.upsert-sa`
-
-Upsert search attributes for a workflow
-
-### `bundle.build`
-
-Build a TracePack bundle
-
-### `bundle.verify`
-
-Verify a TracePack bundle
 
 ### `issue.new`
 
@@ -111,6 +71,62 @@ Verify local setup (dotdir, event log write, config, OTEL envs); --ci aggregates
 
 Aggregate events.jsonl → counts, p50/p90/avg, error leaderboard
 
+### `workflow.init`
+
+Create a workflow spec template
+
+### `workflow.plan`
+
+Plan (idempotency-aware)
+
+### `workflow.validate`
+
+Validate a workflow spec (schema + invariants)
+
+### `workflow.run`
+
+Run a workflow spec sequentially
+
+### `workflow.status`
+
+Show effects, history, visibility
+
+### `workflow.signal`
+
+Send a signal to a running workflow
+
+### `workflow.query`
+
+Query workflow runtime state
+
+### `workflow.list`
+
+List workflows (visibility index)
+
+### `workflow.upsert-sa`
+
+Upsert search attributes for a workflow
+
+### `demo.hello`
+
+Say hello
+
+### `bundle.build`
+
+Build a TracePack bundle
+
+### `bundle.verify`
+
+Verify a TracePack bundle
+
+### `graph.check`
+
+Validate docs/exec_graph.yaml (acyclic, unique ids)
+
+### `graph.impact`
+
+List nodes impacted (downstream) by the given id
+
 ### `rules.lint`
 
 Validate rules front-matter
@@ -126,16 +142,4 @@ Find Cline storage locations
 ### `cline.import`
 
 Import Cline task history with idempotent ingest
-
-### `graph.check`
-
-Validate docs/exec_graph.yaml (acyclic, unique ids)
-
-### `graph.impact`
-
-List nodes impacted (downstream) by the given id
-
-### `demo.hello`
-
-Say hello
 

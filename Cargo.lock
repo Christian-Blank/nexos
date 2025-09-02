@@ -1363,6 +1363,7 @@ dependencies = [
  "serde_yaml",
  "sha2",
  "time",
+ "uuid",
  "walkdir",
 ]
 

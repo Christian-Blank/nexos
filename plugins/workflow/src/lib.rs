@@ -17,6 +17,7 @@ use std::{
     time::{Duration, Instant},
 };
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+use uuid::Uuid;
 
 /* ---------------- Spec & Model Types ---------------- */
 
@@ -277,7 +278,13 @@ ClapCommand::new("run")
     .arg(Arg::new("spec").long("spec").required(true).value_name("YAML"))
     .arg(Arg::new("dry-run").long("dry-run").action(ArgAction::SetTrue))
     .arg(Arg::new("allow-change-ids-drift").long("allow-change-ids-drift").action(ArgAction::SetTrue))
-    .arg(Arg::new("build-id").long("build-id").value_name("STRING")),
+    .arg(Arg::new("build-id").long("build-id").value_name("STRING"))
+    .arg(
+        Arg::new("engine")
+            .long("engine")
+            .value_parser(["local","temporal"])
+            .default_value("local"),
+    ),
                 )
                 .subcommand(
                     ClapCommand::new("status")
@@ -295,6 +302,12 @@ ClapCommand::new("run")
                                 .long("payload")
                                 .default_value("{}")
                                 .help("JSON payload"),
+                        )
+                        .arg(
+                            Arg::new("engine")
+                                .long("engine")
+                                .value_parser(["local","temporal"])
+                                .default_value("local"),
                         ),
                 )
                 .subcommand(
@@ -515,6 +528,7 @@ ClapCommand::new("run")
                 if let Some(bid) = build_id_cli {
                     spec.run.build_id = Some(bid);
                 }
+                let engine = sm.get_one::<String>("engine").map(|s| s.as_str()).unwrap_or("local");
                 let started_at = now();
 
                 // initialize visibility (T-3)
@@ -544,6 +558,107 @@ ClapCommand::new("run")
                             spec_id: spec.id,
                             steps: plan,
                         },
+                    ));
+                }
+
+                if engine == "temporal" {
+                    let spec_sha = sha256_file(spec_path)?;
+                    let prev = read_determinism(&spec.id);
+                    let now_ts = now();
+                    let det = Determinism {
+                        build_id: spec.run.build_id.clone(),
+                        change_ids: spec.run.change_ids.clone(),
+                        spec_sha256: spec_sha.clone(),
+                        first_run_at: prev.as_ref().map(|d| d.first_run_at.clone()).unwrap_or_else(|| now_ts.clone()),
+                        last_run_at: now_ts.clone(),
+                        engine: "temporal".into(),
+                    };
+                    write_determinism(&spec.id, &det).ok();
+
+                    let run_id = new_run_id();
+                    let attrs = OutboxAttrs {
+                        build_id: spec.run.build_id.clone(),
+                        change_ids: spec.run.change_ids.clone(),
+                        spec_sha256: spec_sha.clone(),
+                        search_attributes: spec.run.search_attributes.clone(),
+                        memo: spec.run.memo.clone(),
+                    };
+
+                    // workflow.start
+                    let start_env = OutboxEnvelope {
+                        op: "start".into(),
+                        workflow: spec.id.clone(),
+                        run_id: run_id.clone(),
+                        key: spec.id.clone(),
+                        name: None,
+                        attrs: attrs.clone(),
+                        body: json!({"spec_path": spec_path, "step_count": spec.steps.len()}),
+                        ts: now(),
+                    };
+                    let _ = write_outbox(&start_env);
+
+                    // one schedule per step
+                    for s in &spec.steps {
+                        if s.timer.is_some() {
+                            let env = OutboxEnvelope {
+                                op: "timer.schedule".into(),
+                                workflow: spec.id.clone(),
+                                run_id: run_id.clone(),
+                                key: spec.id.clone(),
+                                name: None,
+                                attrs: attrs.clone(),
+                                body: json!({
+                                    "step_id": s.id,
+                                    "duration_ms": s.timer.as_ref().unwrap().duration_ms
+                                }),
+                                ts: now(),
+                            };
+                            let _ = write_outbox(&env);
+                        } else if s.child_workflow.is_some() {
+                            let c = s.child_workflow.as_ref().unwrap();
+                            let env = OutboxEnvelope {
+                                op: "child.start".into(),
+                                workflow: spec.id.clone(),
+                                run_id: run_id.clone(),
+                                key: spec.id.clone(),
+                                name: None,
+                                attrs: attrs.clone(),
+                                body: json!({
+                                    "step_id": s.id,
+                                    "spec": c.spec,
+                                    "wait": c.wait,
+                                    "inherit_search_attributes": c.inherit_search_attributes
+                                }),
+                                ts: now(),
+                            };
+                            let _ = write_outbox(&env);
+                        } else {
+                            let env = OutboxEnvelope {
+                                op: "activity.schedule".into(),
+                                workflow: spec.id.clone(),
+                                run_id: run_id.clone(),
+                                key: spec.id.clone(),
+                                name: None,
+                                attrs: attrs.clone(),
+                                body: json!({
+                                    "step_id": s.id,
+                                    "activity": s.activity.as_ref().unwrap(),
+                                    "args": s.args,
+                                    "idempotent": s.idempotent,
+                                    "retry": s.retry,
+                                    "timeouts": s.timeouts,
+                                    "resources": s.resources
+                                }),
+                                ts: now(),
+                            };
+                            let _ = write_outbox(&env);
+                        }
+                    }
+                    let scheduled = spec.steps.len();
+                    return Ok(ctx.ok(
+                        "workflow",
+                        "run.temporal_outbox",
+                        &json!({"id": spec.id, "run_id": run_id, "scheduled": scheduled}),
                     ));
                 }
 
@@ -819,6 +934,34 @@ ClapCommand::new("run")
                 let name = sm.get_one::<String>("name").unwrap();
                 let payload_str = sm.get_one::<String>("payload").unwrap();
                 let payload: Json = serde_json::from_str(payload_str).unwrap_or(json!({}));
+
+                let engine = sm.get_one::<String>("engine").map(|s| s.as_str()).unwrap_or("local");
+                if engine == "temporal" {
+                    let run_id = new_run_id();
+                    let attrs = OutboxAttrs {
+                        build_id: None,
+                        change_ids: vec![],
+                        spec_sha256: "".into(),
+                        search_attributes: JsonMap::new(),
+                        memo: JsonMap::new(),
+                    };
+                    let env = OutboxEnvelope {
+                        op: "signal".into(),
+                        workflow: id.clone(),
+                        run_id: run_id.clone(),
+                        key: id.clone(),
+                        name: Some(name.clone()),
+                        attrs,
+                        body: payload.clone(),
+                        ts: now(),
+                    };
+                    let path = write_outbox(&env)?;
+                    return Ok(ctx.ok(
+                        "workflow",
+                        "signal.temporal_outbox",
+                        &json!({"id": id, "name": name, "outbox": path}),
+                    ));
+                }
 
                 let dir = signals_dir(id);
                 fs::create_dir_all(&dir)?;
@@ -1530,6 +1673,50 @@ fn salt_input_sha(base: &str, build_id: &Option<String>, change_ids: &Vec<String
         h.update(cid.as_bytes());
     }
     format!("sha256:{:x}", h.finalize())
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+struct OutboxAttrs {
+    #[serde(default)]
+    build_id: Option<String>,
+    #[serde(default)]
+    change_ids: Vec<String>,
+    #[serde(default)]
+    spec_sha256: String,
+    #[serde(default)]
+    search_attributes: JsonMap<String, Json>,
+    #[serde(default)]
+    memo: JsonMap<String, Json>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct OutboxEnvelope {
+    op: String,
+    workflow: String,
+    run_id: String,
+    key: String,
+    #[serde(default)]
+    name: Option<String>,
+    attrs: OutboxAttrs,
+    body: Json,
+    ts: String,
+}
+
+fn outbox_dir() -> PathBuf {
+    PathBuf::from(".nexoscli").join("engine").join("outbox")
+}
+fn new_run_id() -> String {
+    format!("WF-RUN-{}", Uuid::new_v4())
+}
+fn write_outbox(env: &OutboxEnvelope) -> anyhow::Result<PathBuf> {
+    use std::io::Write as _;
+    fs::create_dir_all(outbox_dir())?;
+    let ts = now().replace(':', "_");
+    let short = env.run_id.rsplit('-').next().unwrap_or(env.run_id.as_str());
+    let p = outbox_dir().join(format!("{}_{}_{}_{}.json", ts, env.op, env.workflow, short));
+    let mut f = fs::OpenOptions::new().create_new(true).write(true).open(&p)?;
+    f.write_all(serde_json::to_vec_pretty(env)?.as_slice())?;
+    Ok(p)
 }
 
 fn signals_dir(spec_id: &str) -> PathBuf {
