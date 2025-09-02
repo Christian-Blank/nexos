@@ -513,7 +513,7 @@ endpoint = ""
 
                     // events: try to write a ping
                     if want.contains("events") {
-                        let ok = ctx.events.write("dev","doctor.ci.ping",&serde_json::json!({"ping":true}),0,None,None).is_ok();
+                        let ok = ctx.events.write("dev","doctor.ci.ping",&serde_json::json!({"ping":true}),0,None,None,None).is_ok();
                         let p = std::path::PathBuf::from(".nexoscli/log/events.jsonl");
                         checks.push(DoctorCiCheck {
                             name: "event_log_writable".into(),
@@ -679,6 +679,7 @@ endpoint = ""
                         "doctor.ping",
                         &serde_json::json!({"ping": true, "ts": Clock::now_rfc3339()}),
                         0,
+                        None,
                         None,
                         None,
                     ).is_ok();

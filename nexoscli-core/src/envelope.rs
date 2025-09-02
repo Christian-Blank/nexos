@@ -7,6 +7,8 @@ pub struct Meta {
     pub command: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub duration_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub context: Option<serde_json::Map<String, serde_json::Value>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -26,7 +28,7 @@ pub struct Envelope<T: Serialize> {
 }
 
 impl<T: Serialize> Envelope<T> {
-    pub fn ok(run_id: &str, plugin: &str, command: &str, data: T, duration_ms: Option<u64>) -> Self {
+    pub fn ok(run_id: &str, plugin: &str, command: &str, data: T, duration_ms: Option<u64>, context: Option<serde_json::Map<String, serde_json::Value>>) -> Self {
         Self {
             data: Some(data),
             errors: vec![],
@@ -35,6 +37,7 @@ impl<T: Serialize> Envelope<T> {
                 plugin: plugin.to_string(),
                 command: command.to_string(),
                 duration_ms,
+                context,
             },
         }
     }
@@ -49,6 +52,7 @@ impl Envelope<serde_json::Value> {
         message: &str,
         suggestion: Option<String>,
         duration_ms: Option<u64>,
+        context: Option<serde_json::Map<String, serde_json::Value>>,
     ) -> Self {
         Self {
             data: None,
@@ -62,6 +66,7 @@ impl Envelope<serde_json::Value> {
                 plugin: plugin.to_string(),
                 command: command.to_string(),
                 duration_ms,
+                context,
             },
         }
     }

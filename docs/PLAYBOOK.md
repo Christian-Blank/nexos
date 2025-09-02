@@ -83,6 +83,47 @@ echo '[{"title":"Bug fix","labels":["p0","bug"],"body":"Details here"}]' > issue
 
 Expected JSON format: `[{"title": "required", "body": "optional", "labels": ["array","or","string,separated"]}]`
 
+## Task Management
+
+**Task lifecycle management** with automatic context injection:
+
+```bash
+# Create a new task
+./target/debug/nexoscli task new --title "Implement feature X"
+
+# Start working on a task (makes it active)
+./target/debug/nexoscli task start --task TASK-20250902-implement-feature-x
+
+# Any command now gets automatic context injection
+./target/debug/nexoscli issue new --title "Add unit tests"
+# Returns with context: {"task_id": "TASK-...", "stage": "planning"}
+
+# Change task stage
+./target/debug/nexoscli task stage implementation
+
+# Check task status with session history and event counts
+./target/debug/nexoscli task status --output json
+
+# Pause task when switching context
+./target/debug/nexoscli task pause
+
+# Resume a paused task
+./target/debug/nexoscli task resume --task TASK-20250902-implement-feature-x
+
+# List all tasks
+./target/debug/nexoscli task list --output json
+
+# End the task when complete
+./target/debug/nexoscli task end
+
+# Create a TracePack bundle with all task-related artifacts
+./target/debug/nexoscli task bundle --task TASK-20250902-implement-feature-x --out ./bundle.tgz
+```
+
+**Task stages:** planning → implementation → verification → done (or blocked)
+
+**Context injection:** When a task is active, ALL commands automatically get tagged with `{task_id, stage}` in events and JSON envelopes - no plugin changes required!
+
 ## OTEL Development
 
 **Observability stack** for development with OpenTelemetry:

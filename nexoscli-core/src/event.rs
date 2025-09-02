@@ -24,7 +24,7 @@ pub struct EventWriter {
 impl EventWriter {
     pub fn new(providers: Arc<Providers>) -> Self { Self { providers } }
 
-    /// Write a run event with optional error_code and duration.
+    /// Write a run event with optional error_code, duration, and context.
     pub fn write(
         &self,
         plugin: &str,
@@ -33,6 +33,7 @@ impl EventWriter {
         exit_code: i32,
         error_code: Option<&str>,
         dur_ms: Option<u64>,
+        context: Option<&serde_json::Map<String, serde_json::Value>>,
     ) -> Result<()> {
         use sha2::{Digest, Sha256};
         let bytes = serde_json::to_vec(content).unwrap_or_default();
@@ -40,7 +41,7 @@ impl EventWriter {
         h.update(&bytes);
         let content_hash = format!("sha256:{:x}", h.finalize());
 
-        let line = serde_json::json!({
+        let mut line = serde_json::json!({
             "ts": Clock::now_rfc3339(),
             "run_id": self.providers.run_id,
             "plugin": plugin,
@@ -51,6 +52,11 @@ impl EventWriter {
             "content_hash": content_hash,
             "data": content,
         });
+
+        // Add context if present
+        if let Some(ctx) = context {
+            line["context"] = serde_json::Value::Object(ctx.clone());
+        }
         self.append_line(&line)
     }
 

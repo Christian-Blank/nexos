@@ -1153,6 +1153,7 @@ dependencies = [
  "nexoscli-plugin-issue",
  "nexoscli-plugin-replay",
  "nexoscli-plugin-rules",
+ "nexoscli-plugin-task",
  "nexoscli-plugin-term",
  "opentelemetry",
  "opentelemetry-otlp",
@@ -1307,6 +1308,23 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "time",
+ "walkdir",
+]
+
+[[package]]
+name = "nexoscli-plugin-task"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "flate2",
+ "nexoscli-core",
+ "regex",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tar",
  "time",
  "walkdir",
 ]

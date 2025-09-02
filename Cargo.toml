@@ -1,5 +1,5 @@
 [workspace]
-members = ["nexoscli-core", "nexoscli-bin", "plugins/issue", "plugins/dev", "plugins/graph", "plugins/demo", "plugins/bundle", "plugins/cline", "plugins/term", "plugins/rules", "plugins/replay",
+members = ["nexoscli-core", "nexoscli-bin", "plugins/issue", "plugins/dev", "plugins/graph", "plugins/demo", "plugins/bundle", "plugins/cline", "plugins/term", "plugins/rules", "plugins/replay", "plugins/task",
 ]
 resolver = "2"
 

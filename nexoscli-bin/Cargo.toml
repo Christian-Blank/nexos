@@ -35,6 +35,7 @@ nexoscli-plugin-cline = { path = "../plugins/cline" }
 nexoscli-plugin-term = { path = "../plugins/term" }
 nexoscli-plugin-rules = { path = "../plugins/rules" }
 nexoscli-plugin-replay = { path = "../plugins/replay" }
+nexoscli-plugin-task = { path = "../plugins/task" }
 
 [features]
 default = []

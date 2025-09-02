@@ -1,0 +1,17 @@
+[package]
+name = "nexoscli-plugin-task"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nexoscli-core = { path = "../../nexoscli-core" }
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+time = { version = "0.3", features = ["parsing","formatting"] }
+walkdir = { workspace = true }
+regex = { workspace = true }
+sha2 = { workspace = true }
+tar = { workspace = true }
+flate2 = { workspace = true }
+clap = "4"

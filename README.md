@@ -131,12 +131,13 @@ The global graph is composed from these locals; changes bubble up via evidence a
 ⸻
 
 Current status
-	•	**Phase 13 Complete**: TracePack Cline Integration - complete portable bundles with development context
-	•	✅ Cline tasks included in TracePacks with time-windowed filtering (±5 min safety pad)
-	•	✅ Extended manifest schema with `cline_tasks` array and metadata extraction
-	•	✅ Comprehensive test coverage (7/7 tests) including new E2E Cline integration test
-	•	✅ Updated documentation with usage examples and analysis commands
-	•	✅ Complete portable observability: events + patches + status + cline + manifest
+	•	**Phase 14 Complete**: Task Plugin with Context Injection - complete task lifecycle management with automatic context tagging
+	•	✅ Task plugin with full lifecycle: new/start/pause/resume/stage/status/list/end/bundle commands
+	•	✅ Event context injection: all commands run while a task is active get tagged with {task_id, stage} in both event log and JSON envelopes
+	•	✅ TracePack integration: task bundles include all context-tagged events, patches, status files, and Cline tasks
+	•	✅ Comprehensive test coverage (5/5 task tests) including full E2E lifecycle and context injection verification
+	•	✅ Manual verification: CLI functionality working with automatic context propagation across all plugins
+	•	✅ Seamless integration: no changes required to existing plugins - context injection happens transparently
 
 Check the Execution Graph for the active feature/issue: docs/exec_graph.yaml
 

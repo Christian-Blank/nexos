@@ -1,0 +1,16 @@
+{
+  "id": "TASK-20250902-test-phase-14",
+  "title": "Test Phase 14",
+  "stage": "done",
+  "status": "ended",
+  "created_at": "2025-09-02T08:50:39.260919Z",
+  "started_at": "2025-09-02T08:50:45.13223Z",
+  "ended_at": "2025-09-02T08:51:03.086387Z",
+  "sessions": [
+    {
+      "start": "2025-09-02T08:50:45.132247Z",
+      "end": "2025-09-02T08:51:03.086372Z"
+    }
+  ],
+  "notes": []
+}
