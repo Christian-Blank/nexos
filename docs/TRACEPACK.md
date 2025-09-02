@@ -314,6 +314,138 @@ For very large TracePacks:
 - Consider time-based filtering (future feature)
 - Compress with higher compression ratios
 
+## Cline Tasks (optional)
+
+If you pass `--include cline` (or `--include all`), the extractor selects normalized Cline tasks
+from `.nexoscli/cline/tasks/` whose modified time falls within the run's time window (±5 minutes),
+and copies them into:
+
+```
+cline/tasks/<createdAt>-<id>.json
+```
+
+The `manifest.json` includes an array `cline_tasks` with:
+- `id`, `dst`, `sha256`, `bytes`, `created_at`, `messages`
+and a count at `counts.cline`.
+
+### Usage Examples
+
+```bash
+# Extract with Cline tasks included
+nexoscli replay extract --run-id RUN-... --include cline --out tracepack.tgz
+
+# Extract everything including Cline tasks
+nexoscli replay extract --run-id RUN-... --include all --out complete-pack
+
+# Extract only Cline tasks (plus events for time window calculation)
+nexoscli replay extract --run-id RUN-... --include events,cline --out cline-pack
+```
+
+### Extended Layout
+
+```
+manifest.json          # metadata, counts, hashes
+events.ndjson          # newline-delimited events for the run
+patches/               # git patches from term run
+  seq-0001-<name>.patch
+  seq-0002-<name>.patch
+status/                # git status snapshots
+  seq-0001-<name>.status
+  seq-0002-<name>.status
+cline/tasks/           # Cline tasks from time window
+  2025-09-01T12-00-00Z-task_123.json
+  2025-09-01T12-15-30Z-task_456.json
+README.md              # this documentation
+```
+
+### Extended Manifest Schema
+
+```json
+{
+  "version": "0.1",
+  "kind": "tracepack", 
+  "run_id": "RUN-UUID-HERE",
+  "created_at": "2025-09-02T07:30:00Z",
+  "time_range": {
+    "from": "2025-09-02T07:29:15Z",
+    "to": "2025-09-02T07:29:45Z"
+  },
+  "counts": {
+    "events_lines": 42,
+    "steps": 3,
+    "patches": 2,
+    "status": 2,
+    "cline": 2
+  },
+  "git": {
+    "from": "HEAD~1",
+    "to": "HEAD"
+  },
+  "plugins": {
+    "term": 2,
+    "issue": 1
+  },
+  "commands": {
+    "term.run": 2,
+    "issue.new": 1
+  },
+  "patches": [...],
+  "status_files": [...],
+  "cline_tasks": [
+    {
+      "id": "task-123",
+      "dst": "cline/tasks/2025-09-01T12-00-00Z-task_123.json",
+      "sha256": "sha256:cdef9012...",
+      "bytes": 2048,
+      "created_at": "2025-09-01T12:00:00Z",
+      "messages": 4
+    },
+    {
+      "id": "task-456", 
+      "dst": "cline/tasks/2025-09-01T12-15-30Z-task_456.json",
+      "sha256": "sha256:3456abcd...",
+      "bytes": 1536,
+      "created_at": "2025-09-01T12:15:30Z", 
+      "messages": 6
+    }
+  ]
+}
+```
+
+### Cline Task Analysis
+
+```bash
+# View Cline task summaries
+jq -r '.cline_tasks[] | [.id, .created_at, .messages] | @tsv' tracepack/manifest.json
+
+# Extract task content for analysis
+jq '.' tracepack/cline/tasks/*.json
+
+# Count messages per task
+jq -r '.cline_tasks[] | "\(.id): \(.messages) messages"' tracepack/manifest.json
+
+# Find tasks with high message counts
+jq -r '.cline_tasks[] | select(.messages > 10) | .id' tracepack/manifest.json
+
+# Timeline correlation with CLI events
+jq -r '.ts + " CLI: " + .plugin + "." + .command' tracepack/events.ndjson > timeline.txt
+jq -r '.cline_tasks[] | .created_at + " CLINE: " + .id' tracepack/manifest.json >> timeline.txt
+sort timeline.txt
+```
+
+### Time Window Behavior
+
+The Cline task inclusion uses a **±5 minute safety pad** around the run's time window:
+
+1. **Run time window**: Determined from first and last event timestamps
+2. **Padded window**: Extended by 300 seconds (5 minutes) in both directions  
+3. **File filtering**: Tasks are included if their `mtime` falls within the padded window
+4. **Fallback strategy**: If JSON parsing fails or timestamps are missing, `mtime` is used
+
+This ensures tasks adjacent to CLI runs are captured even with minor clock skew or write delays.
+
+**Tip**: Run `nexoscli cline tail --exit-after 10` while working to keep normalized tasks fresh.
+
 ---
 
 TracePacks enable **portable observability** - capture, share, and analyze any CLI run as a self-contained bundle.

@@ -131,32 +131,12 @@ The global graph is composed from these locals; changes bubble up via evidence a
 ⸻
 
 Current status
-	•	**Phase 12 Complete**: TracePack Extract - portable run bundles for analysis and replay
-	•	✅ Complete `replay` plugin with plan/run/extract subcommands
-	•	✅ TracePack extraction to directory or compressed tarball formats
-	•	✅ Event collection, patch bundling, and manifest generation with SHA-256 integrity
-	•	✅ Comprehensive test coverage (6/6 tests) and complete documentation
-	•	✅ End-to-end portable observability for every CLI run
-	•	**Phase 8 Complete**: Observability loop with duration tracking and error analytics
-	•	✅ Per-run durations (`dur_ms`) added to events and envelopes
-	•	✅ Error codes tracking for failure analytics and leaderboards
-	•	✅ Enhanced telemetry with performance metrics (p50/p90/avg latency)
-	•	✅ Error leaderboards and slowest commands identification
-	•	✅ Comprehensive test coverage for all observability features
-	•	**Phase 7 Complete**: CI doctor mode and telemetry reporting
-	•	✅ CI aggregation via `dev doctor --ci` (exits non-zero on failures)
-	•	✅ Telemetry reporting via `dev telemetry report` (events.jsonl analytics)
-	•	**Phase 6 Complete**: GitHub integration and TracePack bundles
-	•	✅ Read-only GitHub adapter for issue import (fixture-based testing)
-	•	✅ TracePack bundles (build/verify with SHA-256 integrity checking)
-	•	✅ Complete end-to-end test coverage (13 comprehensive tests)
-	•	Foundation (Origin Pack v0):
-	•	✅ North Star, Project Brief, Execution Graph, ADR-0001, Playbook
-	•	✅ Walking skeleton CLI + issue plugin with JSON outputs, event log, spans
-	•	✅ OpenTelemetry integration with Jaeger UI for distributed tracing
-	•	✅ JSON Schema export for AI tool integration (nexoscli tools export)
-	•	✅ Dev container with full observability stack
-	•	✅ Shell completions and man page generation
+	•	**Phase 13 Complete**: TracePack Cline Integration - complete portable bundles with development context
+	•	✅ Cline tasks included in TracePacks with time-windowed filtering (±5 min safety pad)
+	•	✅ Extended manifest schema with `cline_tasks` array and metadata extraction
+	•	✅ Comprehensive test coverage (7/7 tests) including new E2E Cline integration test
+	•	✅ Updated documentation with usage examples and analysis commands
+	•	✅ Complete portable observability: events + patches + status + cline + manifest
 
 Check the Execution Graph for the active feature/issue: docs/exec_graph.yaml
 

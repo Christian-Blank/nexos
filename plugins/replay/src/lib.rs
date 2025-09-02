@@ -47,6 +47,7 @@ struct ExtractCounts {
     steps: usize,
     patches: usize,
     status: usize,
+    cline: usize,            // NEW
 }
 
 impl Plugin for ReplayPlugin {
@@ -74,7 +75,7 @@ impl Plugin for ReplayPlugin {
                         .arg(Arg::new("out").long("out").required(true)
                              .help("If ends with .tar.gz/.tgz -> tarball; otherwise a directory is created"))
                         .arg(Arg::new("include").long("include").value_name("CSV")
-                             .help("What to include: events,patches,status,all").default_value("all"))
+                             .help("What to include: events,patches,status,cline,all").default_value("all"))
                 )
         )
     }
@@ -132,6 +133,7 @@ impl Plugin for ReplayPlugin {
                 let want_events = include_all || include.contains("events");
                 let want_patches = include_all || include.contains("patches");
                 let want_status = include_all || include.contains("status");
+                let want_cline = include_all || include.contains("cline");
 
                 // Staging dir
                 let ts = time::OffsetDateTime::now_utc().format(&time::macros::format_description!("[year][month][day]T[hour][minute][second]Z")).unwrap();
@@ -229,6 +231,76 @@ impl Plugin for ReplayPlugin {
                     }
                 }
 
+                // 2b) Include Cline tasks (optional)
+                let mut manifest_cline: Vec<serde_json::Value> = vec![];
+
+                if want_cline {
+                    // Resolve time window with pad (±300s) for safety
+                    let pad = time::Duration::seconds(300);
+                    let from_ts = first_ts.as_ref().and_then(|s| time::OffsetDateTime::parse(s, &Rfc3339).ok()).map(|t| t - pad);
+                    let to_ts   = last_ts.as_ref().and_then(|s| time::OffsetDateTime::parse(s, &Rfc3339).ok()).map(|t| t + pad);
+
+                    let cline_src = std::path::Path::new(".nexoscli").join("cline").join("tasks");
+                    if cline_src.exists() {
+                        let dst_root = default_stage.join("cline").join("tasks");
+                        std::fs::create_dir_all(&dst_root)?;
+
+                        for ent in WalkDir::new(&cline_src).min_depth(1).max_depth(2).into_iter().flatten() {
+                            let p = ent.path();
+                            if p.is_dir() || p.extension().and_then(|x| x.to_str()) != Some("json") { continue; }
+
+                            // Filter by time window (mtime fallback, tolerant)
+                            let mut in_window = true;
+                            if let Ok(meta) = std::fs::metadata(p) {
+                                if let Ok(modified) = meta.modified() {
+                                    let ts = time::OffsetDateTime::from(modified);
+                                    if let Some(f) = from_ts { if ts < f { in_window = false; } }
+                                    if let Some(t) = to_ts   { if ts > t { in_window = false; } }
+                                }
+                            }
+
+                            if !in_window { continue; }
+
+                            // Parse JSON to extract id/created/messages if available
+                            let raw = std::fs::read(p).unwrap_or_default();
+                            let v   = serde_json::from_slice::<serde_json::Value>(&raw).unwrap_or(serde_json::json!({}));
+                            let id  = v.get("id")
+                                        .or_else(|| v.get("taskId"))
+                                        .or_else(|| v.get("uuid"))
+                                        .and_then(|x| x.as_str())
+                                        .map(|s| s.to_string())
+                                        .unwrap_or_else(|| format!("anon-{}", &sha256(&raw)[7..19]));
+                            let created = v.get("createdAt")
+                                           .or_else(|| v.pointer("/meta/startedAt"))
+                                           .or_else(|| v.get("timestamp"))
+                                           .and_then(|x| x.as_str())
+                                           .map(|s| s.to_string());
+                            let msg_count = v.get("messages").and_then(|x| x.as_array()).map(|a| a.len())
+                                             .or_else(|| v.get("conversation").and_then(|x| x.as_array()).map(|a| a.len()))
+                                             .or_else(|| v.get("steps").and_then(|x| x.as_array()).map(|a| a.len()))
+                                             .unwrap_or(0);
+
+                            // Destination file name (stable)
+                            let base = format!("{}-{}.json",
+                                created.as_deref().unwrap_or("unknown"),
+                                id.replace(|c: char| !c.is_ascii_alphanumeric(), "_")
+                            );
+                            let dst = dst_root.join(base);
+                            std::fs::write(&dst, &raw)?;
+
+                            counts.cline += 1;
+                            manifest_cline.push(serde_json::json!({
+                                "id": id,
+                                "dst": format!("cline/tasks/{}", dst.file_name().unwrap().to_string_lossy()),
+                                "sha256": sha256(&raw),
+                                "bytes": raw.len(),
+                                "created_at": created,
+                                "messages": msg_count
+                            }));
+                        }
+                    }
+                }
+
                 // 3) Manifest + README
                 let manifest = serde_json::json!({
                     "version": "0.1",
@@ -240,13 +312,15 @@ impl Plugin for ReplayPlugin {
                         "events_lines": counts.events_lines,
                         "steps": counts.steps,
                         "patches": counts.patches,
-                        "status": counts.status
+                        "status": counts.status,
+                        "cline": counts.cline            // NEW
                     },
                     "git": { "from": plan.from, "to": plan.to },
                     "plugins": plugin_counts,
                     "commands": cmd_counts,
                     "patches": manifest_patches,
-                    "status_files": manifest_status
+                    "status_files": manifest_status,
+                    "cline_tasks": manifest_cline     // NEW
                 });
                 std::fs::write(default_stage.join("manifest.json"), serde_json::to_vec_pretty(&manifest)?)?;
                 std::fs::write(default_stage.join("README.md"), TRACEPACK_README.as_bytes())?;
