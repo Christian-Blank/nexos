@@ -1151,6 +1151,7 @@ dependencies = [
  "nexoscli-plugin-dev",
  "nexoscli-plugin-graph",
  "nexoscli-plugin-issue",
+ "nexoscli-plugin-replay",
  "nexoscli-plugin-rules",
  "nexoscli-plugin-term",
  "opentelemetry",
@@ -1275,6 +1276,23 @@ dependencies = [
  "serde_json",
  "time",
  "tracing",
+]
+
+[[package]]
+name = "nexoscli-plugin-replay"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "flate2",
+ "nexoscli-core",
+ "schemars",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tar",
+ "time",
+ "walkdir",
 ]
 
 [[package]]

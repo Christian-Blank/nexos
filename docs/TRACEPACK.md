@@ -1,0 +1,319 @@
+# TracePack — Portable Run Bundle (v0.1)
+
+A TracePack is a **self-contained** snapshot of a single `nexoscli` run:
+- canonical **events** (NDJSON, schema v0.2),
+- any **patches** captured by `term run`,
+- a **manifest** with hashes and counts,
+- optional status snapshots.
+
+## Produce a TracePack
+
+```bash
+# directory
+nexoscli replay extract --run-id RUN-... --out .nexoscli/tracepacks/pack-1
+
+# tarball
+nexoscli replay extract --run-id RUN-... --out tracepack.tar.gz
+
+# events only
+nexoscli replay extract --run-id RUN-... --out events-pack --include events
+
+# patches and status only
+nexoscli replay extract --run-id RUN-... --out patches-pack --include patches,status
+```
+
+## Layout
+
+```
+manifest.json          # metadata, counts, hashes
+events.ndjson          # newline-delimited events for the run
+patches/               # git patches from term run
+  seq-0001-<name>.patch
+  seq-0002-<name>.patch
+status/                # git status snapshots
+  seq-0001-<name>.status
+  seq-0002-<name>.status  
+README.md              # this documentation
+```
+
+## Analyze
+
+### Events Analysis
+```bash
+# View all events in the pack
+jq -r '.' tracepack/events.ndjson
+
+# Count events by plugin
+jq -r '.plugin' tracepack/events.ndjson | sort | uniq -c
+
+# Find specific command executions
+jq -r 'select(.plugin == "term" and .command == "run")' tracepack/events.ndjson
+
+# Timeline analysis
+jq -r '.ts + " " + .plugin + "." + .command' tracepack/events.ndjson | sort
+```
+
+### Manifest Analysis
+```bash
+# Summary statistics
+jq '.counts' tracepack/manifest.json
+
+# Plugin usage breakdown
+jq '.plugins' tracepack/manifest.json
+
+# Command frequency
+jq '.commands' tracepack/manifest.json
+
+# Time range
+jq '.time_range' tracepack/manifest.json
+
+# Git range
+jq '.git' tracepack/manifest.json
+```
+
+### Patches Analysis
+```bash
+# Check patch applicability (dry-run)
+cd /path/to/repo
+git apply --check tracepack/patches/seq-0001-*.patch
+
+# View patch contents
+cat tracepack/patches/seq-0001-*.patch
+
+# Apply patches on throwaway branch
+git checkout -b test-replay
+for patch in tracepack/patches/seq-*.patch; do
+  git apply "$patch"
+done
+```
+
+## Integration with CLI Workflows
+
+### 1. Development Debugging
+```bash
+# Generate activity
+nexoscli term run -- make build
+nexoscli term run -- make test
+
+# Find the failing run
+nexoscli dev telemetry report --since 1h --output json | \
+  jq '.data.runs[] | select(.exit_code != 0)'
+
+# Extract for analysis
+nexoscli replay extract --run-id RUN-FAILED-123 --out debug-pack.tgz
+
+# Share with team
+scp debug-pack.tgz teammate:~/debug/
+```
+
+### 2. CI/CD Analysis
+```bash
+# Extract CI runs for performance analysis
+nexoscli replay extract --run-id $CI_RUN_ID --out ci-trace.tgz
+
+# Automated analysis pipeline
+tar -xzf ci-trace.tgz
+jq '.counts.events_lines' manifest.json  # activity volume
+jq '.plugins' manifest.json | jq 'keys[]' # tools used
+```
+
+### 3. Audit and Compliance
+```bash
+# Extract security-relevant runs
+nexoscli replay extract --run-id SECURITY-SCAN-456 --out audit/scan-456.tgz
+
+# Verify integrity
+jq -r '.patches[] | .sha256' manifest.json | while read hash; do
+  echo "Verifying $hash..."
+done
+```
+
+## TracePack Manifest Schema
+
+```json
+{
+  "version": "0.1",
+  "kind": "tracepack", 
+  "run_id": "RUN-UUID-HERE",
+  "created_at": "2025-09-02T07:30:00Z",
+  "time_range": {
+    "from": "2025-09-02T07:29:15Z",
+    "to": "2025-09-02T07:29:45Z"
+  },
+  "counts": {
+    "events_lines": 42,
+    "steps": 3,
+    "patches": 2,
+    "status": 2
+  },
+  "git": {
+    "from": "HEAD~1",
+    "to": "HEAD"
+  },
+  "plugins": {
+    "term": 2,
+    "issue": 1
+  },
+  "commands": {
+    "term.run": 2,
+    "issue.new": 1
+  },
+  "patches": [
+    {
+      "seq": 1,
+      "src": ".nexoscli/patches/20250902T073000Z-RUN-UUID-HERE.patch",
+      "dst": "patches/seq-0001-20250902T073000Z-RUN-UUID-HERE.patch", 
+      "sha256": "sha256:abcd1234...",
+      "bytes": 1024
+    }
+  ],
+  "status_files": [
+    {
+      "seq": 1,
+      "src": ".nexoscli/status/20250902T073000Z-RUN-UUID-HERE.status",
+      "dst": "status/seq-0001-20250902T073000Z-RUN-UUID-HERE.status",
+      "sha256": "sha256:efgh5678...", 
+      "bytes": 256
+    }
+  ]
+}
+```
+
+## Event Schema (v0.2)
+
+Each line in `events.ndjson` follows this schema:
+
+```json
+{
+  "ts": "2025-09-02T07:29:30Z",
+  "run_id": "RUN-UUID-HERE", 
+  "plugin": "term",
+  "command": "run",
+  "args_hash": "sha256:...",
+  "content_hash": "sha256:...",
+  "exit_code": 0,
+  "dur_ms": 1250,
+  "attrs": {
+    "cmd": "make test",
+    "cwd": "/path/to/project"  
+  }
+}
+```
+
+## Advanced Analysis Examples
+
+### Performance Profiling
+```bash
+# Extract slow commands across multiple runs
+for run_id in $(nexoscli dev telemetry report --since 1d --output json | \
+  jq -r '.data.runs[].run_id'); do
+  nexoscli replay extract --run-id $run_id --out tmp-$run_id --include events
+  jq -r 'select(.dur_ms > 5000) | [.ts, .plugin, .command, .dur_ms] | @tsv' \
+    tmp-$run_id/events.ndjson
+done
+```
+
+### Error Correlation
+```bash
+# Find patterns in failed runs
+nexoscli replay extract --run-id FAILED-RUN --out error-analysis
+jq -r 'select(.exit_code != 0) | [.ts, .plugin, .command, .exit_code] | @csv' \
+  error-analysis/events.ndjson > errors.csv
+```
+
+### Dependency Analysis
+```bash
+# Track which tools are used together
+jq -r '.plugins | keys[]' */manifest.json | sort | uniq -c | sort -nr
+```
+
+## Storage and Organization
+
+### Recommended Directory Structure
+```
+.nexoscli/
+└── tracepacks/
+    ├── daily/
+    │   ├── 2025-09-01/
+    │   │   ├── RUN-MORNING-123.tgz
+    │   │   └── RUN-AFTERNOON-456.tgz
+    │   └── 2025-09-02/
+    └── projects/
+        ├── nexos-cli/
+        │   ├── build-traces/
+        │   └── test-traces/ 
+        └── other-project/
+```
+
+### Automation Scripts
+```bash
+#!/bin/bash
+# auto-archive-traces.sh
+# Archive TracePacks older than 30 days
+
+find .nexoscli/tracepacks -name "*.tgz" -mtime +30 | \
+  xargs -I {} mv {} .nexoscli/tracepacks/archive/
+```
+
+## Integration with Replay Commands
+
+### Planning and Dry-Run
+```bash
+# Extract a TracePack
+nexoscli replay extract --run-id RUN-123 --out analysis-pack
+
+# Plan replay steps 
+nexoscli replay plan --run-id RUN-123
+
+# Dry-run patches
+nexoscli replay run --run-id RUN-123 --dry-run --branch test-branch
+```
+
+### Safe Patch Application
+```bash
+# Create throwaway branch
+git checkout -b replay-test
+
+# Apply patches from TracePack
+nexoscli replay run --run-id RUN-123 --branch replay-test
+
+# Review results
+git log --oneline replay-test ^main
+git diff main..replay-test
+
+# Clean up if needed
+git checkout main && git branch -D replay-test
+```
+
+## Best Practices
+
+1. **Regular Extraction**: Extract TracePacks for important runs immediately
+2. **Naming Convention**: Use descriptive names: `feature-x-test-run.tgz`
+3. **Security**: TracePacks may contain sensitive data; store securely
+4. **Retention**: Establish policies for TracePack retention and archival
+5. **Sharing**: Use compressed format (`.tgz`) for sharing and storage efficiency
+6. **Verification**: Always verify patch applicability before applying
+
+## Troubleshooting
+
+### Empty TracePacks
+If a TracePack has zero events:
+- Verify the run_id exists: `nexoscli dev telemetry report --since 7d`
+- Check event log location: `.nexoscli/log/events.jsonl`
+- Ensure the run completed successfully
+
+### Patch Application Failures
+If patches won't apply:
+- Check git status: patches assume clean working directory
+- Verify base commit: use git range from manifest
+- Try on correct branch: patches may depend on specific branch state
+
+### Large TracePacks
+For very large TracePacks:
+- Use `--include events` to extract only events
+- Consider time-based filtering (future feature)
+- Compress with higher compression ratios
+
+---
+
+TracePacks enable **portable observability** - capture, share, and analyze any CLI run as a self-contained bundle.
