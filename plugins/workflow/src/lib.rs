@@ -80,6 +80,15 @@ struct TimerState {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, Default)]
+struct ChildWorkflowSpec {
+    spec: String,
+    #[serde(default)]
+    wait: bool,
+    #[serde(default)]
+    inherit_search_attributes: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, Default)]
 struct RunConfig {
     #[serde(default)]
     memo: JsonMap<String, Json>,
@@ -105,7 +114,10 @@ struct StepSpec {
     /// "plugin.command" or "dev.plugins.check"
     #[serde(default)]
     activity: Option<String>,
-    /// Optional timer step (mutually exclusive with activity)
+    /// Optional child workflow (mutually exclusive with activity/timer)
+    #[serde(default)]
+    child_workflow: Option<ChildWorkflowSpec>,
+    /// Optional timer step (mutually exclusive with activity/child)
     #[serde(default)]
     timer: Option<TimerSpec>,
     #[serde(default)]
@@ -118,6 +130,12 @@ struct StepSpec {
     timeouts: Timeouts,
     #[serde(default)]
     resources: Vec<String>,
+    /// Per-step lock acquisition timeout (ms)
+    #[serde(default)]
+    lock_timeout_ms: Option<u64>,
+    /// Consider lock stale after this age (ms)
+    #[serde(default)]
+    lock_stale_ms: Option<u64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -345,6 +363,9 @@ impl Plugin for WorkflowPlugin {
                             }),
                             timeouts: Timeouts::default(),
                             resources: vec!["git".into()],
+                            child_workflow: None,
+                            lock_timeout_ms: None,
+                            lock_stale_ms: None,
                         },
                         StepSpec {
                             id: "s2".into(),
@@ -355,6 +376,9 @@ impl Plugin for WorkflowPlugin {
                             retry: RetryUnion::Simple(SimpleRetry::default()),
                             timeouts: Timeouts::default(),
                             resources: vec![],
+                            child_workflow: None,
+                            lock_timeout_ms: None,
+                            lock_stale_ms: None,
                         },
                     ],
                 };
@@ -498,6 +522,34 @@ impl Plugin for WorkflowPlugin {
                     let mut attempt: u32 = 0;
                     let mut ok = false;
 
+                    // acquire resource locks (if any)
+                    let _locks = match acquire_locks_for_step(&spec.id, &step) {
+                        Ok(g) => g,
+                        Err(e) => {
+                            let finished_at = now();
+                            let rec = EffectRecord {
+                                spec_id: spec.id.clone(),
+                                step_id: step.id.clone(),
+                                input_sha: input_sha.clone(),
+                                status: if format!("{e:?}").contains("lock_timeout") { "timeout".into() } else { "failed".into() },
+                                started_at: finished_at.clone(),
+                                finished_at: finished_at.clone(),
+                                exit_code: 128,
+                                result_digest: None,
+                                last_envelope: json!({"error":"lock_acquire_failed","detail": format!("{e}")}),
+                            };
+                            write_effect(&spec.id, &step.id, &rec)?;
+                            append_history(
+                                &hist,
+                                &json!({"ts": finished_at, "step": step.id, "activity": step.activity, "status": rec.status}),
+                            )?;
+                            vis.failed += 1;
+                            vis.updated_at = now();
+                            write_visibility(&spec.id, &vis).ok();
+                            continue;
+                        }
+                    };
+
                     while within_schedule_window(schedule_deadline) {
                         attempt += 1;
                         vis.attempts += 1;
@@ -506,12 +558,26 @@ impl Plugin for WorkflowPlugin {
                         let started = now();
                         let (exit, env, status) = if step.timer.is_some() {
                             run_timer_step(&step, &to, &spec.id, &hist)?
+                        } else if step.child_workflow.is_some() {
+                            run_child_workflow(&step, &spec, &hist)?
                         } else {
                             exec_activity_with_timeouts(step.activity.as_ref().unwrap(), &step.args, &to, &spec.id, &hist)?
                         };
 
                         let finished = now();
-                        let activity_label = if step.timer.is_some() { "timer".to_string() } else { step.activity.clone().unwrap() };
+                        let activity_label = if step.timer.is_some() {
+                            "timer".to_string()
+                        } else if let Some(c) = &step.child_workflow {
+                            match fs::read_to_string(&c.spec) {
+                                Ok(txt) => match serde_yaml::from_str::<WorkflowSpec>(&txt) {
+                                    Ok(cs) => format!("child:{}", cs.id),
+                                    Err(_) => "child_workflow".into(),
+                                },
+                                Err(_) => "child_workflow".into(),
+                            }
+                        } else {
+                            step.activity.clone().unwrap()
+                        };
                         let rec = EffectRecord {
                             spec_id: spec.id.clone(),
                             step_id: step.id.clone(),
@@ -765,10 +831,13 @@ fn validate_spec(spec: &WorkflowSpec) -> anyhow::Result<()> {
     for s in &spec.steps {
         let has_act = s.activity.as_ref().map(|a| !a.is_empty()).unwrap_or(false);
         let has_timer = s.timer.is_some();
-        match (has_act, has_timer) {
-            (true, true) => anyhow::bail!("step '{}' invalid: both 'activity' and 'timer' set", s.id),
-            (false, false) => anyhow::bail!("step '{}' invalid: must set either 'activity' or 'timer'", s.id),
-            _ => {}
+        let has_child = s.child_workflow.is_some();
+        let count = (has_act as u8) + (has_timer as u8) + (has_child as u8);
+        if count == 0 {
+            anyhow::bail!("step '{}' invalid: must set exactly one of 'activity', 'timer', or 'child_workflow'", s.id);
+        }
+        if count > 1 {
+            anyhow::bail!("step '{}' invalid: cannot set more than one of 'activity', 'timer', or 'child_workflow'", s.id);
         }
     }
     Ok(())
@@ -779,6 +848,14 @@ fn plan_steps(spec: &WorkflowSpec) -> anyhow::Result<Vec<PlanRow>> {
     for s in &spec.steps {
         let activity = if s.timer.is_some() {
             "timer".to_string()
+        } else if let Some(c) = &s.child_workflow {
+            match fs::read_to_string(&c.spec) {
+                Ok(txt) => match serde_yaml::from_str::<WorkflowSpec>(&txt) {
+                    Ok(cs) => format!("child:{}", cs.id),
+                    Err(_) => "child_workflow".into(),
+                },
+                Err(_) => "child_workflow".into(),
+            }
         } else {
             s.activity.clone().unwrap_or_else(|| "activity".to_string())
         };
@@ -1003,6 +1080,64 @@ fn run_timer_step(
     Ok((0, json!({"timer":"done","at": now()}), "ok".into()))
 }
 
+fn run_child_workflow(
+    step: &StepSpec,
+    parent: &WorkflowSpec,
+    hist: &Path,
+) -> anyhow::Result<(i32, Json, String)> {
+    let c = step.child_workflow.as_ref().ok_or_else(|| anyhow::anyhow!("missing child_workflow spec"))?;
+    let child_spec_path = &c.spec;
+
+    // discover child id
+    let child_id = match fs::read_to_string(child_spec_path)
+        .ok()
+        .and_then(|txt| serde_yaml::from_str::<WorkflowSpec>(&txt).ok())
+        .map(|cs| cs.id)
+    {
+        Some(id) => id,
+        None => "UNKNOWN".into(),
+    };
+
+    append_history(hist, &json!({"ts": now(), "event":"child_start", "child_spec": child_spec_path, "child_id": child_id, "wait": c.wait }))?;
+
+    let exe = std::env::current_exe()?;
+    if c.wait {
+        let out = Proc::new(exe.clone())
+            .args(["workflow","run","--spec", child_spec_path, "--output","json"])
+            .output()?;
+        let code = out.status.code().unwrap_or(-1);
+        let env: Json = serde_json::from_slice(&out.stdout)
+            .unwrap_or_else(|_| json!({"stdout": String::from_utf8_lossy(&out.stdout)}));
+
+        // upsert parent's SA if requested
+        if c.inherit_search_attributes && child_id != "UNKNOWN" {
+            let mut cmd = Proc::new(exe.clone());
+            cmd.args(["workflow","upsert-sa","--id",&child_id]);
+            for (k, v) in &parent.run.search_attributes {
+                let val = match v {
+                    Json::String(s) => s.clone(),
+                    other => other.to_string(),
+                };
+                let kv = format!("{}={}", k, val);
+                cmd.args(["--attrs", &kv]);
+            }
+            let _ = cmd.stdout(Stdio::null()).stderr(Stdio::null()).status();
+        }
+
+        append_history(hist, &json!({"ts": now(), "event":"child_done", "child_id": child_id, "exit_code": code }))?;
+        Ok((code, json!({"child_id": child_id, "result": env}), if code==0 { "ok".into() } else { "failed".into() }))
+    } else {
+        // fire-and-forget
+        let _child = Proc::new(exe)
+            .args(["workflow","run","--spec", child_spec_path, "--output","json"])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()?;
+        // SA inheritance after spawn is racy; skipped for fire-and-forget in v0.
+        Ok((0, json!({"child_id": child_id, "spawned": true}), "ok".into()))
+    }
+}
+
 fn input_sha(spec_id: &str, step: &StepSpec) -> String {
     let mut h = Sha256::new();
     h.update(spec_id.as_bytes());
@@ -1058,6 +1193,102 @@ fn epoch_ms_now() -> i64 {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_millis() as i64
+}
+
+// ------------- Resource Locks (advisory, durable) -------------
+fn locks_dir() -> PathBuf {
+    PathBuf::from(".nexoscli").join("locks")
+}
+fn lock_path(resource: &str) -> PathBuf {
+    locks_dir().join(format!("{}.json", resource))
+}
+
+fn try_acquire_lock(resource: &str, timeout_ms: u64, stale_ms: u64, spec_id: &str, step_id: &str) -> anyhow::Result<bool> {
+    use std::time::{Duration, Instant};
+    let p = lock_path(resource);
+    let start = Instant::now();
+    loop {
+        // try atomic create
+        match fs::OpenOptions::new().create_new(true).write(true).open(&p) {
+            Ok(mut f) => {
+                use std::io::Write as _;
+                let body = json!({
+                    "resource": resource,
+                    "spec_id": spec_id,
+                    "step_id": step_id,
+                    "pid": std::process::id(),
+                    "acquired_at": now(),
+                    "updated_at": now()
+                });
+                f.write_all(serde_json::to_vec_pretty(&body)?.as_slice())?;
+                return Ok(true);
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+                // stale check
+                if let Ok(txt) = fs::read_to_string(&p) {
+                    if let Ok(v) = serde_json::from_str::<Json>(&txt) {
+                        let updated = v.get("updated_at").and_then(|x| x.as_str()).unwrap_or("");
+                        if let Ok(t) = OffsetDateTime::parse(updated, &Rfc3339) {
+                            let age_ms = (OffsetDateTime::now_utc() - t).whole_milliseconds().max(0) as u64;
+                            if age_ms > stale_ms {
+                                let _ = fs::remove_file(&p); // best effort
+                                continue; // try again
+                            }
+                        }
+                    }
+                }
+                if start.elapsed() >= Duration::from_millis(timeout_ms) { return Ok(false); }
+                thread::sleep(Duration::from_millis(100));
+            }
+            Err(e) => return Err(e.into()),
+        }
+    }
+}
+
+fn release_lock(resource: &str, spec_id: &str, step_id: &str) -> anyhow::Result<()> {
+    let p = lock_path(resource);
+    // best-effort owner check
+    if let Ok(txt) = fs::read_to_string(&p) {
+        if let Ok(v) = serde_json::from_str::<Json>(&txt) {
+            let ok_owner =
+                v.get("spec_id").and_then(|x| x.as_str()) == Some(spec_id) &&
+                v.get("step_id").and_then(|x| x.as_str()) == Some(step_id);
+            if ok_owner {
+                let _ = fs::remove_file(&p);
+                return Ok(());
+            }
+        }
+    }
+    Ok(()) // ignore if not ours
+}
+
+struct LockGuard { spec_id: String, step_id: String, resources: Vec<String> }
+impl Drop for LockGuard {
+    fn drop(&mut self) {
+        for r in &self.resources { let _ = release_lock(r, &self.spec_id, &self.step_id); }
+    }
+}
+
+fn acquire_locks_for_step(spec_id: &str, step: &StepSpec) -> anyhow::Result<Option<LockGuard>> {
+    if step.resources.is_empty() { return Ok(None); }
+    let timeout = step.lock_timeout_ms.unwrap_or(5_000);
+    let stale   = step.lock_stale_ms.unwrap_or(600_000);
+    let mut res = step.resources.clone();
+    res.sort();
+    res.dedup();
+    fs::create_dir_all(locks_dir())?;
+
+    let mut acquired = Vec::new();
+    for r in res {
+        if try_acquire_lock(&r, timeout, stale, spec_id, &step.id)? {
+            acquired.push(r);
+        } else {
+            // release what we got and fail
+            for a in &acquired { let _ = release_lock(a, spec_id, &step.id); }
+            anyhow::bail!("lock_timeout");
+        }
+    }
+    Ok(Some(LockGuard { spec_id: spec_id.to_string(), step_id: step.id.clone(), resources: acquired }))
 }
 
 fn history_path(spec_id: &str) -> anyhow::Result<PathBuf> {

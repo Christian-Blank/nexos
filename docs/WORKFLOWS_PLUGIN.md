@@ -143,8 +143,56 @@ Try the demo:
   ./target/debug/nexoscli workflow plan --spec docs/workflows/WF-timer-demo.yaml --output json
   time ./target/debug/nexoscli workflow run  --spec docs/workflows/WF-timer-demo.yaml --output json
 
+## Resource Locks (Phase 20)
+
+This phase adds advisory, durable resource locks to serialize access to shared resources (e.g., "git", "db:dev") across steps and runs.
+
+Spec additions (per step):
+- resources: ["git","db:dev"] — declare resources required by the step
+- lock_timeout_ms: Option<u64> — max time to wait to acquire all locks (default 5000)
+- lock_stale_ms: Option<u64> — consider an existing lock stale after this age (default 600000 = 10m)
+
+Behavior:
+- Deterministic acquisition: resources are sorted and deduplicated before acquisition to avoid deadlocks.
+- Durable lock files: created at .nexoscli/locks/<resource>.json with owner metadata (spec_id, step_id, pid, acquired_at, updated_at).
+- Stale eviction: if an existing lock’s updated_at is older than lock_stale_ms, it is evicted (best-effort) and acquisition is retried.
+- Auto release: locks are released automatically at the end of the step via a Drop guard (even on failure).
+- On contention/timeout: if locks cannot be acquired within lock_timeout_ms, the runner records an effect with status="timeout", exit_code=128, increments visibility.failed, appends history, and continues with the next step.
+
+Example:
+steps:
+  - id: hold-git
+    timer: { duration_ms: 3000 }
+    resources: ["git"]
+    lock_timeout_ms: 2000
+    idempotent: false
+
+## Child Workflows (Phase 20)
+
+This phase adds support for running child workflows (recursive composition) as a step.
+
+Spec additions (per step):
+- child_workflow:
+  - spec: String — path to the child workflow spec file
+  - wait: bool — if true, parent blocks until child completes; parent's step status mirrors child exit code
+  - inherit_search_attributes: bool — if true, upsert parent’s search_attributes into the child’s visibility after the child starts
+
+Behavior:
+- wait: true — run the child synchronously; append child_start and child_done to history; propagate child exit code/status to the step.
+- wait: false — fire-and-forget spawn; step returns success immediately.
+- Search attributes inheritance — when inherit_search_attributes is true, the parent’s search_attributes are upserted into the child via workflow upsert-sa after the child is started (best-effort).
+- Planner labeling — plan displays "child:<child_id>" if the child spec can be parsed, otherwise "child_workflow".
+
+Example:
+steps:
+  - id: call-child
+    child_workflow:
+      spec: docs/workflows/WF-child.yaml
+      wait: true
+      inherit_search_attributes: true
+
 ## Notes
 
-- The CLI contracts are additive in this phase; existing specs remain valid.
+- The CLI contracts are additive across phases; existing specs remain valid.
 - Effects/history/visibility are local files enabling deterministic replay and visibility.
 - JSON envelopes include task context automatically when an active task exists (see PLAYBOOK and Task CLI).

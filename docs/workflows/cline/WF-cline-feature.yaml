@@ -1,0 +1,55 @@
+version: "0.1"
+id: WF-cline-feature
+name: Cline Feature Slice (scoped)
+run:
+  search_attributes: { task_queue: "nexos", owner: "christian", kind: "feature" }
+defaults:
+  timeouts: { heartbeat_ms: 1000, schedule_to_close_ms: 900000 } # 15m guard
+steps:
+  - id: preflight-init
+    activity: dev.init
+    args: { yes: true }
+    idempotent: true
+
+  - id: preflight-doctor
+    activity: dev.doctor
+    args: { ci: true, checks: "graph,plugins,config,events,tools", require: "plugins,graph" }
+    retry: { max_attempts: 2, backoff_ms: 250 }
+    idempotent: true
+
+  - id: structure-check
+    activity: dev.plugins.check
+    args: { fix_readmes: true }
+    idempotent: false
+    resources: ["git"]      # serialize any structure writes
+
+  - id: implement-smallest-diff
+    activity: term.run
+    args: { cmd: "echo 'implement smallest viable change set here (generator preferred)'" }
+    idempotent: false
+
+  - id: build
+    activity: term.run
+    args: { cmd: "cargo build --workspace" }
+    idempotent: false
+    resources: ["git"]
+
+  - id: test
+    activity: term.run
+    args: { cmd: "cargo test --workspace" }
+    idempotent: false
+
+  - id: docs
+    activity: dev.docs.build
+    args: { }
+    idempotent: false
+
+  - id: doctor-final
+    activity: dev.doctor
+    args: { ci: true }
+    idempotent: false
+
+  - id: bundle
+    activity: task.bundle
+    args: { out: "./bundle.tgz" }
+    idempotent: false

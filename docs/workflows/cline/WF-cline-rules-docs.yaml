@@ -1,0 +1,26 @@
+version: "0.1"
+id: WF-cline-rules-docs
+name: Cline Rules+Docs
+run:
+  search_attributes: { task_queue: "nexos", owner: "christian", kind: "rules-docs" }
+steps:
+  - id: preflight
+    activity: dev.init
+    args: { yes: true }
+    idempotent: true
+
+  - id: update-rules
+    activity: term.run
+    args: { cmd: "echo 'edit .clinerules/*.md, docs/WORKFLOWS_*.md; keep prose short and link to specs'" }
+    idempotent: false
+    resources: ["git"]
+
+  - id: build-docs
+    activity: dev.docs.build
+    args: {}
+    idempotent: false
+
+  - id: validate
+    activity: dev.doctor
+    args: { ci: true, checks: "tools,events" }
+    idempotent: false

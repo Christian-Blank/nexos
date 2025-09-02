@@ -68,6 +68,12 @@
 15) **Change IDs + Build ID enforcement**
     - Enforce runner branching rules based on recorded `change_ids` and `build_id` captured in visibility. Fail fast or require explicit upgrade paths when change guards mismatch.
 
+## Workflow plugin — tiny follow-ups unlocked by Phase 20
+
+- Cancellation types: per-step cancellation_type: try_cancel | abandon (mirrors Temporal).
+- Fire-and-forget SA inheritance: add a small retry to upsert-sa until child visibility appears.
+- Lock heartbeats: periodically touch lock JSON updated_at alongside the runner’s heartbeat loop.
+
 ## Principles (unchanged)
 - Ground truth is `events.jsonl`.
 - OTEL is an optional mirror; spans follow `run -> execute -> (parse, validate, persist, render)`.

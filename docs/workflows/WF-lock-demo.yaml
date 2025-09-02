@@ -1,0 +1,8 @@
+version: "0.1"
+id: WF-lock-demo
+steps:
+  - id: hold-git
+    timer: { duration_ms: 3000 }
+    resources: ["git"]
+    lock_timeout_ms: 2000
+    idempotent: false

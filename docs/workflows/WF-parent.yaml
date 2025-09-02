@@ -1,0 +1,10 @@
+version: "0.1"
+id: WF-parent
+run:
+  search_attributes: { owner: "christian", task_queue: "nexos" }
+steps:
+  - id: call-child
+    child_workflow:
+      spec: docs/workflows/WF-child.yaml
+      wait: true
+      inherit_search_attributes: true

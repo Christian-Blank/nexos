@@ -34,6 +34,13 @@
       "nexoscli-core/**",
       "nexoscli-bin/tests/**",
       "docs/**"
+    ],
+    "cline-workflows": [
+      "docs/workflows/cline/**",
+      "docs/WORKFLOWS_*.md",
+      ".clinerules/**",
+      "nexoscli-bin/tests/**",
+      "docs/**"
     ]
   }
 }

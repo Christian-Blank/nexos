@@ -1,0 +1,23 @@
+version: "0.1"
+id: WF-cline-refactor
+name: Cline Refactor (no-API-change)
+run:
+  search_attributes: { task_queue: "nexos", owner: "christian", kind: "refactor" }
+steps:
+  - id: preflight
+    activity: dev.doctor
+    args: { ci: true, checks: "plugins,events" }
+    idempotent: true
+  - id: implement
+    activity: term.run
+    args: { cmd: "echo 'perform internal refactor; no CLI flags or help changes'" }
+    idempotent: false
+  - id: tests
+    activity: term.run
+    args: { cmd: "cargo test --workspace" }
+  - id: docs
+    activity: dev.docs.build
+    args: { }
+  - id: doctor
+    activity: dev.doctor
+    args: { ci: true }
