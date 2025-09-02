@@ -120,6 +120,25 @@ Expected JSON format: `[{"title": "required", "body": "optional", "labels": ["ar
 ./target/debug/nexoscli task bundle --task TASK-20250902-implement-feature-x --out ./bundle.tgz
 ```
 
+**Engine selection:** Choose execution engine for task transitions:
+
+```bash
+# Default local engine (runs hooks/gates immediately)
+./target/debug/nexoscli task start --task TASK-20250902-example
+./target/debug/nexoscli task stage implementation
+
+# Temporal engine (writes envelopes to outbox for later processing)
+./target/debug/nexoscli task start --task TASK-20250902-example --engine temporal
+./target/debug/nexoscli task stage implementation --engine temporal
+./target/debug/nexoscli task end --engine temporal
+
+# Inspect temporal envelopes before sending
+ls .nexoscli/engine/outbox/
+cat .nexoscli/engine/outbox/*.json
+```
+
+**When to use temporal engine:** If you intend to hand off to Temporal later, use `--engine temporal` to produce outbox envelopes you can inspect or feed to a client.
+
 **Task stages:** planning → implementation → verification → done (or blocked)
 
 **Context injection:** When a task is active, ALL commands automatically get tagged with `{task_id, stage}` in events and JSON envelopes - no plugin changes required!

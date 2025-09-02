@@ -26,6 +26,19 @@ pub fn run_json(tmp: &Path, args: &[&str]) -> Value {
     serde_json::from_slice(&out.stdout).expect("parse json")
 }
 
+pub fn run_ok(tmp: &Path, args: &[&str]) {
+    let out = Command::cargo_bin("nexoscli").unwrap()
+        .current_dir(tmp)
+        .args(args)
+        .output()
+        .expect("run");
+    assert!(out.status.success(), "command failed: {:?}\nstdout:\n{}\nstderr:\n{}",
+        args,
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr),
+    );
+}
+
 pub fn run_raw(tmp: &Path, args: &[&str]) -> (i32, String, String) {
     let out = Command::cargo_bin("nexoscli").unwrap()
         .current_dir(tmp)

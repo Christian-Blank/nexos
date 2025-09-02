@@ -1,5 +1,5 @@
 use clap::{Arg, ArgMatches, Command as ClapCommand, ValueHint};
-use nexoscli_core::{Plugin, CommandContext, Result};
+use nexoscli_core::{Plugin, CommandContext, Result, engine::{engine_from, EngineKind}};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{fs, path::{Path, PathBuf}};
@@ -72,6 +72,7 @@ impl Plugin for TaskPlugin {
           ClapCommand::new("start").about("Start a task (make it active)")
             .arg(Arg::new("task").long("task"))
             .arg(Arg::new("name").long("name"))
+            .arg(engine_arg())
         )
         .subcommand(ClapCommand::new("pause").about("Pause the active task").arg(Arg::new("task").long("task")))
         .subcommand(ClapCommand::new("resume").about("Resume a paused task")
@@ -81,12 +82,14 @@ impl Plugin for TaskPlugin {
           ClapCommand::new("stage").about("Set the stage for a task")
             .arg(Arg::new("stage").required(true).value_parser(["planning","implementation","verification","done","blocked"]))
             .arg(Arg::new("task").long("task"))
+            .arg(engine_arg())
         )
         .subcommand(ClapCommand::new("status").about("Show task status").arg(Arg::new("task").long("task")))
         .subcommand(ClapCommand::new("list").about("List tasks"))
         .subcommand(
           ClapCommand::new("end").about("End the current (or given) task")
             .arg(Arg::new("task").long("task"))
+            .arg(engine_arg())
         )
         .subcommand(
           ClapCommand::new("bundle").about("Build a TracePack bundle for a task window")
@@ -117,6 +120,7 @@ impl Plugin for TaskPlugin {
       }
 
       Some(("start", sm)) => {
+        let engine_kind = engine_kind_from(sm);
         let id = resolve_task_id(sm.get_one::<String>("task"), sm.get_one::<String>("name"))?;
         ensure_no_unpaused_active(ctx)?;
         
@@ -148,7 +152,19 @@ impl Plugin for TaskPlugin {
         rec.save()?;
         // mark current
         set_current(&rec.id)?;
-        set_current_session(&sid)?;      // NEW
+        set_current_session(&sid)?;
+        
+        // Engine integration
+        let eng = engine_from(engine_kind);
+        if matches!(engine_kind, EngineKind::TemporalStub) {
+            let attrs = temporal_attrs_for_task(&rec);
+            let input = serde_json::json!({"action":"start"});
+            eng.start("task", &rec.id, attrs, input)?;
+            // NOTE: we deliberately **do not** run hooks for Temporal here
+        } else {
+            // Local engine: behavior unchanged (hooks run on stage transitions)
+        }
+        
         let out = json!({"id": rec.id, "stage": rec.stage, "status": rec.status});
         Ok(ctx.ok("task","start",&out))
       }
@@ -186,12 +202,27 @@ impl Plugin for TaskPlugin {
       }
 
       Some(("stage", sm)) => {
+        let engine_kind = engine_kind_from(sm);
         let stage = sm.get_one::<String>("stage").unwrap().to_string();
         let id = sm.get_one::<String>("task").cloned().or_else(current_id)
           .ok_or_else(|| anyhow::anyhow!("no task specified; pass --task or have one active"))?;
         let mut rec = TaskRecord::load(&id)?;
         rec.stage = stage.clone();
         rec.save()?;
+        
+        // Engine integration
+        let eng = engine_from(engine_kind);
+        if matches!(engine_kind, EngineKind::TemporalStub) {
+            let attrs = temporal_attrs_for_task(&rec);
+            let payload = serde_json::json!({"action":"stage_enter","stage": stage});
+            eng.signal("task", &rec.id, "stage_enter", attrs, payload)?;
+            // **Skip** gates/hooks under Temporal for now (the worker will own them)
+        } else {
+            // Local: gates/hooks as you already implemented
+            // TODO: Add gate evaluation and hook execution for local engine
+            // For now, this preserves existing behavior (no gates/hooks implemented yet)
+        }
+        
         let out = json!({"id": rec.id, "stage": rec.stage});
         Ok(ctx.ok("task","stage",&out))
       }
@@ -229,6 +260,7 @@ impl Plugin for TaskPlugin {
       }
 
       Some(("end", sm)) => {
+        let engine_kind = engine_kind_from(sm);
         let id = sm.get_one::<String>("task").cloned().or_else(current_id)
           .ok_or_else(|| anyhow::anyhow!("no task specified; pass --task or have one active"))?;
         let mut rec = TaskRecord::load(&id)?;
@@ -237,6 +269,15 @@ impl Plugin for TaskPlugin {
         if rec.stage != "done" { rec.stage = "done".into(); }
         rec.ended_at = Some(now());
         rec.save()?;
+        
+        // Engine integration
+        let eng = engine_from(engine_kind);
+        if matches!(engine_kind, EngineKind::TemporalStub) {
+            let attrs = temporal_attrs_for_task(&rec);
+            let payload = serde_json::json!({"action":"end"});
+            eng.signal("task", &rec.id, "end", attrs, payload)?;
+        }
+        
         let out = json!({"id": rec.id, "status": rec.status, "stage": rec.stage});
         // Clear current and session AFTER generating the response so this command gets task context
         let result = ctx.ok("task","end",&out);
@@ -537,6 +578,43 @@ fn collect_task_events(task_id: &str) -> anyhow::Result<(String, Option<String>,
 fn sha256(b: &[u8]) -> String {
   use sha2::{Digest, Sha256};
   format!("sha256:{:x}", Sha256::digest(b))
+}
+
+fn engine_arg() -> clap::Arg {
+    clap::Arg::new("engine")
+        .long("engine")
+        .value_parser(["local","temporal"])
+        .default_value("local")
+        .help("Execution engine for this action")
+}
+
+fn engine_kind_from(matches: &clap::ArgMatches) -> EngineKind {
+    match matches.get_one::<String>("engine").map(|s| s.as_str()) {
+        Some("temporal") => EngineKind::TemporalStub,
+        _ => EngineKind::Local,
+    }
+}
+
+fn git_context() -> serde_json::Value {
+    let mut repo = String::new(); let mut branch = String::new();
+    if let Ok(out) = std::process::Command::new("git").args(["rev-parse","--show-toplevel"]).output() {
+        if out.status.success() { repo = String::from_utf8_lossy(&out.stdout).trim().to_string(); }
+    }
+    if let Ok(out) = std::process::Command::new("git").args(["rev-parse","--abbrev-ref","HEAD"]).output() {
+        if out.status.success() { branch = String::from_utf8_lossy(&out.stdout).trim().to_string(); }
+    }
+    serde_json::json!({ "repo": if repo.is_empty(){serde_json::Value::Null}else{serde_json::Value::String(repo)},
+                        "branch": if branch.is_empty(){serde_json::Value::Null}else{serde_json::Value::String(branch)} })
+}
+
+fn temporal_attrs_for_task(task: &TaskRecord) -> serde_json::Value {
+    // **pre-Temporal** mapping (you can formalize in a mapping file later)
+    let ctx = git_context();
+    let sid = current_session_id();
+    serde_json::json!({
+      "task_id": task.id, "stage": task.stage, "status": task.status,
+      "session_id": sid, "repo": ctx.get("repo"), "branch": ctx.get("branch")
+    })
 }
 
 const TASK_README: &str = r#"# Task TracePack
