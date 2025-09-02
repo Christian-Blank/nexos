@@ -1156,6 +1156,7 @@ dependencies = [
  "nexoscli-plugin-rules",
  "nexoscli-plugin-task",
  "nexoscli-plugin-term",
+ "nexoscli-plugin-workflow",
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry_sdk",
@@ -1345,6 +1346,23 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+]
+
+[[package]]
+name = "nexoscli-plugin-workflow"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "hex",
+ "nexoscli-core",
+ "schemars",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sha2",
+ "time",
+ "walkdir",
 ]
 
 [[package]]

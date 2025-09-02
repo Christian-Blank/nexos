@@ -1,0 +1,17 @@
+[package]
+name = "nexoscli-plugin-workflow"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nexoscli-core = { path = "../../nexoscli-core" }
+anyhow         = { workspace = true }
+serde          = { workspace = true, features = ["derive"] }
+serde_json     = { workspace = true }
+serde_yaml     = "0.9"
+schemars       = { workspace = true }
+clap           = { workspace = true }
+time           = { workspace = true }
+walkdir        = { workspace = true }
+sha2           = { workspace = true }
+hex            = { workspace = true }

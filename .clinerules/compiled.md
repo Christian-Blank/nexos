@@ -160,7 +160,7 @@ If any command fails: stop and fix. If scope violation is required: open a chang
 
 ## 2) `.clinerules/scope.json` — **Scopes → allowed globs**
 
-> Cline uses this to keep changes inside the task’s sandbox.
+> Cline uses this to keep changes inside the task's sandbox.
 
 ```json
 {
@@ -174,6 +174,12 @@ If any command fails: stop and fix. If scope violation is required: open a chang
     ],
     "dev-plugin": [
       "plugins/dev/**",
+      "nexoscli-bin/tests/**",
+      "docs/**",
+      "scripts/ci/**"
+    ],
+    "workflow-plugin": [
+      "plugins/workflow/**",
       "nexoscli-bin/tests/**",
       "docs/**",
       "scripts/ci/**"

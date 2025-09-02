@@ -1,0 +1,13 @@
+{
+  "spec_id": "WF-test",
+  "step_id": "s2",
+  "input_sha": "sha256:07bfdde3f50676e3ab24487c3ca4ea6ffe87b968911626d7ad203ed5ee33dfa1",
+  "status": "failed",
+  "started_at": "2025-09-02T13:01:52.65677Z",
+  "finished_at": "2025-09-02T13:01:52.660639Z",
+  "exit_code": 2,
+  "result_digest": "sha256:d70a1c5ef2842a425d76df0bd0df851c51f577d604d7434b3d3b404478715c5b",
+  "last_envelope": {
+    "stdout": ""
+  }
+}

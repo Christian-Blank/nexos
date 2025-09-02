@@ -1,0 +1,39 @@
+{
+  "version": "0.2",
+  "scopes": {
+    "task-plugin": [
+      "plugins/task/**",
+      "nexoscli-bin/tests/**",
+      "docs/**",
+      "scripts/ci/**"
+    ],
+    "dev-plugin": [
+      "plugins/dev/**",
+      "nexoscli-bin/tests/**",
+      "docs/**",
+      "scripts/ci/**"
+    ],
+    "workflow-plugin": [
+      "plugins/workflow/**",
+      "nexoscli-bin/tests/**",
+      "docs/**",
+      "scripts/ci/**"
+    ],
+    "replay": [
+      "plugins/replay/**",
+      "nexoscli-bin/tests/**",
+      "docs/**"
+    ],
+    "cline-ingest": [
+      "plugins/cline/**",
+      "nexoscli-bin/tests/**",
+      "docs/**"
+    ],
+    "observability": [
+      "nexoscli-bin/src/**",
+      "nexoscli-core/**",
+      "nexoscli-bin/tests/**",
+      "docs/**"
+    ]
+  }
+}

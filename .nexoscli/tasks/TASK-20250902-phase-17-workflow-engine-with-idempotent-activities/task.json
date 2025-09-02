@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20250902-phase-17-workflow-engine-with-idempotent-activities",
+  "title": "Phase 17 - Workflow Engine with Idempotent Activities",
+  "stage": "done",
+  "status": "ended",
+  "created_at": "2025-09-02T12:54:14.2215Z",
+  "started_at": "2025-09-02T12:54:31.368696Z",
+  "ended_at": "2025-09-02T13:03:28.853557Z",
+  "sessions": [
+    {
+      "id": "SES-f7e9d0305d48",
+      "start": "2025-09-02T12:54:31.368745Z",
+      "end": "2025-09-02T13:03:28.853538Z"
+    }
+  ],
+  "notes": []
+}

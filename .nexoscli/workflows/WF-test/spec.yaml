@@ -1,0 +1,19 @@
+version: '0.1'
+id: WF-test
+name: WF-test workflow
+steps:
+- id: s1
+  activity: issue.new
+  args:
+    title: hello from workflow
+  idempotent: true
+  retry:
+    max_attempts: 2
+    backoff_ms: 250
+- id: s2
+  activity: dev.plugins.check
+  args: {}
+  idempotent: false
+  retry:
+    max_attempts: 1
+    backoff_ms: 0

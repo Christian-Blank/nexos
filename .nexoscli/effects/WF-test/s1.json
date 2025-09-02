@@ -1,0 +1,33 @@
+{
+  "spec_id": "WF-test",
+  "step_id": "s1",
+  "input_sha": "sha256:e10a88c637313d6ab5caca98b69e3d4a73b3087cc6b960e9575c7ed53e147f49",
+  "status": "ok",
+  "started_at": "2025-09-02T13:01:36.256069Z",
+  "finished_at": "2025-09-02T13:01:36.260595Z",
+  "exit_code": 0,
+  "result_digest": "sha256:52e649bbf481bc78ba6c9c1c9f6edd52a36bc5055a37c76a8c84d661805af181",
+  "last_envelope": {
+    "data": {
+      "body": null,
+      "created_at": "2025-09-02T13:01:36.259997Z",
+      "id": "ISS-0014",
+      "labels": [],
+      "state": "open",
+      "title": "hello from workflow",
+      "updated_at": "2025-09-02T13:01:36.259997Z"
+    },
+    "errors": [],
+    "meta": {
+      "command": "new",
+      "context": {
+        "session_id": "SES-f7e9d0305d48",
+        "stage": "planning",
+        "task_id": "TASK-20250902-phase-17-workflow-engine-with-idempotent-activities"
+      },
+      "duration_ms": 0,
+      "plugin": "issue",
+      "run_id": "8e1f5317-82f8-49c4-8af9-225f45f3538f"
+    }
+  }
+}
