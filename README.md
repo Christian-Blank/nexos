@@ -131,13 +131,14 @@ The global graph is composed from these locals; changes bubble up via evidence a
 ⸻
 
 Current status
-	•	**Phase 14 Complete**: Task Plugin with Context Injection - complete task lifecycle management with automatic context tagging
-	•	✅ Task plugin with full lifecycle: new/start/pause/resume/stage/status/list/end/bundle commands
-	•	✅ Event context injection: all commands run while a task is active get tagged with {task_id, stage} in both event log and JSON envelopes
-	•	✅ TracePack integration: task bundles include all context-tagged events, patches, status files, and Cline tasks
-	•	✅ Comprehensive test coverage (5/5 task tests) including full E2E lifecycle and context injection verification
-	•	✅ Manual verification: CLI functionality working with automatic context propagation across all plugins
-	•	✅ Seamless integration: no changes required to existing plugins - context injection happens transparently
+	•	**Phase 15 Complete**: Session Correlation & Health Monitoring - complete observability with session tracking and system health validation
+	•	✅ Session correlation: unique session IDs (SES-*) for granular work tracking within task lifecycles
+	•	✅ Enhanced context injection: all commands now tagged with both {task_id, session_id} in events and JSON envelopes
+	•	✅ Doctor health checks: comprehensive system validation (redaction config, event integrity, task coverage) with CI integration
+	•	✅ Complete documentation: new OBSERVABILITY.md guide and enhanced PLAYBOOK.md with health monitoring
+	•	✅ TracePack enhancement: task bundles include session IDs in manifests for complete work correlation
+	•	✅ Comprehensive test coverage: 49 tests passing including new session correlation and doctor check validation
+	•	✅ Drop-in compatibility: all Phase 15 enhancements preserve existing behavior while adding new safety layers
 
 Check the Execution Graph for the active feature/issue: docs/exec_graph.yaml
 

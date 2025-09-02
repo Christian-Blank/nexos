@@ -1144,6 +1144,7 @@ dependencies = [
  "clap_complete",
  "clap_mangen",
  "filetime",
+ "flate2",
  "nexoscli-core",
  "nexoscli-plugin-bundle",
  "nexoscli-plugin-cline",
@@ -1162,6 +1163,7 @@ dependencies = [
  "schemars",
  "serde_json",
  "serde_yaml",
+ "tar",
  "tempfile",
  "tokio",
  "tracing",
@@ -1247,8 +1249,10 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+ "serde_yaml",
  "time",
  "tracing",
+ "walkdir",
 ]
 
 [[package]]
@@ -1319,6 +1323,7 @@ dependencies = [
  "anyhow",
  "clap",
  "flate2",
+ "hex",
  "nexoscli-core",
  "regex",
  "serde",

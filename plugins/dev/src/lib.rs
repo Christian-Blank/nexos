@@ -1,4 +1,5 @@
 use clap::{Arg, ArgAction, ArgMatches, Command};
+use clap::parser::ValueSource;
 use schemars::{schema_for, JsonSchema};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -10,6 +11,8 @@ use tracing::{span, Level};
 
 use nexoscli_core::plugin::{CommandContext, Plugin, ToolSpec};
 use nexoscli_core::Result;
+
+mod checks;
 
 // ---------- Existing structs for dev init ----------
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -206,13 +209,15 @@ impl Plugin for DevPlugin {
                 // dev doctor
                 .subcommand(
                     Command::new("doctor")
-                        .about("Verify local setup (dotdir, event log write, config, OTEL envs)")
+                        .about("Environment & hygiene checks")
+                        .arg(Arg::new("since").long("since").default_value("24h"))
+                        .arg(Arg::new("require").long("require").help("CSV of checks to enforce").default_value(""))
+                        .arg(Arg::new("task_coverage_min").long("task-coverage-min").default_value("0.7"))
+                        .arg(Arg::new("output").long("output").value_parser(["text","json"]).default_value("json"))
                         .arg(Arg::new("ci").long("ci").action(ArgAction::SetTrue)
                              .help("Aggregate repo checks and exit non-zero on failure"))
                         .arg(Arg::new("checks").long("checks").value_name("CSV")
                              .help("Subset of checks: graph,plugins,config,events,tools,cline (default: all)"))
-                        .arg(Arg::new("require").long("require").value_name("CSV")
-                             .help("Checks that must pass (comma-separated). If any fails -> non-zero. Example: --require cline"))
                 )
                 // dev telemetry
                 .subcommand(
@@ -657,61 +662,43 @@ endpoint = ""
                         return Ok(exit);
                     }
                 } else {
-                    // Original doctor logic
-                    use nexoscli_core::providers::Clock;
-                    let cwd = std::env::current_dir()?;
-                    let dot = cwd.join(".nexoscli");
-                    let log = dot.join("log").join("events.jsonl");
+                    let since = m.get_one::<String>("since").unwrap();
+                    let require = m.get_one::<String>("require").unwrap().split(',').filter(|s|!s.is_empty()).collect::<Vec<_>>();
+                    let min_cov = parse_cov_threshold(m.get_one::<String>("task_coverage_min").unwrap());
+                    let _outfmt = m.get_one::<String>("output").unwrap();
 
-                    let mut checks = Vec::new();
+                    let mut report = serde_json::Map::new();
+                    let mut hard_fail = false;
 
-                    // dotdir present
-                    let dot_ok = dot.exists();
-                    checks.push(DoctorCheck {
-                        name: "dotdir_exists".into(),
-                        ok: dot_ok,
-                        detail: dot.display().to_string(),
-                    });
+                    // 1) Redaction config present & valid (hard requirement by default)
+                    let red_ok = crate::checks::redaction_ok();
+                    report.insert("redaction".into(), serde_json::json!({ "ok": red_ok }));
+                    if !red_ok { 
+                        hard_fail = true; 
+                    }
 
-                    // event log write (append via event writer)
-                    let event_ok = ctx.events.write(
-                        "dev",
-                        "doctor.ping",
-                        &serde_json::json!({"ping": true, "ts": Clock::now_rfc3339()}),
-                        0,
-                        None,
-                        None,
-                        None,
-                    ).is_ok();
-                    checks.push(DoctorCheck {
-                        name: "event_log_writable".into(),
-                        ok: event_ok,
-                        detail: log.display().to_string(),
-                    });
+                    // 2) Event integrity & counts for window
+                    let ev = crate::checks::events_window(since)?;
+                    report.insert("events".into(), serde_json::to_value(&ev)?);
+                    if (!ev.ok) && require.iter().any(|c| *c == "events") { hard_fail = true; }
 
-                    // config load
-                    let cfg = &ctx.config;
-                    let cfg_detail = format!(
-                        "output.default={:?}, telemetry.enabled={}, endpoint={:?}",
-                        cfg.output.default, cfg.telemetry.enabled, cfg.telemetry.endpoint
-                    );
-                    checks.push(DoctorCheck {
-                        name: "config_loaded".into(),
-                        ok: true,
-                        detail: cfg_detail,
-                    });
+                    // 3) Task coverage
+                    let cov = if ev.total_lines > 0 { ev.with_task as f64 / ev.total_lines as f64 } else { 1.0 };
+                    let task_cov_ok = cov >= min_cov;
+                    report.insert("task_coverage".into(), serde_json::json!({ "coverage": cov, "min": min_cov, "ok": task_cov_ok }));
+                    
+                    // Check if --task-coverage-min was explicitly set by user
+                    let cov_explicitly_set = m.value_source("task_coverage_min") == Some(ValueSource::CommandLine);
+                    
+                    if !task_cov_ok && (cov_explicitly_set || require.iter().any(|c| *c == "tasks" || *c == "coverage")) { 
+                        hard_fail = true; 
+                    }
 
-                    // OTEL env (optional)
-                    let otel = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").ok();
-                    checks.push(DoctorCheck {
-                        name: "otel_endpoint_env_present".into(),
-                        ok: otel.is_some(),
-                        detail: otel.unwrap_or_else(|| "(not set; optional)".into()),
-                    });
+                    // Add overall ready status for basic usage
+                    report.insert("ready".into(), serde_json::json!(!hard_fail));
 
-                    let ready = dot_ok && event_ok; // config and OTEL are not required for 'ready'
-                    let exit = ctx.ok("dev", "doctor", &DoctorResult { ready, checks });
-                    return Ok(exit);
+                    let code = if hard_fail { ctx.err("dev","doctor","DOCTOR_FAILED","one or more required checks failed",None,2) } else { ctx.ok("dev","doctor",&report) };
+                    return Ok(code);
                 }
             }
 
@@ -913,6 +900,22 @@ fn average(v: &Vec<u64>) -> Option<u64> {
     if v.is_empty() { return None; }
     let s: u128 = v.iter().map(|&x| x as u128).sum();
     Some((s / (v.len() as u128)) as u64)
+}
+
+fn parse_cov_threshold(s: &str) -> f64 {
+    let t = s.trim();
+    // Allow "50%" style
+    if let Some(num) = t.strip_suffix('%') {
+        if let Ok(v) = num.trim().parse::<f64>() {
+            return (v / 100.0).clamp(0.0, 1.0);
+        }
+    }
+    // Allow integers as percent (50 -> 0.5), or fractions (0.7)
+    match t.parse::<f64>() {
+        Ok(v) if v > 1.0 => (v / 100.0).clamp(0.0, 1.0),
+        Ok(v)            => v.clamp(0.0, 1.0),
+        Err(_)           => 0.7,
+    }
 }
 
 fn to_camel(s: &str) -> String {

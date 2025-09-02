@@ -47,3 +47,6 @@ predicates = { workspace = true }
 tempfile = { workspace = true }
 serde_yaml = { workspace = true }
 filetime = { workspace = true }
+flate2 = { workspace = true }
+tar = { workspace = true }
+serde_json = { workspace = true }

@@ -6,6 +6,11 @@ fn doctor_ready_and_config_default_output_yaml() {
 
     // Ensure dotdir exists, then doctor
     let _ = run_json(t.path(), &["dev","init","--yes"]);
+    
+    // Create redaction config required by doctor
+    let redact_path = t.path().join(".nexoscli").join("redact.yaml");
+    std::fs::write(&redact_path, "patterns: []").unwrap();
+    
     let v = run_json(t.path(), &["dev","doctor"]);
     assert!(v["data"]["ready"].as_bool().unwrap());
 

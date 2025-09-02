@@ -54,10 +54,14 @@ impl CommandContext {
             .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
             .and_then(|v| v.get("stage").and_then(|x| x.as_str()).map(|s| s.to_string()))
             .unwrap_or_else(|| "implementation".to_string());
+        // NEW: session_id
+        let sid = std::fs::read_to_string(std::path::PathBuf::from(".nexoscli").join("task").join("current_session"))
+            .ok().map(|s| s.trim().to_string());
         
         let mut m = serde_json::Map::new();
         m.insert("task_id".into(), serde_json::Value::String(id));
         m.insert("stage".into(), serde_json::Value::String(stage));
+        if let Some(sid) = sid { m.insert("session_id".into(), serde_json::Value::String(sid)); }
         Some(m)
     }
 

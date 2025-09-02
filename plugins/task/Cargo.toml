@@ -14,4 +14,5 @@ regex = { workspace = true }
 sha2 = { workspace = true }
 tar = { workspace = true }
 flate2 = { workspace = true }
+hex = { workspace = true }
 clap = "4"

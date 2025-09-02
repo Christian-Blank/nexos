@@ -14,7 +14,18 @@ pub struct TaskPlugin;
 impl TaskPlugin { pub fn new() -> Self { Self } }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
-struct Session { start: String, end: Option<String> }
+struct Session { 
+  id: String,            // NEW: stable identifier for the session
+  start: String, 
+  end: Option<String> 
+}
+
+fn gen_session_id() -> String {
+  use sha2::{Digest, Sha256};
+  let seed = format!("{}-{}", time::OffsetDateTime::now_utc().unix_timestamp_nanos(), std::process::id());
+  let d = Sha256::digest(seed.as_bytes());
+  format!("SES-{}", &hex::encode(d)[..12])
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 struct TaskRecord {
@@ -59,10 +70,13 @@ impl Plugin for TaskPlugin {
         )
         .subcommand(
           ClapCommand::new("start").about("Start a task (make it active)")
-            .arg(Arg::new("task").long("task").required(true))
+            .arg(Arg::new("task").long("task"))
+            .arg(Arg::new("name").long("name"))
         )
         .subcommand(ClapCommand::new("pause").about("Pause the active task").arg(Arg::new("task").long("task")))
-        .subcommand(ClapCommand::new("resume").about("Resume a paused task").arg(Arg::new("task").long("task")))
+        .subcommand(ClapCommand::new("resume").about("Resume a paused task")
+            .arg(Arg::new("task").long("task"))
+            .arg(Arg::new("name").long("name")))
         .subcommand(
           ClapCommand::new("stage").about("Set the stage for a task")
             .arg(Arg::new("stage").required(true).value_parser(["planning","implementation","verification","done","blocked"]))
@@ -77,7 +91,8 @@ impl Plugin for TaskPlugin {
         .subcommand(
           ClapCommand::new("bundle").about("Build a TracePack bundle for a task window")
             .arg(Arg::new("task").long("task"))
-            .arg(Arg::new("out").long("out").required(true))
+            .arg(Arg::new("name").long("name").required(false))
+            .arg(Arg::new("out").long("out").required(false))
             .arg(Arg::new("include").long("include").default_value("all")
                  .help("CSV from: events,patches,status,cline,all"))
         )
@@ -102,17 +117,38 @@ impl Plugin for TaskPlugin {
       }
 
       Some(("start", sm)) => {
-        let id = sm.get_one::<String>("task").unwrap();
+        let id = resolve_task_id(sm.get_one::<String>("task"), sm.get_one::<String>("name"))?;
         ensure_no_unpaused_active(ctx)?;
-        let mut rec = TaskRecord::load(id)?;
+        
+        // Try to load existing task, or create a new one if it doesn't exist
+        let mut rec = match TaskRecord::load(&id) {
+          Ok(rec) => rec,
+          Err(_) => {
+            // Task doesn't exist, create a new one
+            let title = sm.get_one::<String>("name").cloned()
+              .or_else(|| sm.get_one::<String>("task").cloned())
+              .unwrap_or_else(|| id.clone());
+            TaskRecord {
+              id: id.clone(),
+              title,
+              stage: "planning".into(),
+              status: "new".into(),
+              created_at: now(),
+              ..Default::default()
+            }
+          }
+        };
+        
         // update
         if rec.started_at.is_none() { rec.started_at = Some(now()); }
         rec.status = "active".into();
         if rec.stage.is_empty() { rec.stage = "implementation".into(); }
-        rec.sessions.push(Session{ start: now(), end: None });
+        let sid = gen_session_id();
+        rec.sessions.push(Session{ id: sid.clone(), start: now(), end: None });
         rec.save()?;
         // mark current
         set_current(&rec.id)?;
+        set_current_session(&sid)?;      // NEW
         let out = json!({"id": rec.id, "stage": rec.stage, "status": rec.status});
         Ok(ctx.ok("task","start",&out))
       }
@@ -130,19 +166,21 @@ impl Plugin for TaskPlugin {
         rec.status = "paused".into();
         rec.save()?;
         clear_current()?;
+        clear_current_session()?;        // NEW
         let out = json!({"id": rec.id, "status": rec.status});
         Ok(ctx.ok("task","pause",&out))
       }
 
       Some(("resume", sm)) => {
-        let id = sm.get_one::<String>("task").cloned().or_else(current_id);
-        let id = id.ok_or_else(|| anyhow::anyhow!("no task specified; pass --task"))?;
+        let id = resolve_task_id(sm.get_one::<String>("task"), sm.get_one::<String>("name"))?;
         ensure_no_unpaused_active(ctx)?;
         let mut rec = TaskRecord::load(&id)?;
         rec.status = "active".into();
-        rec.sessions.push(Session{ start: now(), end: None });
+        let sid = gen_session_id();
+        rec.sessions.push(Session{ id: sid.clone(), start: now(), end: None });
         rec.save()?;
         set_current(&rec.id)?;
+        set_current_session(&sid)?;      // NEW
         let out = json!({"id": rec.id, "status": rec.status});
         Ok(ctx.ok("task","resume",&out))
       }
@@ -199,15 +237,19 @@ impl Plugin for TaskPlugin {
         if rec.stage != "done" { rec.stage = "done".into(); }
         rec.ended_at = Some(now());
         rec.save()?;
-        clear_current().ok();
         let out = json!({"id": rec.id, "status": rec.status, "stage": rec.stage});
-        Ok(ctx.ok("task","end",&out))
+        // Clear current and session AFTER generating the response so this command gets task context
+        let result = ctx.ok("task","end",&out);
+        clear_current().ok();
+        clear_current_session().ok();
+        Ok(result)
       }
 
       Some(("bundle", sm)) => {
-        let id = sm.get_one::<String>("task").cloned().or_else(current_id)
-          .ok_or_else(|| anyhow::anyhow!("no task specified; pass --task or have one active"))?;
-        let out_path = sm.get_one::<String>("out").unwrap().to_string();
+        let id = resolve_task_id(sm.get_one::<String>("task"), sm.get_one::<String>("name"))?;
+        let out_path = sm.get_one::<String>("out")
+          .map(|s| s.to_string())
+          .unwrap_or_else(|| default_out_for(&id, sm.get_one::<String>("name")));
         let include = sm.get_one::<String>("include").unwrap().to_string();
 
         let (events, first_ts, last_ts) = collect_task_events(&id)?;
@@ -291,10 +333,15 @@ impl Plugin for TaskPlugin {
           }
         }
 
-        // manifest
+        // manifest - get session id from task record
+        let rec_for_manifest = TaskRecord::load(&id)?;
+        let manifest_session_id = rec_for_manifest.sessions.last().map(|s| s.id.clone())
+            .or_else(|| current_session_id());
+
         let manifest = json!({
           "version":"0.1","kind":"tracepack.task",
           "task_id": id,
+          "session_id": manifest_session_id,       // <- use last session or current
           "created_at": now(),
           "time_range": { "from": first_ts, "to": last_ts },
           "counts": { "events_lines": counts.events_lines, "patches": counts.patches, "status": counts.status, "cline": counts.cline },
@@ -353,6 +400,44 @@ fn slugify(s: &str) -> String {
   t.trim_matches('-').to_string()
 }
 
+fn resolve_task_id(id_opt: Option<&String>, name_opt: Option<&String>) -> anyhow::Result<String> {
+  if let Some(id) = id_opt { return Ok(id.clone()); }
+  if let Some(name) = name_opt {
+    let slug = slugify(name);
+    // try to find an existing task whose id ends with the slug
+    let d = PathBuf::from(TASKS_DIR);
+    if d.exists() {
+      for ent in WalkDir::new(&d).min_depth(1).max_depth(1).into_iter().flatten() {
+        if ent.path().is_dir() {
+          let tid = ent.file_name().to_string_lossy().to_string();
+          if tid.ends_with(&slug) { return Ok(tid); }
+        }
+      }
+    }
+    // not found: create a fresh TaskRecord
+    let id = format!("TASK-{}-{}", today(), slug);
+    let rec = TaskRecord{
+      id: id.clone(), title: name.to_string(),
+      stage: "planning".into(), status: "new".into(),
+      created_at: now(), ..Default::default()
+    };
+    rec.save()?;
+    return Ok(id);
+  }
+  // fallback to active
+  if let Some(cur) = current_id() { return Ok(cur); }
+  Err(anyhow::anyhow!("no task specified; pass --task or --name"))
+}
+
+fn default_out_for(id: &str, name_opt: Option<&String>) -> String {
+  if let Some(name) = name_opt {
+    let slug = slugify(name);
+    format!("{}.tgz", slug)
+  } else {
+    format!("{}.tgz", id)
+  }
+}
+
 fn set_current(id: &str) -> anyhow::Result<()> {
   let p = PathBuf::from(".nexoscli").join("task");
   fs::create_dir_all(&p)?;
@@ -366,6 +451,22 @@ fn clear_current() -> anyhow::Result<()> {
 }
 fn current_id() -> Option<String> {
   fs::read_to_string(PathBuf::from(CURRENT_FILE)).ok().map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
+}
+
+fn set_current_session(id: &str) -> anyhow::Result<()> {
+  let p = PathBuf::from(".nexoscli").join("task");
+  fs::create_dir_all(&p)?;
+  fs::write(p.join("current_session"), id.as_bytes())?;
+  Ok(())
+}
+fn clear_current_session() -> anyhow::Result<()> {
+  let p = PathBuf::from(".nexoscli").join("task").join("current_session");
+  let _ = fs::remove_file(p);
+  Ok(())
+}
+fn current_session_id() -> Option<String> {
+  fs::read_to_string(PathBuf::from(".nexoscli").join("task").join("current_session"))
+    .ok().map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
 }
 
 fn ensure_no_unpaused_active(_ctx: &CommandContext) -> anyhow::Result<()> {

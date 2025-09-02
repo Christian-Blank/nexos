@@ -124,6 +124,45 @@ Expected JSON format: `[{"title": "required", "body": "optional", "labels": ["ar
 
 **Context injection:** When a task is active, ALL commands automatically get tagged with `{task_id, stage}` in events and JSON envelopes - no plugin changes required!
 
+## Health Checks
+
+**System health validation** with comprehensive doctor checks:
+
+```bash
+# Run all available health checks
+./target/debug/nexoscli dev doctor --output json
+
+# CI mode - exit code 1 if any required checks fail
+./target/debug/nexoscli dev doctor --ci --require redaction,events
+
+# Run specific checks only
+./target/debug/nexoscli dev doctor --checks redaction,events,task-coverage
+
+# Check event integrity for specific time window
+./target/debug/nexoscli dev doctor --since 24h --checks events
+```
+
+**Available checks:**
+- **redaction**: Validates `.nexoscli/redact.yaml` exists and is well-formed
+- **events**: Validates event log structure and content integrity
+- **task-coverage**: Measures percentage of events with task context (helps track workflow adoption)
+
+**CI Integration:**
+```bash
+# In CI pipeline - enforce critical checks
+./target/debug/nexoscli dev doctor --ci --require redaction,events
+# Script exits with code 1 if any required check fails
+
+# Development workflow - run before commits
+./target/debug/nexoscli dev doctor --checks redaction,events,task-coverage
+```
+
+**Health monitoring best practices:**
+- Run `dev doctor` regularly during development
+- Include doctor checks in CI/CD pipelines  
+- Monitor task coverage metrics to track workflow adoption
+- Use `--require` flag to enforce critical checks in automated environments
+
 ## OTEL Development
 
 **Observability stack** for development with OpenTelemetry:
