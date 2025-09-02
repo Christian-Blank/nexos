@@ -196,3 +196,41 @@ steps:
 - The CLI contracts are additive across phases; existing specs remain valid.
 - Effects/history/visibility are local files enabling deterministic replay and visibility.
 - JSON envelopes include task context automatically when an active task exists (see PLAYBOOK and Task CLI).
+
+## Determinism & Evolution (Phase 21 — T‑2)
+
+This phase adds determinism guardrails so specs can evolve safely without breaking replay.
+
+- run.build_id (optional string)
+  - Identifies the build/compatibility set for the run. Stored in visibility.build_id and can later be used for routing when running under Temporal.
+- run.change_ids (array of strings)
+  - Explicit version fences you bump when making workflow‑visible changes (e.g., step ordering, branching). The runner records this set in .nexoscli/workflows/<id>/determinism.json on first successful run and fails subsequent runs if the set differs.
+  - Use --allow-change-ids-drift to consciously accept the change and update determinism.json.
+
+- Determinism file
+  - Path: .nexoscli/workflows/<id>/determinism.json
+  - Fields: build_id, change_ids, spec_sha256, first_run_at, last_run_at, engine
+
+- Input hashing salt
+  - The effect input_sha is salted with run.build_id and run.change_ids so idempotent skips will not falsely reuse effects across determinism changes.
+
+- Validate command
+  - Validate schema and invariants before running:
+    - unique step ids
+    - exactly one of activity|timer|child_workflow per step
+    - resource names charset: [a-z0-9:\-]+
+    - change_ids matches ^[A-Z][A-Z0-9_\-]{1,63}$
+    - warns on empty steps
+
+Examples:
+- Validate a spec
+  ./target/debug/nexoscli workflow validate --spec docs/workflows/WF-timer-demo.yaml --output json
+
+- First run (pins determinism)
+  ./target/debug/nexoscli workflow run --spec docs/workflows/WF-timer-demo.yaml --build-id build-A --output json
+
+- Change change_ids in the spec → run fails with workflow.change_ids_drift
+  ./target/debug/nexoscli workflow run --spec docs/workflows/WF-timer-demo.yaml --output json
+
+- Override drift intentionally
+  ./target/debug/nexoscli workflow run --spec docs/workflows/WF-timer-demo.yaml --allow-change-ids-drift --output json

@@ -175,6 +175,15 @@ struct RunSummary {
     finished_at: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct ValidateReport {
+    spec_id: String,
+    errors: Vec<String>,
+    warnings: Vec<String>,
+    step_count: usize,
+    change_ids: Vec<String>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct EffectRecord {
     spec_id: String,
@@ -252,16 +261,23 @@ impl Plugin for WorkflowPlugin {
                                 .help("Defaults to .nexoscli/workflows/<id>/spec.yaml"),
                         ),
                 )
+.subcommand(
+    ClapCommand::new("plan")
+        .about("Plan which steps would run (idempotency-aware)")
+        .arg(Arg::new("spec").long("spec").required(true).value_name("YAML")),
+)
+.subcommand(
+    ClapCommand::new("validate")
+        .about("Validate a workflow spec (schema + invariants)")
+        .arg(Arg::new("spec").long("spec").required(true).value_name("YAML")),
+)
                 .subcommand(
-                    ClapCommand::new("plan")
-                        .about("Plan which steps would run (idempotency-aware)")
-                        .arg(Arg::new("spec").long("spec").required(true).value_name("YAML")),
-                )
-                .subcommand(
-                    ClapCommand::new("run")
-                        .about("Run a workflow spec sequentially")
-                        .arg(Arg::new("spec").long("spec").required(true).value_name("YAML"))
-                        .arg(Arg::new("dry-run").long("dry-run").action(ArgAction::SetTrue)),
+ClapCommand::new("run")
+    .about("Run a workflow spec sequentially")
+    .arg(Arg::new("spec").long("spec").required(true).value_name("YAML"))
+    .arg(Arg::new("dry-run").long("dry-run").action(ArgAction::SetTrue))
+    .arg(Arg::new("allow-change-ids-drift").long("allow-change-ids-drift").action(ArgAction::SetTrue))
+    .arg(Arg::new("build-id").long("build-id").value_name("STRING")),
                 )
                 .subcommand(
                     ClapCommand::new("status")
@@ -406,10 +422,99 @@ impl Plugin for WorkflowPlugin {
                 ))
             }
 
+            Some(("validate", sm)) => {
+                let spec_path = sm.get_one::<String>("spec").unwrap();
+                // Build a validation report without failing the command
+                let mut errors: Vec<String> = vec![];
+                let mut warnings: Vec<String> = vec![];
+                let mut step_count: usize = 0;
+                let mut change_ids: Vec<String> = vec![];
+                let txt = match fs::read_to_string(spec_path) {
+                    Ok(t) => t,
+                    Err(e) => {
+                        errors.push(format!("read error: {}", e));
+                        let rep = ValidateReport {
+                            spec_id: "".into(),
+                            errors,
+                            warnings,
+                            step_count: 0,
+                            change_ids,
+                        };
+                        return Ok(ctx.ok("workflow","validate",&rep));
+                    }
+                };
+                match serde_yaml::from_str::<WorkflowSpec>(&txt) {
+                    Ok(spec) => {
+                        // version
+                        if spec.version != "0.1" {
+                            errors.push(format!("unsupported version {}", spec.version));
+                        }
+                        step_count = spec.steps.len();
+                        change_ids = spec.run.change_ids.clone();
+
+                        // unique ids + mutually exclusive kinds
+                        use std::collections::HashSet;
+                        let mut ids = HashSet::new();
+                        for s in &spec.steps {
+                            if !ids.insert(&s.id) {
+                                errors.push(format!("duplicate step id '{}'", s.id));
+                            }
+                            let set = (s.activity.is_some() as u8)
+                                + (s.timer.is_some() as u8)
+                                + (s.child_workflow.is_some() as u8);
+                            if set == 0 {
+                                errors.push(format!("step '{}' must set exactly one of activity|timer|child_workflow", s.id));
+                            }
+                            if set > 1 {
+                                errors.push(format!("step '{}' has multiple kinds; choose only one", s.id));
+                            }
+                            for r in &s.resources {
+                                if !r.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == ':' || c == '-') {
+                                    errors.push(format!("step '{}' has invalid resource name '{}'", s.id, r));
+                                }
+                            }
+                        }
+                        // change_ids format
+                        let re = Regex::new(r"^[A-Z][A-Z0-9_\-]{1,63}$").unwrap();
+                        for cid in &spec.run.change_ids {
+                            if !re.is_match(cid) {
+                                errors.push(format!("invalid change_id '{}': must match {}", cid, re.as_str()));
+                            }
+                        }
+                        if errors.is_empty() && step_count == 0 {
+                            warnings.push("no steps defined".into());
+                        }
+                        let rep = ValidateReport {
+                            spec_id: spec.id.clone(),
+                            errors, warnings,
+                            step_count,
+                            change_ids,
+                        };
+                        Ok(ctx.ok("workflow","validate",&rep))
+                    }
+                    Err(e) => {
+                        errors.push(format!("parse error: {}", e));
+                        let rep = ValidateReport {
+                            spec_id: "".into(),
+                            errors,
+                            warnings,
+                            step_count: 0,
+                            change_ids,
+                        };
+                        Ok(ctx.ok("workflow","validate",&rep))
+                    }
+                }
+            }
+
             Some(("run", sm)) => {
                 let spec_path = sm.get_one::<String>("spec").unwrap();
                 let dry = sm.get_flag("dry-run");
-                let spec = read_spec(spec_path)?;
+                let allow_drift = sm.get_flag("allow-change-ids-drift");
+                let build_id_cli = sm.get_one::<String>("build-id").cloned();
+                let mut spec = read_spec(spec_path)?;
+                if let Some(bid) = build_id_cli {
+                    spec.run.build_id = Some(bid);
+                }
                 let started_at = now();
 
                 // initialize visibility (T-3)
@@ -444,6 +549,39 @@ impl Plugin for WorkflowPlugin {
 
                 let hist = history_path(&spec.id)?;
                 ensure_parent_dir(hist.to_str().unwrap())?;
+
+                // Determinism gating (T-2)
+                let spec_sha = sha256_file(spec_path)?;
+                let prev = read_determinism(&spec.id);
+                let mut prev_cids = prev.as_ref().map(|d| d.change_ids.clone()).unwrap_or_default();
+                let mut now_cids = spec.run.change_ids.clone();
+                prev_cids.sort();
+                now_cids.sort();
+                if prev.is_some() && prev_cids != now_cids && !allow_drift {
+                    append_history(
+                        &hist,
+                        &json!({"ts": now(), "event":"change_ids_drift", "prev": prev_cids, "now": now_cids}),
+                    )?;
+                    return Ok(ctx.err(
+                        "workflow",
+                        "run.change_ids_drift",
+                        "workflow.change_ids_drift",
+                        &format!("run.change_ids changed; prev={:?} now={:?}", prev_cids, now_cids),
+                        Some("--allow-change-ids-drift"),
+                        66,
+                    ));
+                }
+                // Persist/update determinism.json
+                let now_ts = now();
+                let det = Determinism {
+                    build_id: spec.run.build_id.clone(),
+                    change_ids: spec.run.change_ids.clone(),
+                    spec_sha256: spec_sha,
+                    first_run_at: prev.as_ref().map(|d| d.first_run_at.clone()).unwrap_or_else(|| now_ts.clone()),
+                    last_run_at: now_ts,
+                    engine: "local".into(),
+                };
+                write_determinism(&spec.id, &det).ok();
 
                 let first_scheduled = Instant::now();
 
@@ -518,7 +656,8 @@ impl Plugin for WorkflowPlugin {
                         .schedule_to_close_ms
                         .map(|ms| first_scheduled + Duration::from_millis(ms));
 
-                    let input_sha = input_sha(&spec.id, &step);
+                    let mut input_sha = input_sha(&spec.id, &step);
+                    input_sha = salt_input_sha(&input_sha, &spec.run.build_id, &spec.run.change_ids);
                     let mut attempt: u32 = 0;
                     let mut ok = false;
 
@@ -776,6 +915,12 @@ impl Plugin for WorkflowPlugin {
                 result_schema: schema_for!(PlanSummary),
             },
             ToolSpec {
+                name: "workflow.validate".into(),
+                about: "Validate a workflow spec (schema + invariants)".into(),
+                args_schema: schema_for!(serde_json::Value),
+                result_schema: schema_for!(ValidateReport),
+            },
+            ToolSpec {
                 name: "workflow.run".into(),
                 about: "Run a workflow spec sequentially".into(),
                 args_schema: schema_for!(serde_json::Value),
@@ -860,7 +1005,8 @@ fn plan_steps(spec: &WorkflowSpec) -> anyhow::Result<Vec<PlanRow>> {
             s.activity.clone().unwrap_or_else(|| "activity".to_string())
         };
 
-        let input = input_sha(&spec.id, s);
+        let mut input = input_sha(&spec.id, s);
+        input = salt_input_sha(&input, &spec.run.build_id, &spec.run.change_ids);
         let eff = read_effect(&spec.id, &s.id);
         let (would_run, reason) = if s.idempotent {
             match eff {
@@ -1344,6 +1490,46 @@ fn read_all_visibility() -> Vec<Visibility> {
         }
     }
     out
+}
+
+ // ------------- Determinism (T-2) -------------
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+struct Determinism {
+    build_id: Option<String>,
+    change_ids: Vec<String>,
+    spec_sha256: String,
+    first_run_at: String,
+    last_run_at: String,
+    engine: String, // "local" | "temporal"
+}
+fn determinism_path(spec_id: &str) -> PathBuf {
+    PathBuf::from(".nexoscli").join("workflows").join(spec_id).join("determinism.json")
+}
+fn read_determinism(spec_id: &str) -> Option<Determinism> {
+    let p = determinism_path(spec_id);
+    let txt = fs::read_to_string(p).ok()?;
+    serde_json::from_str(&txt).ok()
+}
+fn write_determinism(spec_id: &str, det: &Determinism) -> anyhow::Result<()> {
+    let p = determinism_path(spec_id);
+    ensure_parent_dir(p.to_str().unwrap())?;
+    fs::write(p, serde_json::to_vec_pretty(det)?)?;
+    Ok(())
+}
+fn sha256_file(path: &str) -> anyhow::Result<String> {
+    let b = fs::read(path)?;
+    Ok(format!("sha256:{:x}", Sha256::digest(&b)))
+}
+fn salt_input_sha(base: &str, build_id: &Option<String>, change_ids: &Vec<String>) -> String {
+    let mut h = Sha256::new();
+    h.update(base.as_bytes());
+    if let Some(b) = build_id {
+        h.update(b.as_bytes());
+    }
+    for cid in change_ids {
+        h.update(cid.as_bytes());
+    }
+    format!("sha256:{:x}", h.finalize())
 }
 
 fn signals_dir(spec_id: &str) -> PathBuf {
