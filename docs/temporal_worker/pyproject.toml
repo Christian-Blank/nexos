@@ -1,0 +1,18 @@
+[project]
+name = "nexos-temporal-bridge"
+version = "0.1.0"
+description = "Nexos Temporal Bridge: worker and outbox drainer"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+authors = [{ name = "Nexos" }]
+dependencies = [
+  "temporalio>=1.7.0",
+]
+
+[project.scripts]
+nexos-temporal-worker = "worker:main"
+nexos-temporal-drain = "drain_outbox:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
