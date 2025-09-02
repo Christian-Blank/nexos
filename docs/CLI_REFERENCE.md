@@ -13,17 +13,17 @@ Commands:
   tools        Tools & schemas
   completions  Generate shell completions
   man          Print man page to stdout
-  demo         Demo plugin
-  graph        Graph tools
-  term         Run commands with provenance (non-interactive)
-  issue        Issue management
   bundle       TracePack bundles
-  rules        Rules management (init/lint/export)
+  graph        Graph tools
+  issue        Issue management
+  dev          Developer utilities
   cline        Cline task history (locate/import) with idempotent ingest
+  demo         Demo plugin
+  rules        Rules management (init/lint/export)
   replay       Replay/extract TracePacks from logged runs
   task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
-  workflow     Local workflow runner with idempotent activities
-  dev          Developer utilities
+  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
+  term         Run commands with provenance (non-interactive)
   help         Print this message or the help of the given subcommand(s)
 
 Options:
@@ -34,22 +34,6 @@ Options:
 ```
 
 ## Tool Specs (for agents)
-
-### `workflow.init`
-
-Create a workflow spec template
-
-### `workflow.plan`
-
-Plan (idempotency-aware)
-
-### `workflow.run`
-
-Run a workflow spec sequentially
-
-### `workflow.status`
-
-Show effects and history for a spec
 
 ### `issue.new`
 
@@ -67,6 +51,14 @@ Show a single issue by ID
 
 Close an issue by ID
 
+### `cline.locate`
+
+Find Cline storage locations
+
+### `cline.import`
+
+Import Cline task history with idempotent ingest
+
 ### `rules.lint`
 
 Validate rules front-matter
@@ -74,6 +66,38 @@ Validate rules front-matter
 ### `rules.export`
 
 Export rules bundle
+
+### `workflow.init`
+
+Create a workflow spec template
+
+### `workflow.plan`
+
+Plan (idempotency-aware)
+
+### `workflow.run`
+
+Run a workflow spec sequentially
+
+### `workflow.status`
+
+Show effects, history, visibility
+
+### `workflow.signal`
+
+Send a signal to a running workflow
+
+### `workflow.query`
+
+Query workflow runtime state
+
+### `workflow.list`
+
+List workflows (visibility index)
+
+### `workflow.upsert-sa`
+
+Upsert search attributes for a workflow
 
 ### `graph.check`
 
@@ -83,13 +107,9 @@ Validate docs/exec_graph.yaml (acyclic, unique ids)
 
 List nodes impacted (downstream) by the given id
 
-### `cline.locate`
+### `demo.hello`
 
-Find Cline storage locations
-
-### `cline.import`
-
-Import Cline task history with idempotent ingest
+Say hello
 
 ### `bundle.build`
 
@@ -98,10 +118,6 @@ Build a TracePack bundle
 ### `bundle.verify`
 
 Verify a TracePack bundle
-
-### `demo.hello`
-
-Say hello
 
 ### `dev.init`
 

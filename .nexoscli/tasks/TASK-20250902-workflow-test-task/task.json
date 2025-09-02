@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20250902-workflow-test-task",
+  "title": "Workflow test task",
+  "stage": "done",
+  "status": "ended",
+  "created_at": "2025-09-02T14:12:17.442138Z",
+  "started_at": "2025-09-02T14:13:29.86004Z",
+  "ended_at": "2025-09-02T14:26:27.754525Z",
+  "sessions": [
+    {
+      "id": "SES-795c9f0c0545",
+      "start": "2025-09-02T14:13:29.86008Z",
+      "end": "2025-09-02T14:26:27.754511Z"
+    }
+  ],
+  "notes": []
+}

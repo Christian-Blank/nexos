@@ -52,6 +52,22 @@
     - `dev doctor --print-plan` to show which subcommands it runs and their args.
     - `dev doctor --check bundles` → run bundle verify against current FS for the latest bundle.
 
+## Workflow plugin — suggested next steps (post Phase 18)
+
+12) **Timer step (durable waits)**
+    - Add `timer: { duration_ms: <u64> }` step type to enable deterministic pauses within workflows (maps directly to Temporal timers).
+
+13) **Resource locks (advisory)**
+    - Introduce `resources: ["git","db:dev"]` on steps and serialize access via advisory lock files under `.nexoscli/locks/<resource>` to reduce contention locally.
+
+14) **Child workflows**
+    - Support nested specs with:
+      - `child_workflow: { spec: "<path>", wait: bool, inherit_search_attributes: bool }`
+      - Inherit and propagate search attributes when configured.
+
+15) **Change IDs + Build ID enforcement**
+    - Enforce runner branching rules based on recorded `change_ids` and `build_id` captured in visibility. Fail fast or require explicit upgrade paths when change guards mismatch.
+
 ## Principles (unchanged)
 - Ground truth is `events.jsonl`.
 - OTEL is an optional mirror; spans follow `run -> execute -> (parse, validate, persist, render)`.

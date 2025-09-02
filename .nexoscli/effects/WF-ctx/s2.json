@@ -1,0 +1,13 @@
+{
+  "spec_id": "WF-ctx",
+  "step_id": "s2",
+  "input_sha": "sha256:0a8d7fa3704c6685b2a540c3d6e010e414d359e3ce249ac6e03ed77b54f7e352",
+  "status": "failed",
+  "started_at": "2025-09-02T14:14:29.837616Z",
+  "finished_at": "2025-09-02T14:14:29.94598Z",
+  "exit_code": 2,
+  "result_digest": "sha256:d70a1c5ef2842a425d76df0bd0df851c51f577d604d7434b3d3b404478715c5b",
+  "last_envelope": {
+    "stdout": ""
+  }
+}

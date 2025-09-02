@@ -1,0 +1,17 @@
+{
+  "id": "WF-ctx",
+  "state": "Failed",
+  "memo": {},
+  "search_attributes": {
+    "task_queue": "nexos"
+  },
+  "build_id": "pkg:0.1.0",
+  "used_change_ids": [],
+  "started_at": "2025-09-02T14:13:29.872539Z",
+  "updated_at": "2025-09-02T14:14:29.947713Z",
+  "last_step": "s2",
+  "attempts": 558,
+  "ran": 1,
+  "skipped": 0,
+  "failed": 1
+}

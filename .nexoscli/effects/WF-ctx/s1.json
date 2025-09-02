@@ -1,0 +1,33 @@
+{
+  "spec_id": "WF-ctx",
+  "step_id": "s1",
+  "input_sha": "sha256:75bf36240c1f6f4fdf899c1dc199ebe0ad795cb7bf79951857c15a0b3cc51cf1",
+  "status": "ok",
+  "started_at": "2025-09-02T14:13:29.872908Z",
+  "finished_at": "2025-09-02T14:13:29.978504Z",
+  "exit_code": 0,
+  "result_digest": "sha256:36f821c868428eb75a36aa01f36d2f84b464c9a552a297ddf69452366c88da3a",
+  "last_envelope": {
+    "data": {
+      "body": null,
+      "created_at": "2025-09-02T14:13:29.876415Z",
+      "id": "ISS-0015",
+      "labels": [],
+      "state": "open",
+      "title": "hello from workflow",
+      "updated_at": "2025-09-02T14:13:29.876415Z"
+    },
+    "errors": [],
+    "meta": {
+      "command": "new",
+      "context": {
+        "session_id": "SES-795c9f0c0545",
+        "stage": "planning",
+        "task_id": "TASK-20250902-workflow-test-task"
+      },
+      "duration_ms": 0,
+      "plugin": "issue",
+      "run_id": "628bbb67-3106-4e4a-b8c1-7d2e0e4e8e45"
+    }
+  }
+}

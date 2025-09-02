@@ -332,9 +332,9 @@ fn workflow_run_respects_task_context() {
     // Create and start a task to test context injection
     helpers::run_ok(temp_path, &["task", "new", "--title", "Workflow test task"]);
     let task_list = helpers::run_json(temp_path, &["task", "list"]);
-    let tasks = task_list["data"].as_array().unwrap();
-    assert!(!tasks.is_empty(), "No tasks found after creating a task");
-    let task_id = tasks[0]["id"].as_str().unwrap();
+    let items = task_list["data"]["items"].as_array().unwrap();
+    assert!(!items.is_empty(), "No tasks found after creating a task");
+    let task_id = items[0]["id"].as_str().unwrap();
     helpers::run_ok(temp_path, &["task", "start", "--task", task_id]);
     
     // Create simple workflow

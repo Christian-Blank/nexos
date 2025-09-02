@@ -1356,6 +1356,7 @@ dependencies = [
  "clap",
  "hex",
  "nexoscli-core",
+ "regex",
  "schemars",
  "serde",
  "serde_json",

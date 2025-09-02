@@ -220,3 +220,27 @@ RUST_LOG=info \
 ## Folder Rule
 
 Any bounded context (folder) must have a one-page README with project_brief front-matter and a link to its parent. Child NS optional; if present, it only tightens budgets.
+
+## Workflow Plugin (Phase 18)
+
+Brief: The workflow plugin adds signals, queries, visibility, and Temporal-style timeouts/retries.
+
+Examples:
+```bash
+./target/debug/nexoscli workflow init --id WF-demo
+./target/debug/nexoscli workflow plan --spec .nexoscli/workflows/WF-demo/spec.yaml --output json
+./target/debug/nexoscli workflow run --spec .nexoscli/workflows/WF-demo/spec.yaml --output json
+./target/debug/nexoscli workflow status --id WF-demo --output json
+
+# Signals and queries
+./target/debug/nexoscli workflow signal --id WF-demo --name pause
+./target/debug/nexoscli workflow signal --id WF-demo --name resume
+./target/debug/nexoscli workflow signal --id WF-demo --name stop
+./target/debug/nexoscli workflow query  --id WF-demo --name status --output json
+
+# Visibility list and upsert of search attributes
+./target/debug/nexoscli workflow list --filter 'task_queue=nexos' --output json
+./target/debug/nexoscli workflow upsert-sa --id WF-demo --attrs owner=me --output json
+```
+
+Spec additions and operational details: see docs/WORKFLOWS_PLUGIN.md.

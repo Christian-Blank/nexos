@@ -1,0 +1,47 @@
+version: '0.1'
+id: WF-ctx
+name: WF-ctx workflow
+defaults:
+  activity_retry:
+    use_default: true
+    initial_interval_ms: 500
+    backoff_coefficient: 2.0
+    maximum_interval_ms: 30000
+    maximum_attempts: 0
+  timeouts:
+    start_to_close_ms: 15000
+    schedule_to_close_ms: 60000
+    heartbeat_ms: 10000
+run:
+  memo: {}
+  search_attributes:
+    task_queue: nexos
+  build_id: pkg:0.1.0
+  change_ids: []
+steps:
+- id: s1
+  activity: issue.new
+  args:
+    title: hello from workflow
+  idempotent: true
+  retry:
+    max_attempts: 2
+    backoff_ms: 250
+  timeouts:
+    start_to_close_ms: null
+    schedule_to_close_ms: null
+    heartbeat_ms: null
+  resources:
+  - git
+- id: s2
+  activity: dev.plugins.check
+  args: {}
+  idempotent: false
+  retry:
+    max_attempts: 0
+    backoff_ms: 0
+  timeouts:
+    start_to_close_ms: null
+    schedule_to_close_ms: null
+    heartbeat_ms: null
+  resources: []
