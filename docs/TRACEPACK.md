@@ -1,10 +1,18 @@
-# TracePack — Portable Run Bundle (v0.1)
+# TracePack — Portable Run Bundle (v0.2)
 
 A TracePack is a **self-contained** snapshot of a single `nexoscli` run:
 - canonical **events** (NDJSON, schema v0.2),
 - any **patches** captured by `term run`,
 - a **manifest** with hashes and counts,
 - optional status snapshots.
+
+## What’s new in v0.2
+
+- Ledger anchors: TracePacks now include a per‑run ledger manifest (run_manifest.json) derived from the tamper‑evident event chain (event.v0.3).
+- Integrity flag: The manifest includes chain_ok (boolean) indicating whether the hash chain verified at extraction time.
+- Backward compatibility: Layout remains the same; existing consumers can ignore run_manifest.json until they adopt verification.
+
+Note: The replay extractor will populate run_manifest.json and set chain_ok via the verifier (planned in Replay phase).
 
 ## Produce a TracePack
 

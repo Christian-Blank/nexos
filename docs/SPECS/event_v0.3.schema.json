@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "nexoscli.event.v0.3",
+  "type": "object",
+  "required": [
+    "schema",
+    "ts",
+    "run_id",
+    "seq",
+    "plugin",
+    "command",
+    "exit_code",
+    "dur_ms",
+    "content_hash",
+    "chain_hash"
+  ],
+  "properties": {
+    "schema": { "const": "event.v0.3" },
+    "ts": { "type": "string", "format": "date-time" },
+    "run_id": { "type": "string" },
+    "seq": { "type": "integer", "minimum": 1 },
+    "prev": { "type": "string" },
+    "content_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "chain_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+
+    "plugin": { "type": "string" },
+    "command": { "type": "string" },
+    "args_hash": { "type": "string" },
+    "exit_code": { "type": "integer" },
+    "dur_ms": { "type": "integer", "minimum": 0 },
+    "attrs": { "type": "object", "additionalProperties": true },
+    "meta": { "type": "object", "additionalProperties": true }
+  },
+  "additionalProperties": true
+}

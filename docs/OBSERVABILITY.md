@@ -135,3 +135,35 @@ Bundle contents:
 - Configure `.nexoscli/redact.yaml` for sensitive data
 - Test redaction patterns with sample data
 - Review event logs for accidental exposure
+
+## Event v0.3 (Tamper‑evident Ledger)
+
+NEXOS augments each event with a hash chain for tamper evidence when the ledger is enabled (default; set NEXOS_LEDGER=0 to disable during rollout).
+
+Example (abridged):
+```json
+{
+  "schema": "event.v0.3",
+  "ts": "2025-09-02T12:18:00.123Z",
+  "run_id": "RUN-abc123def456",
+  "seq": 2,
+  "prev": "sha256:1a2b...c3d4",
+  "content_hash": "sha256:9f8e...7a6b",
+  "chain_hash": "sha256:0abc...def1",
+  "plugin": "task",
+  "command": "start",
+  "exit_code": 0,
+  "dur_ms": 25,
+  "data": { "...": "..." },
+  "context": { "task_id": "TASK-...", "session_id": "SES-..." }
+}
+```
+
+- content_hash = sha256(canonical subset)
+- chain_hash = sha256(prev + content_hash)
+- seq starts at 1 and increments per event in a run
+
+Per‑run files and manifest:
+- .nexoscli/log/runs/<RUN-ID>.jsonl (per‑run events)
+- .nexoscli/log/runs/<RUN-ID>.manifest.json containing:
+  { "version":"0.2","first_seq","last_seq","first_hash","last_hash","count","time_range","chain_ok":true }

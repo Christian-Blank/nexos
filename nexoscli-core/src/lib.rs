@@ -6,6 +6,7 @@ pub mod registry;
 pub mod envelope;
 pub mod config;
 pub mod engine;
+pub mod ledger;
 
 pub use error::*;
 pub use event::*;

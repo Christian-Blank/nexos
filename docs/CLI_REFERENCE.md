@@ -13,17 +13,17 @@ Commands:
   tools        Tools & schemas
   completions  Generate shell completions
   man          Print man page to stdout
-  dev          Developer utilities
+  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
+  demo         Demo plugin
+  cline        Cline task history (locate/import) with idempotent ingest
   bundle       TracePack bundles
-  term         Run commands with provenance (non-interactive)
+  dev          Developer utilities
   graph        Graph tools
   replay       Replay/extract TracePacks from logged runs
-  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
-  cline        Cline task history (locate/import) with idempotent ingest
-  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
-  rules        Rules management (init/lint/export)
   issue        Issue management
-  demo         Demo plugin
+  rules        Rules management (init/lint/export)
+  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
+  term         Run commands with provenance (non-interactive)
   help         Print this message or the help of the given subcommand(s)
 
 Options:
@@ -35,6 +35,46 @@ Options:
 
 ## Tool Specs (for agents)
 
+### `issue.new`
+
+Create a new local issue
+
+### `issue.list`
+
+List issues (optionally by state)
+
+### `issue.show`
+
+Show a single issue by ID
+
+### `issue.close`
+
+Close an issue by ID
+
+### `bundle.build`
+
+Build a TracePack bundle
+
+### `bundle.verify`
+
+Verify a TracePack bundle
+
+### `rules.lint`
+
+Validate rules front-matter
+
+### `rules.export`
+
+Export rules bundle
+
+### `cline.locate`
+
+Find Cline storage locations
+
+### `cline.import`
+
+Import Cline task history with idempotent ingest
+
 ### `graph.check`
 
 Validate docs/exec_graph.yaml (acyclic, unique ids)
@@ -42,10 +82,6 @@ Validate docs/exec_graph.yaml (acyclic, unique ids)
 ### `graph.impact`
 
 List nodes impacted (downstream) by the given id
-
-### `demo.hello`
-
-Say hello
 
 ### `workflow.init`
 
@@ -83,21 +119,9 @@ List workflows (visibility index)
 
 Upsert search attributes for a workflow
 
-### `bundle.build`
+### `demo.hello`
 
-Build a TracePack bundle
-
-### `bundle.verify`
-
-Verify a TracePack bundle
-
-### `rules.lint`
-
-Validate rules front-matter
-
-### `rules.export`
-
-Export rules bundle
+Say hello
 
 ### `dev.init`
 
@@ -118,28 +142,4 @@ Verify local setup (dotdir, event log write, config, OTEL envs); --ci aggregates
 ### `dev.telemetry.report`
 
 Aggregate events.jsonl → counts, p50/p90/avg, error leaderboard
-
-### `cline.locate`
-
-Find Cline storage locations
-
-### `cline.import`
-
-Import Cline task history with idempotent ingest
-
-### `issue.new`
-
-Create a new local issue
-
-### `issue.list`
-
-List issues (optionally by state)
-
-### `issue.show`
-
-Show a single issue by ID
-
-### `issue.close`
-
-Close an issue by ID
 
