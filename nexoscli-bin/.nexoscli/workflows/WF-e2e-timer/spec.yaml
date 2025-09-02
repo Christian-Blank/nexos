@@ -1,0 +1,6 @@
+version: "0.1"
+id: WF-e2e-timer
+steps:
+  - id: wait-100
+    timer: { duration_ms: 100 }
+    idempotent: true

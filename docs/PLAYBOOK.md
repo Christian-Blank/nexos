@@ -244,3 +244,33 @@ Examples:
 ```
 
 Spec additions and operational details: see docs/WORKFLOWS_PLUGIN.md.
+
+### Timer step (Phase 19) quick example
+
+Use a durable timer step that persists its due time and honors pause/resume/stop:
+
+```bash
+# Demo spec
+./target/debug/nexoscli workflow plan --spec docs/workflows/WF-timer-demo.yaml --output json
+time ./target/debug/nexoscli workflow run  --spec docs/workflows/WF-timer-demo.yaml --output json
+
+# Re-run (idempotent timer step may skip if prior effect ok)
+./target/debug/nexoscli workflow run --spec docs/workflows/WF-timer-demo.yaml --output json
+
+# Pause/resume a longer timer
+./target/debug/nexoscli workflow init --id WF-slow
+# edit .nexoscli/workflows/WF-slow/spec.yaml -> set: steps: [{ id: t1, timer: { duration_ms: 5000 }, idempotent: true }]
+./target/debug/nexoscli workflow run --spec .nexoscli/workflows/WF-slow/spec.yaml --output json &
+sleep 1
+./target/debug/nexoscli workflow signal --id WF-slow --name pause
+sleep 2
+./target/debug/nexoscli workflow signal --id WF-slow --name resume
+wait
+```
+
+Behavior:
+- Durable: due time saved at .nexoscli/workflows/<id>/timers/<step>.json
+- Signals: pause blocks until resume; stop cancels the step and run
+- Heartbeats: updated while waiting if heartbeat_ms is set
+- Timeouts: start_to_close per attempt; schedule_to_close across attempts (with preflight guard)
+- Idempotent: same input → skip on re-run if prior effect was ok

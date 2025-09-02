@@ -368,9 +368,8 @@ Design notes & blind spots (candor)
 
 ⸻
 
-What this unlocks next (very small tickets)
+What this unlocks next (very small tickets) add to ROADMAP_NEXT.md as suggestions
 	1.	Resource locks (resources: ["git","db:dev"]) — advisory file locks to serialize contention.
 	2.	Child workflows (child_workflow: { spec: ..., wait: true, inherit_search_attributes: true }).
 	3.	Change IDs enforcement (branching on recorded change_ids during replay to keep determinism across code changes).
 
-If you want, I can ship the resource‑locks patch immediately after you land this.

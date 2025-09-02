@@ -1,0 +1,15 @@
+{
+  "id": "WF-e2e-timer",
+  "state": "Completed",
+  "memo": {},
+  "search_attributes": {},
+  "build_id": null,
+  "used_change_ids": [],
+  "started_at": "2025-09-02T15:19:45.344686Z",
+  "updated_at": "2025-09-02T15:19:45.456517Z",
+  "last_step": "wait-100",
+  "attempts": 1,
+  "ran": 1,
+  "skipped": 0,
+  "failed": 0
+}

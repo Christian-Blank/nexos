@@ -1,0 +1,15 @@
+version: "0.1"
+id: WF-timer-demo
+name: Demo with timer
+defaults:
+  activity_retry:
+    use_default: true
+  timeouts:
+    heartbeat_ms: 1000
+steps:
+  - id: wait-500ms
+    timer: { duration_ms: 500 }
+    idempotent: true
+  - id: after-wait-status
+    activity: workflow.status
+    args: { id: WF-timer-demo }

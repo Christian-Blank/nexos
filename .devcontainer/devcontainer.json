@@ -1,16 +1,51 @@
 {
-  "name": "nexos dev",
-  "dockerComposeFile": "docker-compose.yml",
-  "service": "dev",
-  "workspaceFolder": "/workspaces/nexos",
-  "postCreateCommand": "cargo build -p nexoscli",
-  "forwardPorts": [4317, 4318, 16686, 13133],
+  "name": "nexos-dev",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {},
+    "ghcr.io/devcontainers/features/rust:1": {
+      "toolchain": "stable",
+      "components": "rustfmt,clippy"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "24"
+    }
+  },
+  "remoteUser": "vscode",
+  "runArgs": [
+    "--cap-add=SYS_PTRACE",
+    "--security-opt",
+    "seccomp=unconfined"
+  ],
+  "containerEnv": {
+    "CARGO_TERM_COLOR": "always",
+    "RUST_BACKTRACE": "1",
+    "NODE_ENV": "development"
+  },
+  "mounts": [
+    "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,readonly,type=bind",
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,readonly,type=bind"
+  ],
+  "remoteEnv": {
+    "SSH_AUTH_SOCK": "/ssh-agent",
+    "PATH": "/home/vscode/.local/bin:${containerEnv:PATH}"
+  },
+  "postCreateCommand": "bash -lc 'set -eux; rustup show; rustup component add rustfmt clippy || true; cargo fetch --workspace; curl -LsSf https://astral.sh/uv/install.sh | sh; python -m pip install --upgrade pip; corepack enable; if [ -f .nvmrc ]; then . /usr/local/share/nvm/nvm.sh || true; nvm install; nvm use; fi; echo Devcontainer ready. Run: cargo build --workspace && cargo test --workspace && cargo run -p nexoscli-bin -- dev init --yes && cargo run -p nexoscli-bin -- dev doctor --ci --checks graph,plugins,config,events,tools --require plugins,graph'",
   "customizations": {
     "vscode": {
       "extensions": [
         "rust-lang.rust-analyzer",
         "tamasfe.even-better-toml",
-        "serayuzgur.crates"
+        "vadimcn.vscode-lldb",
+        "serayuzgur.crates",
+        "ms-python.python",
+        "EditorConfig.EditorConfig",
+        "DavidAnson.vscode-markdownlint",
+        "Cline.cline"
       ]
     }
   }

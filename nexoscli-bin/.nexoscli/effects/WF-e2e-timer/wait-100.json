@@ -1,0 +1,14 @@
+{
+  "spec_id": "WF-e2e-timer",
+  "step_id": "wait-100",
+  "input_sha": "sha256:7d553320a1c985f7e84c32ceb3bc5ac662dc521474f531ecb864b930c349375f",
+  "status": "ok",
+  "started_at": "2025-09-02T15:19:45.345036Z",
+  "finished_at": "2025-09-02T15:19:45.455267Z",
+  "exit_code": 0,
+  "result_digest": "sha256:de7e9a59e9c54d8f88eabc68dbb80f6f5eaedd6dcfa5254315c24dc62af51909",
+  "last_envelope": {
+    "at": "2025-09-02T15:19:45.455236Z",
+    "timer": "done"
+  }
+}

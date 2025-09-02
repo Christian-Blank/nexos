@@ -69,6 +69,17 @@ struct Timeouts {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, Default)]
+struct TimerSpec {
+    /// Duration to wait before the step is considered successful (ms)
+    duration_ms: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+struct TimerState {
+    due_epoch_ms: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, Default)]
 struct RunConfig {
     #[serde(default)]
     memo: JsonMap<String, Json>,
@@ -91,7 +102,12 @@ struct Defaults {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 struct StepSpec {
     id: String,
-    activity: String, // "plugin.command" or "dev.plugins.check"
+    /// "plugin.command" or "dev.plugins.check"
+    #[serde(default)]
+    activity: Option<String>,
+    /// Optional timer step (mutually exclusive with activity)
+    #[serde(default)]
+    timer: Option<TimerSpec>,
     #[serde(default)]
     args: Json,
     #[serde(default)]
@@ -319,7 +335,8 @@ impl Plugin for WorkflowPlugin {
                     steps: vec![
                         StepSpec {
                             id: "s1".into(),
-                            activity: "issue.new".into(),
+                            activity: Some("issue.new".into()),
+                            timer: None,
                             args: json!({"title":"hello from workflow"}),
                             idempotent: true,
                             retry: RetryUnion::Simple(SimpleRetry {
@@ -331,7 +348,8 @@ impl Plugin for WorkflowPlugin {
                         },
                         StepSpec {
                             id: "s2".into(),
-                            activity: "dev.plugins.check".into(),
+                            activity: Some("dev.plugins.check".into()),
+                            timer: None,
                             args: json!({}),
                             idempotent: false,
                             retry: RetryUnion::Simple(SimpleRetry::default()),
@@ -486,10 +504,14 @@ impl Plugin for WorkflowPlugin {
                         write_visibility(&spec.id, &vis).ok();
 
                         let started = now();
-                        let (exit, env, status) =
-                            exec_activity_with_timeouts(&step.activity, &step.args, &to, &spec.id, &hist)?;
+                        let (exit, env, status) = if step.timer.is_some() {
+                            run_timer_step(&step, &to, &spec.id, &hist)?
+                        } else {
+                            exec_activity_with_timeouts(step.activity.as_ref().unwrap(), &step.args, &to, &spec.id, &hist)?
+                        };
 
                         let finished = now();
+                        let activity_label = if step.timer.is_some() { "timer".to_string() } else { step.activity.clone().unwrap() };
                         let rec = EffectRecord {
                             spec_id: spec.id.clone(),
                             step_id: step.id.clone(),
@@ -506,7 +528,7 @@ impl Plugin for WorkflowPlugin {
                         write_effect(&spec.id, &step.id, &rec)?;
                         append_history(
                             &hist,
-                            &json!({"ts": finished, "step": step.id, "activity": step.activity, "attempt": attempt, "exit_code": exit, "status": status}),
+                            &json!({"ts": finished, "step": step.id, "activity": activity_label, "attempt": attempt, "exit_code": exit, "status": status}),
                         )?;
 
                         if status == "ok" {
@@ -735,12 +757,32 @@ fn read_spec(path: &str) -> anyhow::Result<WorkflowSpec> {
     if spec.version != "0.1" {
         anyhow::bail!("unsupported spec version: {}", spec.version);
     }
+    validate_spec(&spec)?;
     Ok(spec)
+}
+
+fn validate_spec(spec: &WorkflowSpec) -> anyhow::Result<()> {
+    for s in &spec.steps {
+        let has_act = s.activity.as_ref().map(|a| !a.is_empty()).unwrap_or(false);
+        let has_timer = s.timer.is_some();
+        match (has_act, has_timer) {
+            (true, true) => anyhow::bail!("step '{}' invalid: both 'activity' and 'timer' set", s.id),
+            (false, false) => anyhow::bail!("step '{}' invalid: must set either 'activity' or 'timer'", s.id),
+            _ => {}
+        }
+    }
+    Ok(())
 }
 
 fn plan_steps(spec: &WorkflowSpec) -> anyhow::Result<Vec<PlanRow>> {
     let mut out = vec![];
     for s in &spec.steps {
+        let activity = if s.timer.is_some() {
+            "timer".to_string()
+        } else {
+            s.activity.clone().unwrap_or_else(|| "activity".to_string())
+        };
+
         let input = input_sha(&spec.id, s);
         let eff = read_effect(&spec.id, &s.id);
         let (would_run, reason) = if s.idempotent {
@@ -755,7 +797,7 @@ fn plan_steps(spec: &WorkflowSpec) -> anyhow::Result<Vec<PlanRow>> {
         };
         out.push(PlanRow {
             step_id: s.id.clone(),
-            activity: s.activity.clone(),
+            activity,
             would_run,
             reason,
         });
@@ -875,11 +917,103 @@ fn exec_activity_with_timeouts(
     }
 }
 
+fn run_timer_step(
+    step: &StepSpec,
+    to: &Timeouts,
+    spec_id: &str,
+    hist: &Path,
+) -> anyhow::Result<(i32, Json, String)> {
+    let t = step
+        .timer
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("timer step missing 'timer' field"))?;
+
+    // Determine due time (persisted)
+    let st = read_timer_state(spec_id, &step.id);
+    let state = if let Some(old) = st {
+        old
+    } else {
+        let due = epoch_ms_now() + (t.duration_ms as i64);
+        let ns = TimerState { due_epoch_ms: due };
+        write_timer_state(spec_id, &step.id, &ns)?;
+        ns
+    };
+
+    // Preflight guard for schedule_to_close
+    if let Some(s2c) = to.schedule_to_close_ms {
+        let remaining_ms = (state.due_epoch_ms - epoch_ms_now()).max(0) as u64;
+        if remaining_ms > s2c {
+            append_history(
+                hist,
+                &json!({"ts": now(), "event":"timeout", "kind":"schedule_to_close_preflight"}),
+            )?;
+            return Ok((124, json!({"error":"schedule_to_close_timeout"}), "timeout".into()));
+        }
+    }
+
+    let start = Instant::now();
+    loop {
+        // Signals
+        match next_signal_action(spec_id)? {
+            SignalAction::Stop => {
+                append_history(
+                    hist,
+                    &json!({"ts": now(), "event":"canceled", "step": step.id}),
+                )?;
+                return Ok((130, json!({"error":"canceled"}), "canceled".into()));
+            }
+            SignalAction::Pause => {
+                append_history(hist, &json!({"ts": now(), "event":"pause", "step": step.id}))?;
+                wait_for_resume(spec_id)?;
+                append_history(hist, &json!({"ts": now(), "event":"resume", "step": step.id}))?;
+            }
+            _ => {}
+        }
+
+        // Heartbeat
+        if let Some(hb) = to.heartbeat_ms {
+            if hb > 0 && start.elapsed().as_millis() as u64 % hb < 200 {
+                if let Ok(p) = heartbeat_path(spec_id) {
+                    let _ = fs::write(p, now().as_bytes());
+                }
+            }
+        }
+
+        // Start-to-close guard
+        if let Some(stc) = to.start_to_close_ms {
+            if start.elapsed() >= Duration::from_millis(stc) {
+                append_history(
+                    hist,
+                    &json!({"ts": now(), "event":"timeout", "kind":"start_to_close"}),
+                )?;
+                return Ok((124, json!({"error":"start_to_close_timeout"}), "timeout".into()));
+            }
+        }
+
+        // Due time
+        let now_ms = epoch_ms_now();
+        if now_ms >= state.due_epoch_ms {
+            break;
+        }
+        let remaining = (state.due_epoch_ms - now_ms) as u64;
+        let slice = remaining.min(200);
+        thread::sleep(Duration::from_millis(slice));
+    }
+
+    Ok((0, json!({"timer":"done","at": now()}), "ok".into()))
+}
+
 fn input_sha(spec_id: &str, step: &StepSpec) -> String {
     let mut h = Sha256::new();
     h.update(spec_id.as_bytes());
     h.update(step.id.as_bytes());
-    h.update(step.activity.as_bytes());
+    if let Some(act) = &step.activity {
+        h.update(act.as_bytes());
+    }
+    if let Some(t) = &step.timer {
+        h.update(b"timer");
+        h.update(t.duration_ms.to_le_bytes());
+    }
     h.update(&serde_json::to_vec(&step.args).unwrap_or_default());
     format!("sha256:{:x}", h.finalize())
 }
@@ -900,6 +1034,30 @@ fn write_effect(spec_id: &str, step_id: &str, rec: &EffectRecord) -> anyhow::Res
     fs::create_dir_all(&dir)?;
     fs::write(effect_path(spec_id, step_id), serde_json::to_vec_pretty(rec)?)?;
     Ok(())
+}
+
+fn timers_dir(spec_id: &str) -> PathBuf {
+    PathBuf::from(".nexoscli").join("workflows").join(spec_id).join("timers")
+}
+fn timer_state_path(spec_id: &str, step_id: &str) -> PathBuf {
+    timers_dir(spec_id).join(format!("{}.json", step_id))
+}
+fn read_timer_state(spec_id: &str, step_id: &str) -> Option<TimerState> {
+    let p = timer_state_path(spec_id, step_id);
+    let txt = fs::read_to_string(p).ok()?;
+    serde_json::from_str(&txt).ok()
+}
+fn write_timer_state(spec_id: &str, step_id: &str, st: &TimerState) -> anyhow::Result<()> {
+    fs::create_dir_all(timers_dir(spec_id))?;
+    fs::write(timer_state_path(spec_id, step_id), serde_json::to_vec_pretty(st)?)?;
+    Ok(())
+}
+fn epoch_ms_now() -> i64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64
 }
 
 fn history_path(spec_id: &str) -> anyhow::Result<PathBuf> {

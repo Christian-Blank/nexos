@@ -114,6 +114,35 @@ Filter by default SA and upsert a new attribute:
 - ./target/debug/nexoscli workflow upsert-sa --id WF-demo --attrs owner=christian --output json
 - ./target/debug/nexoscli workflow list --filter "owner=christian" --output json
 
+## Timer Step (Phase 19)
+
+This phase adds a durable timer step with deterministic re-runs, pause/resume/stop semantics, and heartbeats while waiting.
+
+Spec additions:
+- StepSpec supports timers via:
+  - timer: { duration_ms: u64 }
+  - activity becomes optional (exactly one of activity or timer must be set)
+
+Example:
+steps:
+  - id: wait-a-second
+    timer: { duration_ms: 1000 }
+    idempotent: true
+
+Runner behavior:
+- Durability: On first run, the engine persists due time to .nexoscli/workflows/<id>/timers/<step>.json and uses it on subsequent runs, waiting only the remaining time.
+- Signals: pause blocks the wait (resume continues), stop cancels the step and the run (canceled). Signals are processed at short intervals for responsiveness.
+- Heartbeats: If heartbeat_ms is configured, the runner updates the workflow heartbeat file while waiting so long timers are “alive”.
+- Timeouts: start_to_close_ms applies per wait attempt; schedule_to_close_ms bounds the total time window across attempts. A preflight guard will fail fast if remaining wait obviously exceeds schedule_to_close_ms.
+- Idempotency and planning: input_sha includes a “timer” marker + duration_ms; planner labels timer steps as "timer". If idempotent and a prior effect with matching input_sha has status=ok, the step is skipped.
+- History/effects: Completion (or timeout/cancel) writes a history entry and an EffectRecord just like activities.
+
+Try the demo:
+- See docs/workflows/WF-timer-demo.yaml
+- Run:
+  ./target/debug/nexoscli workflow plan --spec docs/workflows/WF-timer-demo.yaml --output json
+  time ./target/debug/nexoscli workflow run  --spec docs/workflows/WF-timer-demo.yaml --output json
+
 ## Notes
 
 - The CLI contracts are additive in this phase; existing specs remain valid.

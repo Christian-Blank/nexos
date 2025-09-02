@@ -13,17 +13,17 @@ Commands:
   tools        Tools & schemas
   completions  Generate shell completions
   man          Print man page to stdout
-  bundle       TracePack bundles
-  graph        Graph tools
-  issue        Issue management
+  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
+  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
   dev          Developer utilities
-  cline        Cline task history (locate/import) with idempotent ingest
+  issue        Issue management
+  graph        Graph tools
+  term         Run commands with provenance (non-interactive)
   demo         Demo plugin
+  cline        Cline task history (locate/import) with idempotent ingest
+  bundle       TracePack bundles
   rules        Rules management (init/lint/export)
   replay       Replay/extract TracePacks from logged runs
-  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
-  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
-  term         Run commands with provenance (non-interactive)
   help         Print this message or the help of the given subcommand(s)
 
 Options:
@@ -35,21 +35,13 @@ Options:
 
 ## Tool Specs (for agents)
 
-### `issue.new`
+### `graph.check`
 
-Create a new local issue
+Validate docs/exec_graph.yaml (acyclic, unique ids)
 
-### `issue.list`
+### `graph.impact`
 
-List issues (optionally by state)
-
-### `issue.show`
-
-Show a single issue by ID
-
-### `issue.close`
-
-Close an issue by ID
+List nodes impacted (downstream) by the given id
 
 ### `cline.locate`
 
@@ -58,14 +50,6 @@ Find Cline storage locations
 ### `cline.import`
 
 Import Cline task history with idempotent ingest
-
-### `rules.lint`
-
-Validate rules front-matter
-
-### `rules.export`
-
-Export rules bundle
 
 ### `workflow.init`
 
@@ -99,17 +83,17 @@ List workflows (visibility index)
 
 Upsert search attributes for a workflow
 
-### `graph.check`
-
-Validate docs/exec_graph.yaml (acyclic, unique ids)
-
-### `graph.impact`
-
-List nodes impacted (downstream) by the given id
-
 ### `demo.hello`
 
 Say hello
+
+### `rules.lint`
+
+Validate rules front-matter
+
+### `rules.export`
+
+Export rules bundle
 
 ### `bundle.build`
 
@@ -138,4 +122,20 @@ Verify local setup (dotdir, event log write, config, OTEL envs); --ci aggregates
 ### `dev.telemetry.report`
 
 Aggregate events.jsonl → counts, p50/p90/avg, error leaderboard
+
+### `issue.new`
+
+Create a new local issue
+
+### `issue.list`
+
+List issues (optionally by state)
+
+### `issue.show`
+
+Show a single issue by ID
+
+### `issue.close`
+
+Close an issue by ID
 
