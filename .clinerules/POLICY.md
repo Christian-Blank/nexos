@@ -13,3 +13,4 @@ Examples:
 - New plugin: `nexoscli dev plugin new --name demo --register --yes`
 - Health: `nexoscli dev doctor --ci --checks graph,plugins,events`
 - Contracts: `nexoscli dev docs build` then commit if no drift.
+- TracePack/NEXBags: `nexoscli replay bag build --run-id RUN-... --out ./bag.tgz` then `nexoscli replay bag verify --bag ./bag.tgz` (see docs/TRACEPACK.md)

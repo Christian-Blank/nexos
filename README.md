@@ -203,3 +203,36 @@ Glossary (short)
 ⸻
 
 This README is the narrative index. For precise rules and invariants, follow the links to the origin documents and the machine-readable model.
+
+## TracePack & NEXBags (TracePack v0.2)
+
+Portable run artifacts for analysis, sharing, and replay.
+
+- TracePack (legacy extractor): directory/tgz with manifest, events, patches, status.
+- NEXBags (v0.2): topicized bag with a bag-level manifest and inline integrity verification (event.v0.3 hash chain). See docs/TRACEPACK.md.
+
+Common flows:
+```bash
+# Build legacy TracePack for a run
+./target/debug/nexoscli replay extract --run-id RUN-... --out .nexoscli/tracepacks/pack-1
+
+# Build a NEXBag (dir or .tgz)
+./target/debug/nexoscli replay bag build --run-id RUN-... --out ./tracebag
+./target/debug/nexoscli replay bag build --run-id RUN-... --out ./tracebag.tgz
+
+# Verify event ledger integrity inside the bag (event.v0.3)
+./target/debug/nexoscli replay bag verify --bag ./tracebag
+./target/debug/nexoscli replay bag verify --bag ./tracebag.tgz
+
+# Show bag summary (counts, topics, versions, time_range)
+./target/debug/nexoscli replay bag info --bag ./tracebag
+
+# Stream a topic from the bag (bounded)
+./target/debug/nexoscli replay bag cat --bag ./tracebag --topic events --lines 10
+```
+
+Notes:
+- Integrity: bag.build and bag.verify recompute content_hash over the canonical subset {plugin, command, exit_code, dur_ms, data} and chain_hash(prev+content_hash).
+- Cline tasks: bag.build may include normalized tasks by time window (±5m) if present under .nexoscli/cline/tasks/.
+- Schemas: bag manifest v0.2 (docs/SPECS/bag_manifest_v0.2.schema.json), terminal record v0.1 (reserved), file-watch event v0.1 (optional).
+- Reference: docs/TRACEPACK.md.

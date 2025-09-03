@@ -114,6 +114,31 @@ Bundle contents:
 - `patches/` - Code changes and diffs
 - `cline/` - Cline conversation history (if available)
 
+## NEXBags (TracePack v0.2)
+
+Use NEXBags for portable, analyzable capture of runs with event-ledger integrity.
+
+Commands:
+```bash
+# Build bag (dir or .tgz)
+nexoscli replay bag build --run-id RUN-... --out ./tracebag
+nexoscli replay bag build --run-id RUN-... --out ./tracebag.tgz
+
+# Verify event ledger integrity (event.v0.3 content/chain hash)
+nexoscli replay bag verify --bag ./tracebag
+nexoscli replay bag verify --bag ./tracebag.tgz
+
+# Summarize contents and topics
+nexoscli replay bag info --bag ./tracebag
+
+# Stream a topic (bounded)
+nexoscli replay bag cat --bag ./tracebag --topic events --lines 10
+```
+
+Notes:
+- Integrity is computed over the canonical subset {plugin, command, exit_code, dur_ms, data} for content_hash and chained via chain_hash(prev+content_hash).
+- See docs/TRACEPACK.md for bag layout and schemas (bag_manifest_v0.2, term_record_v0.1, file_watch_event_v0.1).
+
 ## Best Practices
 
 ### Task Hygiene

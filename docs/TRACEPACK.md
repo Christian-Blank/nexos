@@ -455,5 +455,50 @@ This ensures tasks adjacent to CLI runs are captured even with minor clock skew 
 **Tip**: Run `nexoscli cline tail --exit-after 10` while working to keep normalized tasks fresh.
 
 ---
-
+ 
 TracePacks enable **portable observability** - capture, share, and analyze any CLI run as a self-contained bundle.
+
+## NEXBags (TracePack v0.2)
+
+NEXBags are portable, analyzable bundles focused on topicized data with a bag-level manifest and integrity verification of the event ledger (event.v0.3). They are analogous to ROS bag files.
+
+Commands:
+```bash
+# Build a bag (directory or .tgz)
+nexoscli replay bag build --run-id RUN-... --out ./tracebag                # dir
+nexoscli replay bag build --run-id RUN-... --out ./tracebag.tgz            # tgz
+
+# Verify event hash chain integrity from the bag
+nexoscli replay bag verify --bag ./tracebag
+nexoscli replay bag verify --bag ./tracebag.tgz
+
+# Show bag summary (counts, topics, versions, time_range)
+nexoscli replay bag info --bag ./tracebag
+
+# Cat a topic (bounded by --lines if provided)
+nexoscli replay bag cat --bag ./tracebag --topic events
+nexoscli replay bag cat --bag ./tracebag --topic events --lines 10
+```
+
+Layout (v0.2):
+```
+tracebag/
+  manifest.json         # bag_manifest_v0.2
+  run_manifest.json     # per-run manifest v0.2 snapshot
+  topics/
+    events.ndjson       # event_v0.3 lines
+    term/commands.ndjson   # (reserved for Phase B)
+    files/watch.ndjson     # (optional; reserved)
+  cline/tasks/          # normalized Cline tasks within time window (±5m)
+  README.md
+```
+
+Schemas:
+- docs/SPECS/bag_manifest_v0.2.schema.json
+- docs/SPECS/term_record_v0.1.schema.json (reserved for terminal capture in Phase B)
+- docs/SPECS/file_watch_event_v0.1.schema.json (optional topic)
+
+Notes:
+- chain_ok is emitted by build and can be re-checked by verify.
+- Event chain verification uses content_hash over the canonical subset and chain_hash(prev+content_hash), per event.v0.3.
+- Cline tasks are included based on file mtime within a padded window around the run time range (±5 minutes).

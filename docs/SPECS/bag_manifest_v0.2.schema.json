@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NEXBag Manifest v0.2",
+  "type": "object",
+  "required": ["version", "created_at", "format", "counts", "topics", "chain_ok"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "enum": ["0.2"]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC3339 timestamp when the bag was created"
+    },
+    "format": {
+      "type": "string",
+      "enum": ["dir", "tgz"],
+      "description": "Physical representation of the bag"
+    },
+    "counts": {
+      "type": "object",
+      "required": ["events"],
+      "properties": {
+        "events": { "type": "integer", "minimum": 0 },
+        "term_commands": { "type": "integer", "minimum": 0 },
+        "files_watch": { "type": "integer", "minimum": 0 },
+        "cline_tasks": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "time_range": {
+      "type": "object",
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "type": "string", "format": "date-time" },
+        "end": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "topics": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "object",
+          "required": ["path", "schema"],
+          "properties": {
+            "path": { "type": "string" },
+            "schema": {
+              "type": "string",
+              "description": "Event schema identifier",
+              "enum": ["event_v0.3", "event.v0.3", "event_v0.2", "event.v0.2"]
+            }
+          },
+          "additionalProperties": true
+        },
+        "term": {
+          "type": "object",
+          "properties": {
+            "commands": {
+              "type": "object",
+              "properties": {
+                "path": { "type": "string" },
+                "schema": { "type": "string", "enum": ["term_record_v0.1"] }
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "files_watch": {
+          "type": "object",
+          "properties": {
+            "path": { "type": "string" },
+            "schema": { "type": "string", "enum": ["file_watch_event_v0.1"] }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "chain_ok": {
+      "type": "boolean",
+      "description": "Whether event hash chain verified when bag was built"
+    },
+    "run_manifest_path": {
+      "type": "string",
+      "description": "Relative path to the per-run manifest snapshot"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

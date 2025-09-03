@@ -154,6 +154,7 @@ If any command fails: stop and fix. If scope violation is required: open a chang
 10) Help index
 	•	CLI contract snapshots: docs/contracts/
 	•	Engineering playbook: docs/PLAYBOOK.md
+	•	TracePack & NEXBags: docs/TRACEPACK.md
 	•	Task bundles: nexoscli task bundle --out <dir|.tgz>
 
 ---

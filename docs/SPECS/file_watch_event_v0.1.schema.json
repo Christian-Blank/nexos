@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "File Watch Event v0.1",
+  "type": "object",
+  "required": ["ts", "path", "op"],
+  "properties": {
+    "ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC3339 timestamp when the file system event occurred"
+    },
+    "path": {
+      "type": "string",
+      "description": "Absolute or project-relative path to the file or directory"
+    },
+    "op": {
+      "type": "string",
+      "enum": ["create", "modify", "remove", "rename"],
+      "description": "Type of filesystem operation observed"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "Optional digest of file contents when available (for create/modify)"
+    },
+    "size": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Optional file size in bytes (when available)"
+    },
+    "old_path": {
+      "type": "string",
+      "description": "Previous path when op=rename"
+    },
+    "meta": {
+      "type": "object",
+      "description": "Provider-specific metadata (optional)",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
