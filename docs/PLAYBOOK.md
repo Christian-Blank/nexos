@@ -176,6 +176,11 @@ cat .nexoscli/engine/outbox/*.json
 ./target/debug/nexoscli dev doctor --checks redaction,events,task-coverage
 ```
 
+# Event integrity + chain-of-custody (recommended for CI)
+```bash
+nexoscli dev doctor --ci --checks events-schema,events-chain --require events-schema,events-chain
+```
+
 **Health monitoring best practices:**
 - Run `dev doctor` regularly during development
 - Include doctor checks in CI/CD pipelines  

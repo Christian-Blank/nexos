@@ -1,3 +1,6 @@
+---
+Implemented in: commit bfa50794244240252a34dcdc3724e12f9b2aeab feat(observability): implement Plan 26 Contract Freeze — schema tags + schema exporter (ADR-20250903-contract-schema-tags, TASK-20250903-plan-26-contract-freeze-schema-tags-schema-exporter-track-a)
+---
 Perfect—this is Track A (“Contract Freeze & Schema Registry”). Below is a drop‑in implementation pack you can commit now:
 	•	ADR to allow schema tags in protected files.
 	•	Core: add schema tags + derive JSON Schemas from the actual types (single source of truth).

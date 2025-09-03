@@ -510,7 +510,55 @@ endpoint = ""
                         .unwrap_or_else(|| ["graph","plugins","config","events","tools","cline"]
                             .into_iter().map(|s| s.to_string()).collect());
 
+                    // optional time window for events-schema in CI (24h default from flag)
+                    let since_ts: Option<OffsetDateTime> = m.get_one::<String>("since").and_then(|s| {
+                        if s.ends_with("h") {
+                            s[..s.len()-1].parse::<i64>().ok().map(|h| OffsetDateTime::now_utc() - Duration::hours(h))
+                        } else if s.ends_with("d") {
+                            s[..s.len()-1].parse::<i64>().ok().map(|d| OffsetDateTime::now_utc() - Duration::days(d))
+                        } else {
+                            OffsetDateTime::parse(s, &Rfc3339).ok()
+                        }
+                    });
+
                     let mut checks = Vec::<DoctorCiCheck>::new();
+
+                    // Run log integrity checks first to avoid mutations by subsequent checks
+                    // events-chain (verify early; read-only)
+                    if want.contains("events-chain") {
+                        let outc = crate::checks::check_events_chain(&cwd, crate::checks::ChainMode::Verify);
+                        let ok = outc.ok;
+                        let detail = if ok {
+                            format!("digest={} lines={} file={}", outc.digest.unwrap_or_default(), outc.lines, outc.file.unwrap_or_default())
+                        } else {
+                            format!("errors: {}", outc.errors.join("; "))
+                        };
+                        checks.push(DoctorCiCheck{
+                            name: "events-chain".into(),
+                            ok,
+                            detail,
+                            severity: if ok { "info".into() } else { "error".into() },
+                            fix: Some("Run locally: `nexoscli dev doctor --checks events-chain` to refresh chain file".into()),
+                        });
+                    }
+
+                    // events-schema (validate early; read-only)
+                    if want.contains("events-schema") {
+                        let outc = crate::checks::check_events_schema(&cwd, since_ts);
+                        let ok = outc.ok;
+                        let detail = if ok {
+                            format!("lines={} file={}", outc.lines, outc.file.unwrap_or_default())
+                        } else {
+                            format!("errors: {}", outc.errors.join("; "))
+                        };
+                        checks.push(DoctorCiCheck{
+                            name: "events-schema".into(),
+                            ok,
+                            detail,
+                            severity: if ok { "info".into() } else { "error".into() },
+                            fix: Some("Inspect .nexoscli/log/events.jsonl; ensure lines are valid event.v0.3".into()),
+                        });
+                    }
 
                     // config
                     if want.contains("config") {
@@ -525,17 +573,28 @@ endpoint = ""
                         });
                     }
 
-                    // events: try to write a ping
+                    // events: try to write a ping (but skip if events-chain verify is requested to avoid mutating the log)
                     if want.contains("events") {
-                        let ok = ctx.events.write("dev","doctor.ci.ping",&serde_json::json!({"ping":true}),0,None,None,None).is_ok();
                         let p = std::path::PathBuf::from(".nexoscli/log/events.jsonl");
-                        checks.push(DoctorCiCheck {
-                            name: "event_log_writable".into(),
-                            ok,
-                            detail: p.display().to_string(),
-                            severity: if ok { "info".into() } else { "error".into() },
-                            fix: if ok { None } else { Some("Ensure .nexoscli/log/ directory is writable".into()) },
-                        });
+                        if want.contains("events-chain") {
+                            // Skip write to keep chain stable for verification
+                            checks.push(DoctorCiCheck {
+                                name: "event_log_writable".into(),
+                                ok: true,
+                                detail: format!("skipped due to events-chain verify: {}", p.display()),
+                                severity: "info".into(),
+                                fix: None,
+                            });
+                        } else {
+                            let ok = ctx.events.write("dev","doctor.ci.ping",&serde_json::json!({"ping":true}),0,None,None,None).is_ok();
+                            checks.push(DoctorCiCheck {
+                                name: "event_log_writable".into(),
+                                ok,
+                                detail: p.display().to_string(),
+                                severity: if ok { "info".into() } else { "error".into() },
+                                fix: if ok { None } else { Some("Ensure .nexoscli/log/ directory is writable".into()) },
+                            });
+                        }
                     }
 
                     // graph
@@ -636,6 +695,8 @@ endpoint = ""
                         });
                     }
 
+
+
                     // Determine required checks (via flag or env)
                     let mut required: std::collections::HashSet<String> = m
                         .get_one::<String>("require")
@@ -703,10 +764,37 @@ endpoint = ""
                         hard_fail = true; 
                     }
 
+                    // events-schema (always computed locally; honors --since window)
+                    let since_ts: Option<OffsetDateTime> = {
+                        let s = since;
+                        if s.ends_with('h') {
+                            s[..s.len()-1].parse::<i64>().ok().map(|h| OffsetDateTime::now_utc() - Duration::hours(h))
+                        } else if s.ends_with('d') {
+                            s[..s.len()-1].parse::<i64>().ok().map(|d| OffsetDateTime::now_utc() - Duration::days(d))
+                        } else {
+                            OffsetDateTime::parse(s, &Rfc3339).ok()
+                        }
+                    };
+                    let root = std::env::current_dir()?;
+                    let es = crate::checks::check_events_schema(&root, since_ts);
+                    report.insert("events_schema".into(), serde_json::json!({
+                        "ok": es.ok, "lines": es.lines, "errors": es.errors, "file": es.file
+                    }));
+                    if !es.ok && require.iter().any(|c| *c == "events-schema") { hard_fail = true; }
+
+                    // events-chain (local refresh mode writes/updates chain file)
+                    let ec = crate::checks::check_events_chain(&root, crate::checks::ChainMode::Refresh);
+                    report.insert("events_chain".into(), serde_json::json!({
+                        "ok": ec.ok, "lines": ec.lines, "digest": ec.digest, "errors": ec.errors, "file": ec.file
+                    }));
+                    if !ec.ok && require.iter().any(|c| *c == "events-chain") { hard_fail = true; }
+
                     // Add overall ready status for basic usage
                     report.insert("ready".into(), serde_json::json!(!hard_fail));
 
                     let code = if hard_fail { ctx.err("dev","doctor","DOCTOR_FAILED","one or more required checks failed",None,2) } else { ctx.ok("dev","doctor",&report) };
+                    // Post-emit refresh so the chain file includes this doctor event line as well
+                    let _ = crate::checks::check_events_chain(&root, crate::checks::ChainMode::Refresh);
                     return Ok(code);
                 }
             }

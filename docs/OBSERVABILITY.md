@@ -26,10 +26,10 @@ All CLI operations emit structured events to `.nexoscli/log/events.jsonl`:
 
 Every task operation generates a unique session ID that correlates all related CLI commands and events:
 
-- **Format**: `SES-` + 12 hex characters (e.g., `SES-a1b2c3d4e5f6`)
-- **Generation**: SHA-256 hash of timestamp + entropy, truncated to 6 bytes
-- **Persistence**: Stored in `.nexoscli/task/current_session`
-- **Lifecycle**: Created on `task start`/`resume`, cleared on `task pause`/`end`
+- Format: `SES-` + 12 hex characters (e.g., `SES-a1b2c3d4e5f6`)
+- Generation: SHA-256 hash of timestamp + entropy, truncated to 6 bytes
+- Persistence: Stored in `.nexoscli/task/current_session`
+- Lifecycle: Created on `task start`/`resume`, cleared on `task pause`/`end`
 
 ### Session Management
 
@@ -53,9 +53,9 @@ nexoscli task resume --name demo
 
 While a task is active, all CLI commands automatically include context in:
 
-1. **Event logs**: `context.task_id` and `context.session_id`
-2. **JSON envelopes**: `meta.context.task_id` and `meta.context.session_id`
-3. **Task bundles**: Session IDs included in manifest
+1. Event logs: `context.task_id` and `context.session_id`
+2. JSON envelopes: `meta.context.task_id` and `meta.context.session_id`
+3. Task bundles: Session IDs included in manifest
 
 This enables complete traceability of all operations within task boundaries.
 
@@ -78,15 +78,15 @@ nexoscli dev doctor --checks redaction,events,task-coverage
 
 #### Available Checks
 
-1. **Redaction Config** (`redaction`):
+1. Redaction Config (`redaction`):
    - Validates `.nexoscli/redact.yaml` exists and is well-formed
    - Ensures sensitive data patterns are properly configured
 
-2. **Event Integrity** (`events`):
+2. Event Integrity (`events`):
    - Validates event log structure and content hashes
    - Checks for corruption or missing events in time windows
 
-3. **Task Coverage** (`task-coverage`):
+3. Task Coverage (`task-coverage`):
    - Measures percentage of events with task context
    - Helps identify workflow adoption and correlation gaps
 
@@ -208,3 +208,36 @@ git diff --exit-code -- docs/SPECS
 ```
 
 See docs/SPECS/README.md for details and do-not-hand-edit guidance.
+
+### Chain-of-custody (events)
+
+NEXOS maintains a rolling digest over `.nexoscli/log/events.jsonl`:
+
+H_0 = sha256("")
+
+H_n = sha256(H_{n-1} || "\n" || raw_line_n)
+
+The doctor writes/validates a manifest at `.nexoscli/log/events.chain.json`:
+
+```json
+{
+  "schema": "events_chain.v0.1",
+  "file": ".nexoscli/log/events.jsonl",
+  "from_ts": "2025-09-02T07:29:15Z",
+  "to_ts": "2025-09-02T07:29:45Z",
+  "lines": 42,
+  "sha256": "sha256:…",
+  "generated_at": "2025-09-02T07:30:00Z"
+}
+```
+
+- Local runs refresh the file:
+
+```
+nexoscli dev doctor --checks events-schema,events-chain
+```
+
+- CI verifies (no writes) and can enforce:
+
+```
+nexoscli dev doctor --ci --checks events-schema,events-chain --require events-schema,events-chain

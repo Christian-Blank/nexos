@@ -10,6 +10,8 @@
    ```bash
    nexoscli dev init --yes
    nexoscli dev doctor --ci --checks graph,plugins,config,events,tools --require plugins,graph
+   # Event integrity + chain-of-custody (recommended)
+   nexoscli dev doctor --ci --checks graph,plugins,config,events,tools,events-schema,events-chain --require plugins,graph,events-schema,events-chain
 
 If any required check fails: stop and report.
 	2.	Read contracts + surface:

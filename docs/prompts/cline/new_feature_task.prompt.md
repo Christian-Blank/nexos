@@ -15,7 +15,8 @@ Scope:
   - If you need to go outside scope: stop, open a Change Proposal (CP), and continue only after adding ADR ID.
 
 Execution model:
-  - Understand the current implementation and context and verify the plan against the codebase.
+  - Read the full plan (and its planning files) and understand the plan.
+    - Understand the current implementation and context and verify the plan against the codebase.
     - If the plan or feature is already implemented in a similar way, understand first where it diverges, and implement the required changes/extensions/improvements on your discretion to match goals of the plan.
   - Prefer running the curated workflow spec for this task:
     - If provided: `./target/debug/nexoscli workflow run --spec <SPEC_PATH> --output json`

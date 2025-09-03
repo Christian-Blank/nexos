@@ -50,6 +50,29 @@ pub fn run_raw(tmp: &Path, args: &[&str]) -> (i32, String, String) {
      String::from_utf8_lossy(&out.stderr).into_owned())
 }
 
+pub struct StatusJson {
+    pub status: i32,
+    pub json: Value,
+}
+
+/// Run a command and return exit status and parsed JSON (stdout).
+/// Ensures --output json is set unless already provided.
+pub fn run_status_json(tmp: &Path, args: &[&str]) -> StatusJson {
+    let mut a = args.to_vec();
+    if !a.iter().any(|x| *x == "--output") {
+        a.push("--output"); a.push("json");
+    }
+    let out = Command::cargo_bin("nexoscli").unwrap()
+        .current_dir(tmp)
+        .args(&a)
+        .output()
+        .expect("run");
+    let status = out.status.code().unwrap_or(-1);
+    let json: Value = serde_json::from_slice(&out.stdout)
+        .unwrap_or_else(|_| serde_json::json!(null));
+    StatusJson { status, json }
+}
+
 pub fn events_path(tmp: &Path) -> PathBuf {
     tmp.join(".nexoscli").join("log").join("events.jsonl")
 }
