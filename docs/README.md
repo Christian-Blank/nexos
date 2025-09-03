@@ -30,6 +30,10 @@ Core documentation and decision records for the NEXOS CLI project.
 **Architecture Decisions:**
 - [`ADRs/`](ADRs/) - Architecture Decision Records (contract changes)
 
+**Contracts & Schemas:**
+- [`SPECS/README.md`](SPECS/README.md) - Generated JSON Schemas from real types (do not hand-edit)
+- Regenerate: `nexoscli dev schemas export --out docs/SPECS`
+
 ## For AI Agents
 
 Parse YAML front-matter in each document as the authoritative record. The markdown body provides human context. Build execution DAG from `exec_graph.yaml` and follow dependency chains.

@@ -1,42 +1,142 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "File Watch Event v0.1",
-  "type": "object",
-  "required": ["ts", "path", "op"],
-  "properties": {
-    "ts": {
-      "type": "string",
-      "format": "date-time",
-      "description": "RFC3339 timestamp when the file system event occurred"
-    },
-    "path": {
-      "type": "string",
-      "description": "Absolute or project-relative path to the file or directory"
-    },
-    "op": {
-      "type": "string",
-      "enum": ["create", "modify", "remove", "rename"],
-      "description": "Type of filesystem operation observed"
-    },
-    "sha256": {
-      "type": "string",
-      "pattern": "^sha256:[0-9a-f]{64}$",
-      "description": "Optional digest of file contents when available (for create/modify)"
-    },
-    "size": {
-      "type": "integer",
-      "minimum": 0,
-      "description": "Optional file size in bytes (when available)"
-    },
-    "old_path": {
-      "type": "string",
-      "description": "Previous path when op=rename"
-    },
-    "meta": {
+  "title": "FileWatchEventV01",
+  "oneOf": [
+    {
       "type": "object",
-      "description": "Provider-specific metadata (optional)",
-      "additionalProperties": true
+      "required": [
+        "op",
+        "path",
+        "ts"
+      ],
+      "properties": {
+        "op": {
+          "type": "string",
+          "enum": [
+            "create"
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "schema": {
+          "default": "file_watch_event.v0.1",
+          "type": "string"
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "size": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "ts": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "op",
+        "path",
+        "ts"
+      ],
+      "properties": {
+        "op": {
+          "type": "string",
+          "enum": [
+            "modify"
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "schema": {
+          "default": "file_watch_event.v0.1",
+          "type": "string"
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "size": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "ts": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "op",
+        "path",
+        "ts"
+      ],
+      "properties": {
+        "op": {
+          "type": "string",
+          "enum": [
+            "delete"
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "schema": {
+          "default": "file_watch_event.v0.1",
+          "type": "string"
+        },
+        "ts": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "required": [
+        "from",
+        "op",
+        "to",
+        "ts"
+      ],
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "op": {
+          "type": "string",
+          "enum": [
+            "rename"
+          ]
+        },
+        "schema": {
+          "default": "file_watch_event.v0.1",
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "ts": {
+          "type": "string"
+        }
+      }
     }
-  },
-  "additionalProperties": true
+  ]
 }

@@ -1,35 +1,71 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "nexoscli.event.v0.3",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EventLineV03",
   "type": "object",
   "required": [
-    "schema",
-    "ts",
+    "chain_hash",
+    "command",
+    "content_hash",
+    "exit_code",
+    "plugin",
     "run_id",
     "seq",
-    "plugin",
-    "command",
-    "exit_code",
-    "dur_ms",
-    "content_hash",
-    "chain_hash"
+    "ts"
   ],
   "properties": {
-    "schema": { "const": "event.v0.3" },
-    "ts": { "type": "string", "format": "date-time" },
-    "run_id": { "type": "string" },
-    "seq": { "type": "integer", "minimum": 1 },
-    "prev": { "type": "string" },
-    "content_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
-    "chain_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
-
-    "plugin": { "type": "string" },
-    "command": { "type": "string" },
-    "args_hash": { "type": "string" },
-    "exit_code": { "type": "integer" },
-    "dur_ms": { "type": "integer", "minimum": 0 },
-    "attrs": { "type": "object", "additionalProperties": true },
-    "meta": { "type": "object", "additionalProperties": true }
-  },
-  "additionalProperties": true
+    "args_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "attrs": true,
+    "chain_hash": {
+      "type": "string"
+    },
+    "command": {
+      "type": "string"
+    },
+    "content_hash": {
+      "type": "string"
+    },
+    "data": true,
+    "dur_ms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "exit_code": {
+      "type": "integer",
+      "format": "int32"
+    },
+    "meta": true,
+    "plugin": {
+      "type": "string"
+    },
+    "prev": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "schema": {
+      "default": "event.v0.3",
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "ts": {
+      "type": "string"
+    }
+  }
 }

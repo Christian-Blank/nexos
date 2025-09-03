@@ -95,6 +95,8 @@ impl EventWriter {
             let mut h = Sha256::new();
             h.update(&bytes);
             let content_hash = format!("sha256:{:x}", h.finalize());
+            // Add schema tag in legacy (non-ledger) path for contract freeze
+            line["schema"] = serde_json::Value::String("event.v0.3".to_string());
             line["content_hash"] = serde_json::Value::String(content_hash);
             self.append_line(&line)
         }

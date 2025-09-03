@@ -248,6 +248,15 @@ RUST_LOG=info \
 ./target/debug/nexoscli man
 ```
 
+Schema registry (contracts) export and drift check:
+```bash
+# Export contract schemas from real types (schemars)
+./target/debug/nexoscli dev schemas export --out docs/SPECS
+
+# CI drift check (fail if schemas changed)
+git diff --exit-code -- docs/SPECS
+```
+
 **Event Log Structure:** `.nexoscli/log/events.jsonl` with content hashing for integrity.
 
 ## Folder Rule

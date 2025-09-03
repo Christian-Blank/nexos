@@ -543,6 +543,7 @@ impl Plugin for ReplayPlugin {
 
                         // Write bag manifest (v0.2)
                         let manifest = serde_json::json!({
+                            "schema": "bag_manifest.v0.2",
                             "version": "0.2",
                             "created_at": time::OffsetDateTime::now_utc().format(&Rfc3339).unwrap(),
                             "format": if out_arg.ends_with(".tar.gz") || out_arg.ends_with(".tgz") { "tgz" } else { "dir" },

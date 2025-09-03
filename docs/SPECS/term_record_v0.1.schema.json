@@ -1,49 +1,65 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Terminal Command Record v0.1",
+  "title": "TermRecordV01",
   "type": "object",
-  "required": ["ts", "cmd", "exit_code", "stdout_sha256", "stderr_sha256", "duration_ms"],
+  "required": [
+    "args",
+    "cmd",
+    "dur_ms",
+    "exit_code",
+    "finished_at",
+    "run_id",
+    "started_at"
+  ],
   "properties": {
-    "ts": {
-      "type": "string",
-      "format": "date-time",
-      "description": "RFC3339 timestamp when the command started (or ended; choose and document consistently)"
+    "args": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     },
     "cmd": {
-      "type": "string",
-      "description": "Shell command string"
+      "type": "string"
+    },
+    "cwd": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dur_ms": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
     },
     "exit_code": {
       "type": "integer",
-      "description": "Process exit code"
+      "format": "int32"
     },
-    "stdout_sha256": {
-      "type": "string",
-      "pattern": "^sha256:[0-9a-f]{64}$",
-      "description": "Digest of stdout content file"
+    "finished_at": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "schema": {
+      "default": "term_record.v0.1",
+      "type": "string"
+    },
+    "started_at": {
+      "type": "string"
     },
     "stderr_sha256": {
-      "type": "string",
-      "pattern": "^sha256:[0-9a-f]{64}$",
-      "description": "Digest of stderr content file"
+      "type": [
+        "string",
+        "null"
+      ]
     },
-    "duration_ms": {
-      "type": "integer",
-      "minimum": 0,
-      "description": "Wall time duration in milliseconds"
-    },
-    "git_pre_status": {
-      "type": "string",
-      "description": "git status --porcelain=v2 output before command"
-    },
-    "git_post_status": {
-      "type": "string",
-      "description": "git status --porcelain=v2 output after command"
-    },
-    "patch_path": {
-      "type": "string",
-      "description": "Relative path to generated patch file (if any)"
+    "stdout_sha256": {
+      "type": [
+        "string",
+        "null"
+      ]
     }
-  },
-  "additionalProperties": true
+  }
 }

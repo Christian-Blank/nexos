@@ -82,10 +82,12 @@ nexoscli task bundle --task <id> --out ./bundle.tgz
 	•	After changes, rebuild docs & tool specs:
 
 nexoscli dev docs build
+nexoscli dev schemas export --out docs/SPECS
 
 
 	•	Do not hand‑edit generated files:
 	•	docs/CLI_REFERENCE.md (generated)
+	•	docs/SPECS/** (generated from types; maintained by CI)
 	•	docs/contracts/** (snapshots maintained by CI)
 	•	If command names/flags changed or help/schema differs from snapshots:
 	•	Create/attach an ADR (docs/ADRs/ADR-YYYYMMDD-*.md)

@@ -1,10 +1,4 @@
-Fantastic. Here’s a ready‑to‑commit user guide that explains the observability + replay system end‑to‑end, shows how to find and build bags, and gives practical Python recipes (pandas‑friendly) to analyze them—no SDK required.
-
-Suggested path: docs/USER_GUIDE_OBSERVABILITY.md
-
-⸻
-
-Observability & Replay — User Guide
+# Observability & Replay — User Guide
 
 This guide shows how NEXOS captures your work, how to package it into a portable TracePack/NEXBag, and how to analyze those bags with simple Python (pandas). No custom SDK required.
 
@@ -413,8 +407,3 @@ nexoscli term run -- 'cargo test --workspace'
 # Import Cline context
 nexoscli cline locate
 nexoscli cline import --since 24h
-
-
-⸻
-
-That’s it. With this guide, anyone receiving a bag can verify it, inspect its contents, and analyze it using straightforward Python/pandas without any custom dependencies.

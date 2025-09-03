@@ -192,3 +192,19 @@ Per‑run files and manifest:
 - .nexoscli/log/runs/<RUN-ID>.jsonl (per‑run events)
 - .nexoscli/log/runs/<RUN-ID>.manifest.json containing:
   { "version":"0.2","first_seq","last_seq","first_hash","last_hash","count","time_range","chain_ok":true }
+
+## Schema Registry and Validation
+
+All emitted records carry a stable "schema" tag (e.g., "event.v0.3", "bag_manifest.v0.2"). Schemas are derived from the real Rust types (single source of truth) and can be exported and validated for drift.
+
+Export contract schemas:
+```bash
+./target/debug/nexoscli dev schemas export --out docs/SPECS
+```
+
+CI drift check (fail if schemas changed):
+```bash
+git diff --exit-code -- docs/SPECS
+```
+
+See docs/SPECS/README.md for details and do-not-hand-edit guidance.

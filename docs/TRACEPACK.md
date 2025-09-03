@@ -460,7 +460,7 @@ TracePacks enable **portable observability** - capture, share, and analyze any C
 
 ## NEXBags (TracePack v0.2)
 
-NEXBags are portable, analyzable bundles focused on topicized data with a bag-level manifest and integrity verification of the event ledger (event.v0.3). They are analogous to ROS bag files.
+NEXBags are portable, analyzable bundles focused on topicized data with a bag-level manifest and integrity verification of the event ledger (event.v0.3). They are analogous to ROS bag files. The bag manifest includes a stable schema tag: "schema": "bag_manifest.v0.2".
 
 Commands:
 ```bash

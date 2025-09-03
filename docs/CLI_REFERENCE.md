@@ -13,17 +13,17 @@ Commands:
   tools        Tools & schemas
   completions  Generate shell completions
   man          Print man page to stdout
-  rules        Rules management (init/lint/export)
-  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
   dev          Developer utilities
-  issue        Issue management
-  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
-  bundle       TracePack bundles
-  graph        Graph tools
+  rules        Rules management (init/lint/export)
   demo         Demo plugin
+  graph        Graph tools
   replay       Replay/extract TracePacks from logged runs
-  term         Run commands with provenance (non-interactive)
+  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
+  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
   cline        Cline task history (locate/import) with idempotent ingest
+  bundle       TracePack bundles
+  term         Run commands with provenance (non-interactive)
+  issue        Issue management
   help         Print this message or the help of the given subcommand(s)
 
 Options:
@@ -35,42 +35,6 @@ Options:
 
 ## Tool Specs (for agents)
 
-### `dev.init`
-
-Initialize .nexoscli/ (Plan/Apply, idempotent)
-
-### `dev.plugin.new`
-
-Scaffold a new plugin and optionally register it
-
-### `dev.plugins.check`
-
-Verify plugin folder structure and registration
-
-### `dev.doctor`
-
-Verify local setup (dotdir, event log write, config, OTEL envs); --ci aggregates checks
-
-### `dev.telemetry.report`
-
-Aggregate events.jsonl → counts, p50/p90/avg, error leaderboard
-
-### `cline.locate`
-
-Find Cline storage locations
-
-### `cline.import`
-
-Import Cline task history with idempotent ingest
-
-### `graph.check`
-
-Validate docs/exec_graph.yaml (acyclic, unique ids)
-
-### `graph.impact`
-
-List nodes impacted (downstream) by the given id
-
 ### `rules.lint`
 
 Validate rules front-matter
@@ -78,34 +42,6 @@ Validate rules front-matter
 ### `rules.export`
 
 Export rules bundle
-
-### `demo.hello`
-
-Say hello
-
-### `issue.new`
-
-Create a new local issue
-
-### `issue.list`
-
-List issues (optionally by state)
-
-### `issue.show`
-
-Show a single issue by ID
-
-### `issue.close`
-
-Close an issue by ID
-
-### `bundle.build`
-
-Build a TracePack bundle
-
-### `bundle.verify`
-
-Verify a TracePack bundle
 
 ### `workflow.init`
 
@@ -142,4 +78,68 @@ List workflows (visibility index)
 ### `workflow.upsert-sa`
 
 Upsert search attributes for a workflow
+
+### `dev.init`
+
+Initialize .nexoscli/ (Plan/Apply, idempotent)
+
+### `dev.plugin.new`
+
+Scaffold a new plugin and optionally register it
+
+### `dev.plugins.check`
+
+Verify plugin folder structure and registration
+
+### `dev.doctor`
+
+Verify local setup (dotdir, event log write, config, OTEL envs); --ci aggregates checks
+
+### `dev.telemetry.report`
+
+Aggregate events.jsonl → counts, p50/p90/avg, error leaderboard
+
+### `bundle.build`
+
+Build a TracePack bundle
+
+### `bundle.verify`
+
+Verify a TracePack bundle
+
+### `issue.new`
+
+Create a new local issue
+
+### `issue.list`
+
+List issues (optionally by state)
+
+### `issue.show`
+
+Show a single issue by ID
+
+### `issue.close`
+
+Close an issue by ID
+
+### `demo.hello`
+
+Say hello
+
+### `cline.locate`
+
+Find Cline storage locations
+
+### `cline.import`
+
+Import Cline task history with idempotent ingest
+
+### `graph.check`
+
+Validate docs/exec_graph.yaml (acyclic, unique ids)
+
+### `graph.impact`
+
+List nodes impacted (downstream) by the given id
 

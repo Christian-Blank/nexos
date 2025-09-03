@@ -238,6 +238,15 @@ impl Plugin for DevPlugin {
                                 .arg(Arg::new("open").long("open").action(ArgAction::SetTrue))
                         )
                 )
+                // dev schemas
+                .subcommand(
+                    Command::new("schemas").about("Export contract JSON Schemas")
+                        .subcommand(
+                            Command::new("export")
+                                .about("Write JSON Schemas to a directory")
+                                .arg(Arg::new("out").long("out").required(true).value_name("DIR"))
+                        )
+                )
         )
     }
 
@@ -834,6 +843,42 @@ endpoint = ""
                     let out = serde_json::json!({"written": ["docs/CLI_REFERENCE.md", "docs/RULES.md"]});
                     let code = ctx.ok("dev","docs.build",&out);
                     return Ok(code);
+                }
+                Ok(2)
+            }
+
+            // ---------------- dev schemas ----------------
+            Some(("schemas", sm)) => {
+                if let Some(("export", esm)) = sm.subcommand() {
+                    let out = esm.get_one::<String>("out").unwrap();
+                    let dir = std::path::Path::new(out);
+                    std::fs::create_dir_all(dir)?;
+
+                    // 1) Event (from stable EventLineV03 contract type)
+                    let ev = schema_for!(nexoscli_core::contracts::EventLineV03);
+                    std::fs::write(dir.join("event_v0.3.schema.json"), serde_json::to_string_pretty(&ev)?)?;
+
+                    // 2) Term record
+                    let tr = schema_for!(nexoscli_core::contracts::TermRecordV01);
+                    std::fs::write(dir.join("term_record_v0.1.schema.json"), serde_json::to_string_pretty(&tr)?)?;
+
+                    // 3) File watch event
+                    let fw = schema_for!(nexoscli_core::contracts::FileWatchEventV01);
+                    std::fs::write(dir.join("file_watch_event_v0.1.schema.json"), serde_json::to_string_pretty(&fw)?)?;
+
+                    // 4) Bag manifest
+                    let bm = schema_for!(nexoscli_core::contracts::BagManifestV02);
+                    std::fs::write(dir.join("bag_manifest_v0.2.schema.json"), serde_json::to_string_pretty(&bm)?)?;
+
+                    let exit = ctx.ok("dev","schemas.export",
+                        &serde_json::json!({"out": out, "files":[
+                            "event_v0.3.schema.json",
+                            "term_record_v0.1.schema.json",
+                            "file_watch_event_v0.1.schema.json",
+                            "bag_manifest_v0.2.schema.json"
+                        ]})
+                    );
+                    return Ok(exit);
                 }
                 Ok(2)
             }
