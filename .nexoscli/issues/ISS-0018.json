@@ -1,0 +1,9 @@
+{
+  "id": "ISS-0018",
+  "title": "Configurable default excludes for fs watcher",
+  "body": "Make default fs excludes configurable via .nexoscli config (e.g., term.fs.excludes: [\".git/**\",\".nexoscli/**\",\"target/**\",\"node_modules/**\"]). term run --fs-topic should merge CLI --fs-exclude overrides with config defaults deterministically.",
+  "labels": [],
+  "state": "open",
+  "created_at": "2025-09-04T13:34:39.078821Z",
+  "updated_at": "2025-09-04T13:34:39.078821Z"
+}

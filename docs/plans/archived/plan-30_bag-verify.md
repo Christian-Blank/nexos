@@ -1,3 +1,7 @@
+---
+Implemented in: commit ab21261d8565eb5ecc8e0c26da90753990f953b9 feat(replay): add TracePack verification with events/digests, strict mode, and index continuity (PLAN-30, TASK-20250904-plan-30-bag-verify-tracepack-integrity)
+---
+
 Awesome—let’s lock in Implementation Plan #30 — “Bag Verify” to tighten the replay loop.
 
 This plan adds a cryptographic and structural verifier for TracePacks (“bags”) so anyone can prove integrity before analysis, and CI can reject corrupted or incomplete evidence.

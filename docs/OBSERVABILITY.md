@@ -122,6 +122,37 @@ Bundle contents:
 - `patches/` - Code changes and diffs
 - `cline/` - Cline conversation history (if available)
 
+## File-change Topic (opt-in)
+
+Enable filesystem change capture during `term run` with an opt-in watcher. This records file operations that occur during the run and emits a linking event for deterministic extraction.
+
+Enable:
+```bash
+nexoscli term run --fs-topic [--fs-root PATH...] [--fs-exclude GLOB...] [--fs-hash] -- \
+  sh -c 'echo hi > a.txt && mv a.txt b.txt && rm b.txt'
+```
+
+Watcher output (`.nexoscli/fileops/fileops-<ts>-<pid>.ndjson`):
+- Meta prologue/epilogue:
+  - {"type":"meta","phase":"start","ts":"...","roots":[...],"exclude":[...]}
+  - {"type":"meta","phase":"end","ts":"...","total":N}
+- One JSON line per change (schema: file_watch_event.v0.1; lower-case ops):
+  - {"schema":"file_watch_event.v0.1","op":"create","path":"...","size":1234,"sha256":"sha256:...","ts":"..."}
+  - {"schema":"file_watch_event.v0.1","op":"modify","path":"...","size":902,"sha256":null,"ts":"..."}
+  - {"schema":"file_watch_event.v0.1","op":"delete","path":"...","ts":"..."}
+  - {"schema":"file_watch_event.v0.1","op":"rename","from":"a.txt","to":"b.txt","ts":"..."}
+
+Linking event (emitted automatically on completion):
+- plugin: "term", command: "fs.topic"
+- data: { "file": ".nexoscli/fileops/fileops-…ndjson", "lines": N, "bytes": B, "sha256": "sha256:…", "from_ts":"…", "to_ts":"…" }
+
+Defaults and notes:
+- Off by default; only active when `--fs-topic` is passed.
+- Default excludes: `.git/**`, `.nexoscli/**`, `target/**`, `node_modules/**` (override with `--fs-exclude`).
+- `--fs-hash` computes sha256 for create/modify; otherwise `sha256` is null.
+- Spec: docs/SPECS/file_watch_event_v0.1.schema.json.
+- Replay integration: `replay extract` copies the topic to `fileops/fileops.ndjson` and augments the manifest with `counts.fileops_lines` and a `fileops` object (dst/sha256/bytes/lines/from/to).
+
 ## NEXBags (TracePack v0.2)
 
 Use NEXBags for portable, analyzable capture of runs with event-ledger integrity.

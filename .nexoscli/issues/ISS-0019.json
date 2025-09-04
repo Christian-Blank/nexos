@@ -1,0 +1,9 @@
+{
+  "id": "ISS-0019",
+  "title": "Benchmark/back-pressure for --fs-hash on large trees",
+  "body": "Benchmark notify + sha256 on large repos with --fs-hash enabled; design back-pressure/sampling strategy to avoid overload (e.g., coalescing rapid modify bursts, size thresholds). Add a perf doc and guardrails.",
+  "labels": [],
+  "state": "open",
+  "created_at": "2025-09-04T13:34:39.65215Z",
+  "updated_at": "2025-09-04T13:34:39.65215Z"
+}

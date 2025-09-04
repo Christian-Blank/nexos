@@ -1,0 +1,9 @@
+{
+  "id": "ISS-0020",
+  "title": "Extend bag verify/info to validate files_watch (Plan-32 follow-up)",
+  "body": "Follow-up to PLAN-31: NEXBags (v0.2) reserve files/watch topic. Extend replay bag verify/info/cat to validate a files_watch topic when present: compute sha256/lines/time_range for files/watch.ndjson; surface counts.files_watch in manifest summary; cat supports files/watch. Add tests and docs.",
+  "labels": [],
+  "state": "open",
+  "created_at": "2025-09-04T13:35:20.765986Z",
+  "updated_at": "2025-09-04T13:35:20.765986Z"
+}

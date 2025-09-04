@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20250904-plan-31-file-change-topic",
+  "title": "PLAN-31: File-change Topic",
+  "stage": "planning",
+  "status": "active",
+  "created_at": "2025-09-04T13:31:22.575118Z",
+  "started_at": "2025-09-04T13:33:34.224602Z",
+  "ended_at": null,
+  "sessions": [
+    {
+      "id": "SES-e0a6c27aa537",
+      "start": "2025-09-04T13:33:34.224931Z",
+      "end": null
+    }
+  ],
+  "notes": []
+}

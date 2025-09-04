@@ -2,7 +2,7 @@
   "id": "TASK-20250904-plan-30-bag-verify-tracepack-integrity",
   "title": "PLAN-30: Bag Verify (TracePack Integrity)",
   "stage": "planning",
-  "status": "active",
+  "status": "paused",
   "created_at": "2025-09-04T12:27:02.573574Z",
   "started_at": "2025-09-04T12:27:03.158755Z",
   "ended_at": null,
@@ -10,7 +10,7 @@
     {
       "id": "SES-0b1273e16041",
       "start": "2025-09-04T12:27:03.159001Z",
-      "end": null
+      "end": "2025-09-04T13:32:51.453423Z"
     }
   ],
   "notes": []

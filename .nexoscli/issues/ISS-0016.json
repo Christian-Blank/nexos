@@ -1,0 +1,9 @@
+{
+  "id": "ISS-0016",
+  "title": "CP: Add term-plugin scope (plugins/term/**)",
+  "body": "Scope policy: PLAN-31 required edits under plugins/term/**. Propose adding a dedicated scope entry  to .clinerules/scope.json with paths: [\"plugins/term/**\",\"nexoscli-bin/tests/**\",\"docs/**\"]. Rationale: future term observability work (fs topic evolution) needs bounded scope without broadening observability. Acceptance: scope entry merged; rules doc updated.",
+  "labels": [],
+  "state": "open",
+  "created_at": "2025-09-04T13:34:37.907406Z",
+  "updated_at": "2025-09-04T13:34:37.907406Z"
+}

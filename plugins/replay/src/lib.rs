@@ -269,6 +269,9 @@ impl Plugin for ReplayPlugin {
                 if want_events {
                     let mut out = String::new();
                     let ev_root = std::path::Path::new(".nexoscli").join("log");
+                    // track fs topic event linkage
+                    let mut fs_topic_path: Option<String> = None;
+
                     if ev_root.exists() {
                         for ent in WalkDir::new(&ev_root).min_depth(1).max_depth(1).into_iter().flatten() {
                             let p = ent.path();
@@ -289,12 +292,53 @@ impl Plugin for ReplayPlugin {
                                         if let (Some(pl), Some(cmd)) = (v.get("plugin").and_then(|x| x.as_str()), v.get("command").and_then(|x| x.as_str())) {
                                             *cmd_counts.entry(format!("{}.{}", pl, cmd)).or_insert(0) += 1;
                                         }
+                                        if fs_topic_path.is_none()
+                                            && v.get("plugin").and_then(|x| x.as_str()) == Some("term")
+                                            && v.get("command").and_then(|x| x.as_str()) == Some("fs.topic") {
+                                            if let Some(fp) = v.get("data").and_then(|d| d.get("file")).and_then(|x| x.as_str()) {
+                                                fs_topic_path = Some(fp.to_string());
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                     std::fs::write(default_stage.join("events.ndjson"), out.as_bytes())?;
+
+                    // If not already found, detect fs.topic linkage from staged events
+                    if fs_topic_path.is_none() {
+                        let evp = default_stage.join("events.ndjson");
+                        if let Ok(evtxt) = std::fs::read_to_string(&evp) {
+                            for l in evtxt.lines() {
+                                if let Ok(v) = serde_json::from_str::<serde_json::Value>(l) {
+                                    if v.get("run_id").and_then(|x| x.as_str()) == Some(run_id.as_str())
+                                        && v.get("plugin").and_then(|x| x.as_str())==Some("term")
+                                        && v.get("command").and_then(|x| x.as_str())==Some("fs.topic") {
+                                        if let Some(fp) = v.get("data").and_then(|d| d.get("file")).and_then(|x| x.as_str()) {
+                                            fs_topic_path = Some(fp.to_string());
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Try to include fileops into the TracePack (copy + manifest fields)
+                    let mut fileops_lines: u64 = 0;
+                    let mut manifest_fileops: Option<serde_json::Value> = None;
+                    if let Some(info) = include_fileops_for_extract(fs_topic_path.as_deref(), first_ts.as_deref(), last_ts.as_deref(), &default_stage) {
+                        fileops_lines = info.get("lines").and_then(|x| x.as_u64()).unwrap_or(0);
+                        manifest_fileops = Some(info);
+                    }
+
+                    // Store for later use when writing the manifest
+                    // We stash into a file so we can retrieve after cline/status/patches handling
+                    if let Some(mf) = &manifest_fileops {
+                        std::fs::write(default_stage.join(".fileops.manifest.json"), serde_json::to_vec(mf).unwrap_or_default()).ok();
+                        std::fs::write(default_stage.join(".fileops.lines"), fileops_lines.to_string()).ok();
+                    }
                 }
 
                 // 2) Build plan and copy referenced patches/status
@@ -421,6 +465,18 @@ impl Plugin for ReplayPlugin {
                 }
 
                 // 3) Manifest + README
+                // Reload fileops info (if any) recorded during events processing
+                let (manifest_fileops, fileops_lines) = {
+                    let mf_path = default_stage.join(".fileops.manifest.json");
+                    let fl_path = default_stage.join(".fileops.lines");
+                    if mf_path.exists() {
+                        let raw = std::fs::read(&mf_path).unwrap_or_default();
+                        let v = serde_json::from_slice::<serde_json::Value>(&raw).ok();
+                        let ln = std::fs::read_to_string(&fl_path).ok().and_then(|s| s.trim().parse::<u64>().ok()).unwrap_or(0);
+                        (v, ln)
+                    } else { (None, 0) }
+                };
+
                 let manifest = serde_json::json!({
                     "version": "0.1",
                     "kind": "tracepack",
@@ -432,14 +488,16 @@ impl Plugin for ReplayPlugin {
                         "steps": counts.steps,
                         "patches": counts.patches,
                         "status": counts.status,
-                        "cline": counts.cline            // NEW
+                        "cline": counts.cline,
+                        "fileops_lines": fileops_lines
                     },
                     "git": { "from": plan.from, "to": plan.to },
                     "plugins": plugin_counts,
                     "commands": cmd_counts,
                     "patches": manifest_patches,
                     "status_files": manifest_status,
-                    "cline_tasks": manifest_cline     // NEW
+                    "cline_tasks": manifest_cline,
+                    "fileops": manifest_fileops
                 });
                 std::fs::write(default_stage.join("manifest.json"), serde_json::to_vec_pretty(&manifest)?)?;
                 std::fs::write(default_stage.join("README.md"), TRACEPACK_README.as_bytes())?;
@@ -1196,6 +1254,102 @@ fn read_bag_topic_bytes(bag: &str, rel: &str) -> anyhow::Result<(Vec<u8>, bool)>
         }
         Ok((Vec::new(), true))
     }
+}
+
+fn include_fileops_for_extract(
+    explicit_path: Option<&str>,
+    first_ts: Option<&str>,
+    last_ts: Option<&str>,
+    stage: &std::path::Path
+) -> Option<serde_json::Value> {
+    use sha2::{Digest, Sha256};
+    use time::{OffsetDateTime, Duration, format_description::well_known::Rfc3339};
+    let dst_rel = std::path::Path::new("fileops").join("fileops.ndjson");
+    let dst_abs = stage.join(&dst_rel);
+
+    // Helper to compute stats and write
+    let compute = |bytes: &[u8]| -> (u64, u64, String, Option<String>, Option<String>) {
+        let mut h = Sha256::new();
+        h.update(bytes);
+        let sha = format!("sha256:{:x}", h.finalize());
+        let s = std::str::from_utf8(bytes).unwrap_or("");
+        let mut from: Option<String> = None;
+        let mut to: Option<String> = None;
+        let mut lines: u64 = 0;
+        for l in s.lines() {
+            if l.trim().is_empty() { continue; }
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(l) {
+                if let Some(ts) = v.get("ts").and_then(|x| x.as_str()) {
+                    if from.is_none() { from = Some(ts.to_string()); }
+                    to = Some(ts.to_string());
+                }
+            }
+            lines += 1;
+        }
+        (lines, bytes.len() as u64, sha, from, to)
+    };
+
+    // Prefer explicit path from fs.topic event
+    if let Some(fp) = explicit_path {
+        let src = std::path::Path::new(fp);
+        if src.exists() {
+            if let Some(parent) = dst_abs.parent() { let _ = std::fs::create_dir_all(parent); }
+            if std::fs::copy(src, &dst_abs).is_ok() {
+                let raw = std::fs::read(&dst_abs).unwrap_or_default();
+                let (lines, bytes, sha, from, to) = compute(&raw);
+                return Some(serde_json::json!({
+                    "dst": dst_rel.display().to_string(),
+                    "sha256": sha,
+                    "bytes": bytes,
+                    "lines": lines,
+                    "from": from,
+                    "to": to
+                }));
+            }
+        }
+    }
+
+    // Fallback: scan .nexoscli/fileops for window overlap
+    let dir = std::path::Path::new(".nexoscli").join("fileops");
+    let rf = first_ts.and_then(|s| OffsetDateTime::parse(s, &Rfc3339).ok()).map(|t| t - Duration::seconds(5));
+    let rt = last_ts.and_then(|s| OffsetDateTime::parse(s, &Rfc3339).ok()).map(|t| t + Duration::seconds(5));
+
+    if dir.exists() {
+        for ent in WalkDir::new(&dir).min_depth(1).max_depth(1).into_iter().flatten() {
+            let p = ent.path();
+            if p.is_dir() || p.extension().and_then(|x| x.to_str()) != Some("ndjson") { continue; }
+            let txt = std::fs::read_to_string(p).unwrap_or_default();
+            let mut first: Option<OffsetDateTime> = None;
+            let mut last: Option<OffsetDateTime> = None;
+            for line in txt.lines() {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(line) {
+                    if let Some(ts) = v.get("ts").and_then(|x| x.as_str()).and_then(|s| OffsetDateTime::parse(s, &Rfc3339).ok()) {
+                        if first.is_none() { first = Some(ts); }
+                        last = Some(ts);
+                    }
+                }
+            }
+            let overlaps = match (rf, rt, first, last) {
+                (Some(f), Some(t), Some(a), Some(b)) => a <= t && b >= f,
+                _ => false
+            };
+            if overlaps {
+                if let Some(parent) = dst_abs.parent() { let _ = std::fs::create_dir_all(parent); }
+                if std::fs::write(&dst_abs, txt.as_bytes()).is_ok() {
+                    let (lines, bytes, sha, from, to) = compute(txt.as_bytes());
+                    return Some(serde_json::json!({
+                        "dst": dst_rel.display().to_string(),
+                        "sha256": sha,
+                        "bytes": bytes,
+                        "lines": lines,
+                        "from": from,
+                        "to": to
+                    }));
+                }
+            }
+        }
+    }
+    None
 }
 
 const TRACEPACK_README: &str = r#"# TracePack

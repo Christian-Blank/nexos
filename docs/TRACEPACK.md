@@ -458,6 +458,52 @@ This ensures tasks adjacent to CLI runs are captured even with minor clock skew 
  
 TracePacks enable **portable observability** - capture, share, and analyze any CLI run as a self-contained bundle.
 
+## File-change Topic (opt-in)
+
+When enabled, `term run` can record on-disk changes during a run and link them deterministically to the run via a small event.
+
+Enable:
+```bash
+nexoscli term run --fs-topic [--fs-root PATH...] [--fs-exclude GLOB...] [--fs-hash] -- \
+  sh -c 'echo hi > a.txt && mv a.txt b.txt && rm b.txt'
+```
+
+Watcher output (`.nexoscli/fileops/fileops-<ts>-<pid>.ndjson`):
+```
+{"type":"meta","phase":"start","ts":"...","roots":["."],"exclude":[".git/**",".nexoscli/**","target/**","node_modules/**"]}
+{"schema":"file_watch_event.v0.1","op":"create","path":"src/lib.rs","size":1234,"sha256":"sha256:...","ts":"..."}
+{"schema":"file_watch_event.v0.1","op":"modify","path":"README.md","size":902,"ts":"..."}
+{"schema":"file_watch_event.v0.1","op":"rename","from":"a.txt","to":"b.txt","ts":"..."}
+{"schema":"file_watch_event.v0.1","op":"delete","path":"b.txt","ts":"..."}
+{"type":"meta","phase":"end","ts":"...","total":4}
+```
+
+Linking event (written automatically on completion):
+```
+plugin: "term", command: "fs.topic"
+data: { "file": ".nexoscli/fileops/fileops-…ndjson", "lines": N, "bytes": B, "sha256": "sha256:…", "from_ts":"…", "to_ts":"…" }
+```
+
+TracePack inclusion (`replay extract`):
+- The topic file is copied to `fileops/fileops.ndjson`.
+- The manifest adds `counts.fileops_lines` and a `fileops` object:
+  ```
+  {
+    "dst": "fileops/fileops.ndjson",
+    "sha256": "sha256:…",
+    "bytes": B,
+    "lines": N,
+    "from": "…",
+    "to": "…"
+  }
+  ```
+
+Defaults and notes:
+- Off by default; only active when `--fs-topic` is passed.
+- Default excludes: `.git/**`, `.nexoscli/**`, `target/**`, `node_modules/**` (override with `--fs-exclude`).
+- `--fs-hash` computes sha256 for `create`/`modify`; otherwise `sha256` is omitted (null).
+- Line schema uses lower-case ops and conforms to `docs/SPECS/file_watch_event_v0.1.schema.json`.
+
 ## NEXBags (TracePack v0.2)
 
 NEXBags are portable, analyzable bundles focused on topicized data with a bag-level manifest and integrity verification of the event ledger (event.v0.3). They are analogous to ROS bag files. The bag manifest includes a stable schema tag: "schema": "bag_manifest.v0.2".
