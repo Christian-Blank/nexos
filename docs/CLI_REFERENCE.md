@@ -13,17 +13,17 @@ Commands:
   tools        Tools & schemas
   completions  Generate shell completions
   man          Print man page to stdout
-  dev          Developer utilities
   rules        Rules management (init/lint/export)
-  demo         Demo plugin
-  graph        Graph tools
-  replay       Replay/extract TracePacks from logged runs
-  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
-  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
+  issue        Issue management
   cline        Cline task history (locate/import) with idempotent ingest
   bundle       TracePack bundles
+  demo         Demo plugin
+  graph        Graph tools
+  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
   term         Run commands with provenance (non-interactive)
-  issue        Issue management
+  dev          Developer utilities
+  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
+  replay       Replay/extract TracePacks from logged runs
   help         Print this message or the help of the given subcommand(s)
 
 Options:
@@ -34,14 +34,6 @@ Options:
 ```
 
 ## Tool Specs (for agents)
-
-### `rules.lint`
-
-Validate rules front-matter
-
-### `rules.export`
-
-Export rules bundle
 
 ### `workflow.init`
 
@@ -79,6 +71,38 @@ List workflows (visibility index)
 
 Upsert search attributes for a workflow
 
+### `graph.check`
+
+Validate docs/exec_graph.yaml (acyclic, unique ids)
+
+### `graph.impact`
+
+List nodes impacted (downstream) by the given id
+
+### `issue.new`
+
+Create a new local issue
+
+### `issue.list`
+
+List issues (optionally by state)
+
+### `issue.show`
+
+Show a single issue by ID
+
+### `issue.close`
+
+Close an issue by ID
+
+### `cline.locate`
+
+Find Cline storage locations
+
+### `cline.import`
+
+Import Cline task history with idempotent ingest
+
 ### `dev.init`
 
 Initialize .nexoscli/ (Plan/Apply, idempotent)
@@ -99,6 +123,10 @@ Verify local setup (dotdir, event log write, config, OTEL envs); --ci aggregates
 
 Aggregate events.jsonl → counts, p50/p90/avg, error leaderboard
 
+### `demo.hello`
+
+Say hello
+
 ### `bundle.build`
 
 Build a TracePack bundle
@@ -107,39 +135,11 @@ Build a TracePack bundle
 
 Verify a TracePack bundle
 
-### `issue.new`
+### `rules.lint`
 
-Create a new local issue
+Validate rules front-matter
 
-### `issue.list`
+### `rules.export`
 
-List issues (optionally by state)
-
-### `issue.show`
-
-Show a single issue by ID
-
-### `issue.close`
-
-Close an issue by ID
-
-### `demo.hello`
-
-Say hello
-
-### `cline.locate`
-
-Find Cline storage locations
-
-### `cline.import`
-
-Import Cline task history with idempotent ingest
-
-### `graph.check`
-
-Validate docs/exec_graph.yaml (acyclic, unique ids)
-
-### `graph.impact`
-
-List nodes impacted (downstream) by the given id
+Export rules bundle
 

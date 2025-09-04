@@ -1,3 +1,6 @@
+---
+Implemented in: commit 53c018fea4ad8925a595387b3ae010ce28ea106e feat(dev-plugin): add doctor checks for events-schema and events-chain; CI verify-first; deterministic refresh; docs + E2E
+---
 Awesome — moving along the critical path after Track A (schema tags + registry), here’s a ready‑to‑commit pack for Track B: Doctor checks for events schema + chain‑of‑custody. This locks the log integrity and gives CI guardrails without touching your command surfaces.
 
 It’s additive and safe:

@@ -249,3 +249,4 @@ nexoscli dev doctor --checks events-schema,events-chain
 
 ```
 nexoscli dev doctor --ci --checks events-schema,events-chain --require events-schema,events-chain
+```

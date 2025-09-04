@@ -386,6 +386,26 @@ Yes: --include events. Add more topics as needed.
 
 ⸻
 
+Health checks (doctor)
+
+Validate your environment and event log integrity.
+
+- Local refresh/validate (writes/refreshes the chain manifest deterministically):
+```bash
+nexoscli dev doctor --checks events-schema,events-chain
+```
+
+- CI verify (read-only) and enforce:
+```bash
+nexoscli dev doctor --ci --checks events-schema,events-chain --require events-schema,events-chain --output json
+```
+
+What these checks do:
+- events-schema: parses `.nexoscli/log/events.jsonl` lines and ensures the schema tag equals `event.v0.3`, with required fields present: `ts`, `plugin`, `command`, `exit_code`, `content_hash`. Honors a `--since` window (e.g., `24h`, `7d`, RFC3339).
+- events-chain: computes a rolling digest `H = sha256(H || "\n" || raw_line)` and compares against `.nexoscli/log/events.chain.json` in CI; local runs refresh this manifest deterministically.
+
+⸻
+
 Appendix — CLI reference (observability slice)
 
 # Show recent runs / telemetry (optional)

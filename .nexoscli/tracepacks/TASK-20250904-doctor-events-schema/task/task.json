@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20250904-doctor-events-schema",
+  "title": "Plan 28 — Doctor: Events Schema + Chain-of-Custody",
+  "stage": "done",
+  "status": "ended",
+  "created_at": "2025-09-03T23:45:12.670178Z",
+  "started_at": "2025-09-03T23:45:13.22958Z",
+  "ended_at": "2025-09-03T23:45:15.211743Z",
+  "sessions": [
+    {
+      "id": "SES-041aca666954",
+      "start": "2025-09-03T23:45:13.229985Z",
+      "end": "2025-09-03T23:45:15.211579Z"
+    }
+  ],
+  "notes": []
+}
