@@ -167,6 +167,7 @@ cat .nexoscli/engine/outbox/*.json
 - **task-coverage**: Measures percentage of events with task context (helps track workflow adoption)
 - **events-schema**: Parses `.nexoscli/log/events.jsonl` lines, validates schema tag equals `event.v0.3`, and enforces required fields (ts, plugin, command, exit_code, content_hash); honors `--since`
 - **events-chain**: Verifies rolling digest and line count against `.nexoscli/log/events.chain.json` in CI (read-only); local runs refresh deterministically
+- **events-rotation**: Verifies `.nexoscli/log/events.index.json` continuity by recomputing each segment sha256_file/lines and rolling head; fails on any mismatch (CI-read-only)
 
 **CI Integration:**
 ```bash
@@ -181,6 +182,25 @@ cat .nexoscli/engine/outbox/*.json
 # Event integrity + chain-of-custody (recommended for CI)
 ```bash
 nexoscli dev doctor --ci --checks events-schema,events-chain --require events-schema,events-chain
+```
+
+# Rotate the event log periodically (local/dev)
+Keep `.nexoscli/log/events.jsonl` small and evidence durable.
+
+```bash
+# Rotate by size threshold and/or once per day
+nexoscli dev log rotate --max-bytes 5000000 --daily
+
+# Force rotation even if thresholds not met
+nexoscli dev log rotate --force
+
+# Inspect rotation/index status
+nexoscli dev log status --output json
+```
+
+# Verify rotation continuity in CI
+```bash
+nexoscli dev doctor --ci --checks events-rotation --require events-rotation
 ```
 
 **Health monitoring best practices:**

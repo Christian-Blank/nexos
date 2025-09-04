@@ -250,3 +250,39 @@ nexoscli dev doctor --checks events-schema,events-chain
 ```
 nexoscli dev doctor --ci --checks events-schema,events-chain --require events-schema,events-chain
 ```
+
+### Log rotation & continuity
+
+Keep `.nexoscli/log/events.jsonl` small and evidence durable by rotating into timestamped segments with a continuity index.
+
+Rotate (by size, daily, or force):
+```bash
+# Rotate by size threshold and daily (idempotent)
+nexoscli dev log rotate --max-bytes 5000000 --daily
+
+# Force rotation (even if thresholds not met)
+nexoscli dev log rotate --force
+```
+
+Rotation produces:
+- `.nexoscli/log/segments/events-<STAMP>.jsonl` — archived segment
+- `.nexoscli/log/segments/events-<STAMP>.chain.json` — per-segment digest/metadata
+- `.nexoscli/log/events.index.json` — segment-chain index with rolling head
+- a fresh empty `.nexoscli/log/events.jsonl`
+
+Segment-chain head computation:
+- `head_0 = sha256( sha256_file(seg_0) )`
+- `head_k = sha256( head_{k-1} || "\n" || sha256_file(seg_k) )`
+
+Status:
+```bash
+nexoscli dev log status --output json
+```
+
+CI verification (index + segments continuity):
+```bash
+nexoscli dev doctor --ci \
+  --checks events-rotation \
+  --require events-rotation
+```
+```

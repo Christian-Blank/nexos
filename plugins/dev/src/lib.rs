@@ -206,6 +206,22 @@ impl Plugin for DevPlugin {
                                 .arg(Arg::new("fix-readmes").long("fix-readmes").action(ArgAction::SetTrue).help("Create missing README.md with template"))
                         )
                 )
+                // dev log
+                .subcommand(
+                    Command::new("log").about("Event log utilities")
+                        .subcommand(
+                            Command::new("rotate")
+                                .about("Rotate .nexoscli/log/events.jsonl into timestamped segments with chain manifests")
+                                .arg(Arg::new("max-bytes").long("max-bytes").value_parser(clap::value_parser!(u64)).default_value("5000000"))
+                                .arg(Arg::new("daily").long("daily").action(ArgAction::SetTrue))
+                                .arg(Arg::new("force").long("force").action(ArgAction::SetTrue))
+                                .arg(Arg::new("dry-run").long("dry-run").action(ArgAction::SetTrue))
+                        )
+                        .subcommand(
+                            Command::new("status")
+                                .about("Show rotation/index status")
+                        )
+                )
                 // dev doctor
                 .subcommand(
                     Command::new("doctor")
@@ -217,7 +233,7 @@ impl Plugin for DevPlugin {
                         .arg(Arg::new("ci").long("ci").action(ArgAction::SetTrue)
                              .help("Aggregate repo checks and exit non-zero on failure"))
                         .arg(Arg::new("checks").long("checks").value_name("CSV")
-                             .help("Subset of checks: graph,plugins,config,events,tools,events-schema,events-chain,cline,rules (default: all)"))
+                             .help("Subset of checks: graph,plugins,config,events,tools,events-schema,events-chain,events-rotation,cline,rules (default: all)"))
                 )
                 // dev telemetry
                 .subcommand(
@@ -500,6 +516,136 @@ endpoint = ""
                 Ok(2)
             }
 
+            // ---------------- dev log ----------------
+            Some(("log", lm)) => {
+                if let Some(("rotate", m)) = lm.subcommand() {
+                    let max_bytes = *m.get_one::<u64>("max-bytes").unwrap();
+                    let daily = m.get_flag("daily");
+                    let force = m.get_flag("force");
+                    let dry = m.get_flag("dry-run");
+
+                    let root = std::env::current_dir()?;
+                    let log_dir = root.join(".nexoscli").join("log");
+                    let (ev, seg_dir, _idx_path) = events_dir_from_log(&log_dir);
+                    fs::create_dir_all(&seg_dir)?;
+
+                    let size = std::fs::metadata(&ev).map(|m| m.len()).unwrap_or(0);
+                    let mut reason = String::new();
+
+                    // Compute stats once
+                    let stats = compute_event_file_stats(&ev)?;
+                    // daily due: rotate if file has any lines and its day differs from now's day
+                    let now_day = OffsetDateTime::now_utc().format(&Rfc3339).unwrap();
+                    let daily_due = daily && stats.to_ts.as_deref()
+                        .map(|ts| ts.split('T').next() != now_day.split('T').next())
+                        .unwrap_or(false);
+
+                    let should_rotate = if force {
+                        reason = "force".into(); true
+                    } else if size >= max_bytes {
+                        reason = format!("size>={}", max_bytes); true
+                    } else if daily_due {
+                        reason = "daily".into(); true
+                    } else {
+                        false
+                    };
+
+                    if !should_rotate {
+                        let exit = ctx.ok("dev","log.rotate.plan",&serde_json::json!({
+                            "would_rotate": false,
+                            "size": size,
+                            "reason": "thresholds not met"
+                        }));
+                        return Ok(exit);
+                    }
+
+                    // STAMP from last event ts or now
+                    let stamp = stats.to_ts.clone()
+                        .unwrap_or_else(|| OffsetDateTime::now_utc().format(&Rfc3339).unwrap())
+                        .replace(":", "-");
+
+                    let file_name = format!("events-{}.jsonl", stamp);
+                    let seg_file = seg_dir.join(&file_name);
+                    let seg_chain = seg_dir.join(format!("events-{}.chain.json", stamp));
+                    let rel_file = format!(".nexoscli/log/segments/{}", file_name);
+
+                    if dry {
+                        let exit = ctx.ok("dev","log.rotate.plan",&serde_json::json!({
+                            "would_rotate": true,
+                            "reason": reason,
+                            "segment": seg_file.display().to_string(),
+                            "lines": stats.lines,
+                            "bytes": stats.bytes,
+                            "sha256_file": stats.sha256_file
+                        }));
+                        return Ok(exit);
+                    }
+
+                    // Move log to segment
+                    if ev.exists() {
+                        fs::rename(&ev, &seg_file)?;
+                    } else {
+                        fs::write(&seg_file, b"")?;
+                    }
+
+                    // Write segment manifest
+                    let seg_rec = serde_json::json!({
+                        "schema": "events_segment_chain.v0.1",
+                        "file": rel_file,
+                        "from_ts": stats.from_ts,
+                        "to_ts": stats.to_ts,
+                        "lines": stats.lines,
+                        "bytes": stats.bytes,
+                        "sha256_file": stats.sha256_file
+                    });
+                    fs::write(&seg_chain, serde_json::to_vec_pretty(&seg_rec)?)?;
+
+                    // Update index
+                    let mut idx = load_events_index(&log_dir)?;
+                    let prev_head = idx.head.clone();
+                    let head = chain_next(prev_head.as_deref(), seg_rec["sha256_file"].as_str().unwrap());
+                    idx.segments.push(IndexSeg {
+                        file: rel_file.clone(),
+                        from_ts: seg_rec["from_ts"].as_str().map(|s| s.to_string()),
+                        to_ts: seg_rec["to_ts"].as_str().map(|s| s.to_string()),
+                        lines: stats.lines,
+                        bytes: stats.bytes,
+                        sha256_file: seg_rec["sha256_file"].as_str().unwrap().to_string(),
+                        prev_head: prev_head.clone(),
+                        head: head.clone(),
+                    });
+                    idx.head = Some(head.clone());
+                    idx.updated_at = Some(OffsetDateTime::now_utc().format(&Rfc3339).unwrap());
+                    save_events_index(&log_dir, &idx)?;
+
+                    // Recreate fresh events.jsonl
+                    fs::write(&ev, b"")?;
+
+                    let exit = ctx.ok("dev","log.rotate",&serde_json::json!({
+                        "rotated": true,
+                        "reason": reason,
+                        "segment": seg_file.display().to_string(),
+                        "chain": seg_chain.display().to_string(),
+                        "index": log_dir.join("events.index.json").display().to_string(),
+                        "head": idx.head
+                    }));
+                    return Ok(exit);
+                }
+                if let Some(("status", _m)) = lm.subcommand() {
+                    let root = std::env::current_dir()?;
+                    let log_dir = root.join(".nexoscli").join("log");
+                    let idx = load_events_index(&log_dir).unwrap_or_else(|_| IndexFile::default());
+                    let segs = idx.segments.len();
+                    let exit = ctx.ok("dev","log.status",&serde_json::json!({
+                        "segments": segs,
+                        "head": idx.head,
+                        "updated_at": idx.updated_at
+                    }));
+                    return Ok(exit);
+                }
+                Ok(2)
+            }
+
             // ---------------- dev doctor ----------------
             Some(("doctor", m)) => {
                 if m.get_flag("ci") {
@@ -557,6 +703,24 @@ endpoint = ""
                             detail,
                             severity: if ok { "info".into() } else { "error".into() },
                             fix: Some("Inspect .nexoscli/log/events.jsonl; ensure lines are valid event.v0.3".into()),
+                        });
+                    }
+
+                    // events-rotation (index & segments continuity)
+                    if want.contains("events-rotation") {
+                        let outc = crate::checks::check_events_rotation(&cwd);
+                        let ok = outc.ok;
+                        let detail = if ok {
+                            format!("segments={} head={}", outc.lines, outc.digest.unwrap_or_default())
+                        } else {
+                            format!("errors: {}", outc.errors.join("; "))
+                        };
+                        checks.push(DoctorCiCheck{
+                            name: "events-rotation".into(),
+                            ok,
+                            detail,
+                            severity: if ok { "info".into() } else { "error".into() },
+                            fix: Some("Run `nexoscli dev log rotate --max-bytes 5000000 --daily` locally; commit updated index if applicable".into()),
                         });
                     }
 
@@ -788,6 +952,13 @@ endpoint = ""
                         "ok": ec.ok, "lines": ec.lines, "digest": ec.digest, "errors": ec.errors, "file": ec.file
                     }));
                     if !ec.ok && require.iter().any(|c| *c == "events-chain") { hard_fail = true; }
+
+                    // events-rotation (local report; verify continuity)
+                    let rot = crate::checks::check_events_rotation(&root);
+                    report.insert("events_rotation".into(), serde_json::json!({
+                        "ok": rot.ok, "segments": rot.lines, "head": rot.digest, "errors": rot.errors, "file": rot.file
+                    }));
+                    if !rot.ok && require.iter().any(|c| *c == "events-rotation") { hard_fail = true; }
 
                     // Add overall ready status for basic usage
                     report.insert("ready".into(), serde_json::json!(!hard_fail));
@@ -1267,6 +1438,107 @@ fn plugin_readme(name: &str, desc: &str) -> String {
 }
 
 // ===== Phase 7 helpers =====
+
+//// ===== rotation helpers =====
+use sha2::{Digest, Sha256};
+use std::io::BufRead;
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct IndexSeg {
+    file: String,
+    #[serde(skip_serializing_if="Option::is_none")] from_ts: Option<String>,
+    #[serde(skip_serializing_if="Option::is_none")] to_ts: Option<String>,
+    lines: u64,
+    bytes: u64,
+    sha256_file: String,
+    #[serde(skip_serializing_if="Option::is_none")] prev_head: Option<String>,
+    head: String,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+struct IndexFile {
+    schema: String,                      // "events_index.v0.1"
+    segments: Vec<IndexSeg>,
+    #[serde(skip_serializing_if="Option::is_none")]
+    head: Option<String>,                // segment-chain head
+    #[serde(skip_serializing_if="Option::is_none")]
+    updated_at: Option<String>,
+}
+
+fn events_dir_from_log(log_dir: &Path) -> (PathBuf, PathBuf, PathBuf) {
+    let ev = log_dir.join("events.jsonl");
+    let seg_dir = log_dir.join("segments");
+    let idx = log_dir.join("events.index.json");
+    (ev, seg_dir, idx)
+}
+
+#[derive(Debug)]
+struct ComputeStats {
+    lines: u64,
+    bytes: u64,
+    from_ts: Option<String>,
+    to_ts: Option<String>,
+    sha256_file: String,
+}
+
+pub(crate) fn compute_event_file_stats(ev: &Path) -> anyhow::Result<ComputeStats> {
+    let mut lines: u64 = 0;
+    let mut bytes: u64 = 0;
+    let mut h = Sha256::new();
+    let mut from_ts: Option<String> = None;
+    let mut to_ts: Option<String> = None;
+
+    if ev.exists() {
+        let f = fs::File::open(ev)?;
+        bytes = f.metadata().map(|m| m.len()).unwrap_or(0);
+        let rdr = std::io::BufReader::new(f);
+        let mut first = true;
+        for line in rdr.lines() {
+            let raw = line?;
+            if raw.trim().is_empty() { continue; }
+            if !first { h.update(&[0x0a]); }
+            h.update(raw.as_bytes());
+            first = false;
+
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) {
+                if from_ts.is_none() {
+                    if let Some(ts) = v.get("ts").and_then(|x| x.as_str()) { from_ts = Some(ts.to_string()); }
+                }
+                if let Some(ts) = v.get("ts").and_then(|x| x.as_str()) { to_ts = Some(ts.to_string()); }
+            }
+            lines += 1;
+        }
+    }
+    let sha = format!("sha256:{:x}", h.finalize());
+    Ok(ComputeStats{ lines, bytes, from_ts, to_ts, sha256_file: sha })
+}
+
+pub(crate) fn chain_next(prev: Option<&str>, item: &str) -> String {
+    let mut h = Sha256::new();
+    if let Some(p) = prev {
+        if !p.is_empty() { h.update(p.as_bytes()); h.update(&[0x0a]); }
+    }
+    h.update(item.as_bytes());
+    format!("sha256:{:x}", h.finalize())
+}
+
+fn load_events_index(log_dir: &Path) -> anyhow::Result<IndexFile> {
+    let p = log_dir.join("events.index.json");
+    if !p.exists() {
+        return Ok(IndexFile{ schema: "events_index.v0.1".into(), segments: vec![], head: None, updated_at: None });
+    }
+    let txt = fs::read_to_string(&p)?;
+    let mut v: IndexFile = serde_json::from_str(&txt).unwrap_or(IndexFile{ schema: "events_index.v0.1".into(), segments: vec![], head: None, updated_at: None });
+    if v.schema.is_empty() { v.schema = "events_index.v0.1".into(); }
+    Ok(v)
+}
+
+fn save_events_index(log_dir: &Path, idx: &IndexFile) -> anyhow::Result<()> {
+    let p = log_dir.join("events.index.json");
+    if let Some(d) = p.parent() { fs::create_dir_all(d)?; }
+    fs::write(p, serde_json::to_vec_pretty(idx)?)?;
+    Ok(())
+}
 
 fn run_cli_json(cwd: &Path, args: &[&str]) -> anyhow::Result<(i32, serde_json::Value)> {
     let exe = std::env::current_exe()?;

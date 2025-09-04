@@ -1,3 +1,6 @@
+---
+Implemented in: commit 9721fdc07e2ede2cbd0d6ca56b1d5cc73e6dd3b7 docs(observability): sync user guide; rules export; refresh chain manifest; verify doctor CI (TASK-20250904-doctor-events-schema)
+---
 Fantastic — let’s keep the cadence and stamp this as our next named plan.
 
 ⸻

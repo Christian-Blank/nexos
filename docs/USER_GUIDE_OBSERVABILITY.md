@@ -406,6 +406,33 @@ What these checks do:
 
 ⸻
 
+Log rotation & continuity
+
+Keep `.nexoscli/log/events.jsonl` small and maintain tamper-evidence across time by rotating into timestamped segments with an index.
+
+Rotate locally (size/daily/force):
+```bash
+# Rotate by size threshold and/or once per day
+nexoscli dev log rotate --max-bytes 5000000 --daily
+
+# Force rotation even if thresholds not met
+nexoscli dev log rotate --force
+```
+
+Inspect status:
+```bash
+nexoscli dev log status --output json
+```
+
+Verify continuity in CI:
+```bash
+nexoscli dev doctor --ci --checks events-rotation --require events-rotation
+```
+
+Segment-chain head:
+- head_0 = sha256( sha256_file(seg_0) )
+- head_k = sha256( head_{k-1} || "\n" || sha256_file(seg_k) )
+
 Appendix — CLI reference (observability slice)
 
 # Show recent runs / telemetry (optional)

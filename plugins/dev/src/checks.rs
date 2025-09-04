@@ -261,4 +261,82 @@ pub fn check_events_chain(root: &std::path::Path, mode: ChainMode) -> DevCheckOu
 
     out
 }
+//// === Rotation index verification ======================================
+
+#[derive(Debug, Serialize, Deserialize)]
+struct IndexFile {
+    schema: String,
+    segments: Vec<IndexSeg>,
+    #[serde(default)] head: Option<String>,
+    #[serde(default)] updated_at: Option<String>,
+}
+#[derive(Debug, Serialize, Deserialize)]
+struct IndexSeg {
+    file: String,
+    #[serde(default)] from_ts: Option<String>,
+    #[serde(default)] to_ts: Option<String>,
+    lines: u64,
+    bytes: u64,
+    sha256_file: String,
+    #[serde(default)] prev_head: Option<String>,
+    head: String,
+}
+
+pub fn check_events_rotation(root: &std::path::Path) -> DevCheckOutcome {
+    let mut out = DevCheckOutcome{
+        name:"events-rotation".into(), ok:true, lines:0, errors: vec![], digest: None, file: None
+    };
+    let log_dir = root.join(".nexoscli").join("log");
+    let idx_path = log_dir.join("events.index.json");
+    out.file = Some(idx_path.display().to_string());
+
+    if !idx_path.exists() {
+        // No index yet: rotation not used — OK.
+        return out;
+    }
+
+    let txt = match std::fs::read_to_string(&idx_path) {
+        Ok(s) => s,
+        Err(e) => { out.ok=false; out.errors.push(format!("read index: {}", e)); return out; }
+    };
+    let idx: IndexFile = match serde_json::from_str(&txt) {
+        Ok(v) => v,
+        Err(e) => { out.ok=false; out.errors.push(format!("parse index: {}", e)); return out; }
+    };
+
+    // recompute segment-chain head deterministically over listed segments
+    let mut head: Option<String> = None;
+    for seg in &idx.segments {
+        // file exists (repo-relative path stored in index)
+        let p = root.join(&seg.file);
+        if !p.exists() {
+            out.ok=false; out.errors.push(format!("missing segment file: {}", seg.file));
+            continue;
+        }
+        // recompute file stats and compare with recorded values
+        match super::compute_event_file_stats(&p) {
+            Ok(stats) => {
+                if stats.sha256_file != seg.sha256_file {
+                    out.ok=false; out.errors.push(format!("sha mismatch for {}", seg.file));
+                }
+                if stats.lines != seg.lines {
+                    out.ok=false; out.errors.push(format!("line count mismatch for {}", seg.file));
+                }
+            }
+            Err(e) => {
+                out.ok=false; out.errors.push(format!("cannot compute stats for {}: {}", seg.file, e));
+            }
+        }
+        head = Some(super::chain_next(head.as_deref(), &seg.sha256_file));
+    }
+    out.digest = head.clone();
+
+    if idx.head != head {
+        out.ok=false; out.errors.push("index head does not match recomputed head".into());
+    }
+
+    out.lines = idx.segments.len() as u64;
+    out
+}
+
 // --- END: events checks ---
