@@ -1,3 +1,7 @@
+---
+Implemented in: commit 1db7ef034a3223d1b2d3b959f0528d4761ddf81b feat(observability): PLAN‑31 File‑change Topic — opt‑in fs watcher, deterministic run linkage, TracePack inclusion (TASK-20250904-plan-31-file-change-topic)
+---
+
 Awesome—moving forward with Implementation Plan #31 — “File‑change Topic”.
 This plan gives you an opt‑in file‑system change stream during command runs (especially term run) and ensures those changes land in TracePacks so they’re analyzable next to events, patches, and status.
 
