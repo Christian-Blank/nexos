@@ -1,3 +1,7 @@
+---
+Implemented in: commit afcecc8d6d6aa479d9dab4da5206672c776f5061 feat(replay): normalize to events v0.3 + schema surfaces (TASK-20250904-plan-33-events-schema-v0-3-normalizers)
+---
+
 Awesome — here’s the next increment:
 
 ⸻
@@ -557,4 +561,3 @@ RUN=$(jq -r '.run_id' .nexoscli/log/events.jsonl | tail -1)
 
 # Print schema
 ./target/debug/nexoscli replay schema events --version 0.3 --output json | jq '.data.example'
-

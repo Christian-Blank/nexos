@@ -1,0 +1,9 @@
+{
+  "id": "ISS-0025",
+  "title": "Docs: Add Python snippet to EVENTS_SCHEMA.md",
+  "body": "Add a short Python example showing how to read events.v0.3.ndjson (line-by-line), filter by run_id, and build a Pandas DataFrame. Reference canonical tag \"nexos/events@0.3\" and fields (seq, ts, plugin.command, exit_code, dur_ms). Ensure snippet includes utf-8 handling and robust JSON parsing with fallback for empty lines. Acceptance: example present in docs/EVENTS_SCHEMA.md; verified by a quick smoke in CI logs/docs build.",
+  "labels": [],
+  "state": "open",
+  "created_at": "2025-09-04T20:18:55.515321Z",
+  "updated_at": "2025-09-04T20:18:55.515321Z"
+}
