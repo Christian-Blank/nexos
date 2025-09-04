@@ -14,3 +14,7 @@ Generated files:
 Notes:
 - Schemas are derived from nexoscli-core/src/contracts.rs (and related types). This ensures a single source of truth and prevents drift.
 - All emitted JSON records include a "schema" field as a stable tag per ADR-20250903.
+
+Clarification:
+- Core event schema tag is "event.v0.3" (see docs/SPECS/event_v0.3.schema.json) and applies to lines emitted by the core event writer.
+- The replay normalizer produces an analysis-ready canonical format with schema "nexos/events@0.3" written by `nexoscli replay normalize`. This lives entirely in the replay plugin and does not alter protected core contracts. See docs/EVENTS_SCHEMA.md for the normalization model and mapping rules.

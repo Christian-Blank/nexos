@@ -175,6 +175,76 @@ struct VerifyReport {
     suggestions: Vec<String>,
 }
 
+// ------------ Plan-33: Events v0.3 Normalize/Schema ------------
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct NormalizeArgs {
+    to: String,
+    #[serde(default)]
+    bag: Option<String>,
+    #[serde(default)]
+    events: Option<String>,
+    #[serde(default)]
+    run_id: Option<String>,
+    #[serde(default)]
+    out: Option<String>,
+    #[serde(default)]
+    update_manifest: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct NormalizeResult {
+    schema: String,          // "nexos/events@0.3"
+    in_lines: u64,
+    out_lines: u64,
+    out: String,             // path written
+    #[serde(default)]
+    run_id: Option<String>,
+    sha256: String,          // sha256 of output file bytes
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct SchemaArgs {
+    kind: String,            // "events"
+    version: String,         // "0.3"
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct SchemaResult {
+    kind: String,            // "events"
+    version: String,         // "0.3"
+    schema: serde_json::Value,
+    example: serde_json::Value,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct V03Event {
+    #[serde(default = "v03_schema_tag")]
+    schema: String,          // fixed: "nexos/events@0.3"
+    ts: String,              // RFC3339
+    plugin: String,
+    command: String,
+    exit_code: i32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    dur_ms: Option<u64>,
+    run_id: String,
+    seq: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    args_hash: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    prev: Option<String>,
+    content_hash: String,
+    chain_hash: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    data: Option<serde_json::Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    meta: Option<serde_json::Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    attrs: Option<serde_json::Value>,
+}
+
+fn v03_schema_tag() -> String { "nexos/events@0.3".to_string() }
+
 impl Plugin for ReplayPlugin {
     fn name(&self) -> &'static str { "replay" }
     fn version(&self) -> &'static str { env!("CARGO_PKG_VERSION") }
@@ -208,6 +278,22 @@ impl Plugin for ReplayPlugin {
                         .arg(Arg::new("git-check").long("git-check").action(ArgAction::SetTrue))
                         .arg(Arg::new("skip").long("skip").value_name("CSV"))
                         .arg(Arg::new("format").long("format").value_parser(["text","summary","full"]).default_value("text"))
+                )
+                .subcommand(
+                    Command::new("normalize").about("Normalize events to v0.3")
+                        .arg(Arg::new("to").long("to").required(true).value_parser(["0.3"]))
+                        .arg(Arg::new("bag").long("bag").value_name("PATH"))
+                        .arg(Arg::new("events").long("events").value_name("PATH"))
+                        .arg(Arg::new("run-id").long("run-id").value_name("RUN"))
+                        .arg(Arg::new("out").long("out").value_name("PATH"))
+                        .arg(Arg::new("update-manifest").long("update-manifest").action(ArgAction::SetTrue))
+                )
+                .subcommand(
+                    Command::new("schema").about("Print schemas for replay surfaces")
+                        .subcommand(
+                            Command::new("events").about("Print events schema")
+                                .arg(Arg::new("version").long("version").required(true).value_parser(["0.3"]))
+                        )
                 )
                 .subcommand(
                     Command::new("bag").about("TracePack v0.2 bag operations")
@@ -607,6 +693,86 @@ impl Plugin for ReplayPlugin {
                         let exit = ctx.err("replay", "verify", "bag.verify.failed", &format!("verify error: {}", e), None, 2);
                         Ok(exit)
                     }
+                }
+            }
+
+            Some(("normalize", sm)) => {
+                let to = sm.get_one::<String>("to").map(|s| s.as_str()).unwrap_or("");
+                if to != "0.3" {
+                    let exit = ctx.err("replay","normalize","replay.normalize.failed","unsupported --to version",None,2);
+                    return Ok(exit);
+                }
+                let bag = sm.get_one::<String>("bag").cloned();
+                let events = sm.get_one::<String>("events").cloned();
+                let run_id = sm.get_one::<String>("run-id").cloned();
+                let out = sm.get_one::<String>("out").cloned();
+                let update_manifest = sm.get_flag("update-manifest");
+
+                let choices = (bag.is_some() as i32) + (events.is_some() as i32);
+                if choices != 1 {
+                    let exit = ctx.err("replay","normalize","replay.normalize.failed","specify exactly one of --bag or --events",None,2);
+                    return Ok(exit);
+                }
+
+                let res = if let Some(b) = bag {
+                    normalize_from_bag(&b, out.as_deref(), update_manifest)
+                } else {
+                    normalize_from_events(events.as_ref().unwrap(), run_id.as_deref(), out.as_deref())
+                };
+
+                match res {
+                    Ok(summary) => {
+                        let exit = ctx.ok("replay","normalize",&summary);
+                        Ok(exit)
+                    }
+                    Err(e) => {
+                        let exit = ctx.err("replay","normalize","replay.normalize.failed",&format!("normalize error: {}", e),None,2);
+                        Ok(exit)
+                    }
+                }
+            }
+
+            Some(("schema", sm)) => {
+                match sm.subcommand() {
+                    Some(("events", esm)) => {
+                        let version = esm.get_one::<String>("version").map(|s| s.as_str()).unwrap_or("");
+                        if version != "0.3" {
+                            let exit = ctx.err("replay","schema.events","replay.schema.failed","unsupported --version",None,2);
+                            return Ok(exit);
+                        }
+                        let sch = schema_for!(V03Event);
+                        let schema_json = serde_json::to_value(&sch).unwrap_or(serde_json::json!({}));
+                        let example_canon = serde_json::json!({
+                            "plugin": "demo",
+                            "command": "example",
+                            "exit_code": 0,
+                            "dur_ms": null,
+                            "data": null
+                        });
+                        let content = content_hash_for_event(&example_canon);
+                        let chain = sha256(content.as_bytes());
+                        let example = serde_json::json!({
+                            "schema": "nexos/events@0.3",
+                            "ts": "1970-01-01T00:00:00Z",
+                            "plugin": "demo",
+                            "command": "example",
+                            "exit_code": 0,
+                            "dur_ms": null,
+                            "run_id": "RUN-EXAMPLE",
+                            "seq": 1,
+                            "args_hash": null,
+                            "prev": null,
+                            "content_hash": content,
+                            "chain_hash": chain,
+                            "data": null,
+                            "meta": null,
+                            "attrs": null
+                        });
+                        let res = SchemaResult { kind: "events".into(), version: "0.3".into(), schema: schema_json, example };
+                        let exit = ctx.ok("replay","schema.events",&res);
+                        Ok(exit)
+                    }
+                    _ => Ok(ctx.err("replay","schema","replay.schema.failed","unknown schema subcommand",None,2))
                 }
             }
 
@@ -1039,6 +1205,18 @@ impl Plugin for ReplayPlugin {
                 about: "Verify a TracePack (dir or .tgz) and explain findings".to_string(),
                 args_schema: schema_for!(VerifyArgs),
                 result_schema: schema_for!(VerifyReport),
+            },
+            ToolSpec{
+                name: "replay.normalize".to_string(),
+                about: "Normalize events to v0.3 (from bag or events file)".to_string(),
+                args_schema: schema_for!(NormalizeArgs),
+                result_schema: schema_for!(NormalizeResult),
+            },
+            ToolSpec{
+                name: "replay.schema.events".to_string(),
+                about: "JSON Schema for events v0.3".to_string(),
+                args_schema: schema_for!(SchemaArgs),
+                result_schema: schema_for!(SchemaResult),
             }
         ]
     }
@@ -1783,3 +1961,191 @@ This bag captures a single `nexoscli` run in a portable, analyzable format.
 - Event integrity is verified via hash-chain (content_hash, prev, chain_hash).
 - Use `nexoscli replay bag verify --bag <path>` to validate integrity.
 "#;
+
+// ----------------- Normalize helpers (Plan-33) -----------------
+
+fn to_v03(
+    input: &serde_json::Value,
+    seq: u64,
+    prev_chain: Option<&str>
+) -> anyhow::Result<V03Event> {
+    let ts = input.get("ts").and_then(|x| x.as_str())
+        .ok_or_else(|| anyhow::anyhow!("missing ts"))?
+        .to_string();
+    let plugin = input.get("plugin").and_then(|x| x.as_str()).unwrap_or("unknown").to_string();
+    let command = input.get("command").and_then(|x| x.as_str()).unwrap_or("unknown").to_string();
+    let exit_code = input.get("exit_code").and_then(|x| x.as_i64()).unwrap_or(0) as i32;
+    let dur_ms = input.get("dur_ms").and_then(|x| x.as_u64());
+    let run_id = input.get("run_id").and_then(|x| x.as_str())
+        .ok_or_else(|| anyhow::anyhow!("missing run_id"))?
+        .to_string();
+    let args_hash = input.get("args_hash").and_then(|x| x.as_str()).map(|s| s.to_string());
+    let data = input.get("data").cloned();
+    let meta = input.get("meta").cloned();
+
+    // attrs = original minus mapped fields
+    let mut attrs_obj = serde_json::Map::new();
+    if let Some(obj) = input.as_object() {
+        for (k, v) in obj {
+            if ["ts","plugin","command","exit_code","dur_ms","run_id","seq","args_hash","data","meta"].contains(&k.as_str()) {
+                continue;
+            }
+            attrs_obj.insert(k.clone(), v.clone());
+        }
+    }
+    // convenience source tag
+    attrs_obj.insert("source".into(), serde_json::json!(format!("{}.{}", plugin, command)));
+    let attrs_val = if attrs_obj.is_empty() { None } else { Some(serde_json::Value::Object(attrs_obj)) };
+
+    // content hash parity with verifier
+    let canon = serde_json::json!({
+        "plugin": plugin,
+        "command": command,
+        "exit_code": exit_code,
+        "dur_ms": dur_ms,
+        "data": data
+    });
+    let content_hash = content_hash_for_event(&canon);
+    let prev_str = prev_chain.unwrap_or("");
+    let chain_hash = sha256(format!("{}{}", prev_str, content_hash).as_bytes());
+
+    Ok(V03Event{
+        schema: v03_schema_tag(),
+        ts,
+        plugin,
+        command,
+        exit_code,
+        dur_ms,
+        run_id,
+        seq,
+        args_hash,
+        prev: if prev_str.is_empty() { None } else { Some(prev_str.to_string()) },
+        content_hash,
+        chain_hash,
+        data,
+        meta,
+        attrs: attrs_val,
+    })
+}
+
+fn normalize_from_events(path: &str, run_id: Option<&str>, out: Option<&str>) -> anyhow::Result<NormalizeResult> {
+    let txt = std::fs::read_to_string(path)
+        .map_err(|e| anyhow::anyhow!("read events: {}", e))?;
+    let mut out_lines = 0u64;
+    let mut in_lines = 0u64;
+    let mut prev: Option<String> = None;
+    let mut run_id_out: Option<String> = None;
+    let mut buf = String::new();
+
+    for raw in txt.lines() {
+        if raw.trim().is_empty() { continue; }
+        in_lines += 1;
+        let v: serde_json::Value = match serde_json::from_str(raw) {
+            Ok(v) => v,
+            Err(_) => continue, // skip invalid
+        };
+        if let Some(r) = v.get("run_id").and_then(|x| x.as_str()) {
+            if run_id_out.is_none() { run_id_out = Some(r.to_string()); }
+        }
+        if let Some(filter) = run_id {
+            if v.get("run_id").and_then(|x| x.as_str()) != Some(filter) {
+                continue;
+            }
+        }
+        let next_seq = out_lines + 1;
+        let ev = to_v03(&v, next_seq, prev.as_deref())?;
+        let line = serde_json::to_string(&ev).unwrap_or_default();
+        buf.push_str(&line); buf.push('\n');
+        prev = Some(ev.chain_hash.clone());
+        out_lines += 1;
+    }
+
+    let out_path = if let Some(p) = out {
+        std::path::PathBuf::from(p)
+    } else {
+        let p = std::path::Path::new(path);
+        let parent = p.parent().unwrap_or(std::path::Path::new("."));
+        parent.join("events.v0.3.ndjson")
+    };
+    if let Some(parent) = out_path.parent() { std::fs::create_dir_all(parent).ok(); }
+    std::fs::write(&out_path, buf.as_bytes())
+        .map_err(|e| anyhow::anyhow!("write out: {}", e))?;
+    let sha = sha256(buf.as_bytes());
+    Ok(NormalizeResult{
+        schema: v03_schema_tag(),
+        in_lines,
+        out_lines,
+        out: out_path.display().to_string(),
+        run_id: run_id.map(|s| s.to_string()).or(run_id_out),
+        sha256: sha,
+    })
+}
+
+fn normalize_from_bag(bag_path: &str, out: Option<&str>, update_manifest: bool) -> anyhow::Result<NormalizeResult> {
+    let p = std::path::Path::new(bag_path);
+    let (manifest, _fmt) = read_bag_manifest(bag_path)
+        .map_err(|e| anyhow::anyhow!("manifest: {}", e))?;
+
+    // Resolve events relative path: prefer manifest topics/events/path else default root then fallback topic path
+    let mut events_rel = manifest
+        .pointer("/topics/events/path")
+        .and_then(|x| x.as_str())
+        .unwrap_or("events.ndjson")
+        .to_string();
+
+    let (mut events_bytes, _from_tgz0) = read_bag_topic_bytes(bag_path, &events_rel)?;
+    if events_bytes.is_empty() && events_rel != "topics/events.ndjson" {
+        events_rel = "topics/events.ndjson".to_string();
+        events_bytes = read_bag_topic_bytes(bag_path, &events_rel)?.0;
+    }
+    if events_bytes.is_empty() {
+        return Err(anyhow::anyhow!("events not found in bag at {}", events_rel));
+    }
+
+    let bag_is_dir = p.is_dir();
+    if !bag_is_dir && update_manifest {
+        return Err(anyhow::anyhow!("--update-manifest not allowed for archived .tgz bag"));
+    }
+
+    let default_out = if bag_is_dir {
+        Some(p.join("events.v0.3.ndjson").display().to_string())
+    } else { None };
+
+    let out_path = out.map(|s| s.to_string()).or(default_out)
+        .ok_or_else(|| anyhow::anyhow!("--out is required for archived .tgz input"))?;
+    let out_pathbuf = std::path::PathBuf::from(&out_path);
+
+    // If manifest has run_id, prefer as filter; else no filter
+    let rid = manifest.get("run_id").and_then(|x| x.as_str()).map(|s| s.to_string());
+    // Write events_bytes to a temp string and drive normalizer
+    let tmpdir = tempfile::tempdir()?;
+    let tmpfile = tmpdir.path().join("events.src.ndjson");
+    std::fs::write(&tmpfile, &events_bytes).map_err(|e| anyhow::anyhow!("temp write: {}", e))?;
+    let res = normalize_from_events(tmpfile.to_str().unwrap(), rid.as_deref(), Some(&out_path))?;
+
+    // Update manifest.json if requested (dir only)
+    if update_manifest && bag_is_dir {
+        let dst_rel = if out_pathbuf.starts_with(p) {
+            out_pathbuf.strip_prefix(p).unwrap().display().to_string()
+        } else {
+            // default path when outside (discouraged)
+            "events.v0.3.ndjson".to_string()
+        };
+        let bytes = std::fs::read(&out_pathbuf).unwrap_or_default();
+        let entry = serde_json::json!({
+            "schema": v03_schema_tag(),
+            "dst": dst_rel,
+            "lines": res.out_lines,
+            "bytes": bytes.len() as u64,
+            "sha256": res.sha256
+        });
+        let man_path = p.join("manifest.json");
+        let mut v: serde_json::Value = serde_json::from_slice(&std::fs::read(&man_path).unwrap_or_default())
+            .unwrap_or(serde_json::json!({}));
+        v["events_v03"] = entry;
+        std::fs::write(&man_path, serde_json::to_vec_pretty(&v).unwrap_or_default())
+            .map_err(|e| anyhow::anyhow!("manifest update: {}", e))?;
+    }
+
+    Ok(res)
+}

@@ -13,17 +13,17 @@ Commands:
   tools        Tools & schemas
   completions  Generate shell completions
   man          Print man page to stdout
-  cline        Cline task history (locate/import) with idempotent ingest
-  graph        Graph tools
-  replay       Replay/extract TracePacks from logged runs
-  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
-  rules        Rules management (init/lint/export)
   bundle       TracePack bundles
-  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
+  term         Run commands with provenance (non-interactive)
   demo         Demo plugin
   issue        Issue management
   dev          Developer utilities
-  term         Run commands with provenance (non-interactive)
+  graph        Graph tools
+  cline        Cline task history (locate/import) with idempotent ingest
+  replay       Replay/extract TracePacks from logged runs
+  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
+  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
+  rules        Rules management (init/lint/export)
   help         Print this message or the help of the given subcommand(s)
 
 Options:
@@ -35,14 +35,6 @@ Options:
 
 ## Tool Specs (for agents)
 
-### `rules.lint`
-
-Validate rules front-matter
-
-### `rules.export`
-
-Export rules bundle
-
 ### `cline.locate`
 
 Find Cline storage locations
@@ -50,6 +42,34 @@ Find Cline storage locations
 ### `cline.import`
 
 Import Cline task history with idempotent ingest
+
+### `replay.bag.verify`
+
+Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
+
+### `replay.verify`
+
+Verify a TracePack (dir or .tgz) and explain findings
+
+### `replay.normalize`
+
+Normalize events to v0.3 (from bag or events file)
+
+### `replay.schema.events`
+
+JSON Schema for events v0.3
+
+### `demo.hello`
+
+Say hello
+
+### `rules.lint`
+
+Validate rules front-matter
+
+### `rules.export`
+
+Export rules bundle
 
 ### `dev.init`
 
@@ -70,6 +90,38 @@ Verify local setup (dotdir, event log write, config, OTEL envs); --ci aggregates
 ### `dev.telemetry.report`
 
 Aggregate events.jsonl → counts, p50/p90/avg, error leaderboard
+
+### `graph.check`
+
+Validate docs/exec_graph.yaml (acyclic, unique ids)
+
+### `graph.impact`
+
+List nodes impacted (downstream) by the given id
+
+### `bundle.build`
+
+Build a TracePack bundle
+
+### `bundle.verify`
+
+Verify a TracePack bundle
+
+### `issue.new`
+
+Create a new local issue
+
+### `issue.list`
+
+List issues (optionally by state)
+
+### `issue.show`
+
+Show a single issue by ID
+
+### `issue.close`
+
+Close an issue by ID
 
 ### `workflow.init`
 
@@ -106,48 +158,4 @@ List workflows (visibility index)
 ### `workflow.upsert-sa`
 
 Upsert search attributes for a workflow
-
-### `replay.bag.verify`
-
-Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
-
-### `replay.verify`
-
-Verify a TracePack (dir or .tgz) and explain findings
-
-### `graph.check`
-
-Validate docs/exec_graph.yaml (acyclic, unique ids)
-
-### `graph.impact`
-
-List nodes impacted (downstream) by the given id
-
-### `issue.new`
-
-Create a new local issue
-
-### `issue.list`
-
-List issues (optionally by state)
-
-### `issue.show`
-
-Show a single issue by ID
-
-### `issue.close`
-
-Close an issue by ID
-
-### `bundle.build`
-
-Build a TracePack bundle
-
-### `bundle.verify`
-
-Verify a TracePack bundle
-
-### `demo.hello`
-
-Say hello
 

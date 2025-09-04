@@ -1,0 +1,9 @@
+{
+  "id": "ISS-0024",
+  "title": "Normalize v0.3: promote ok/source/context to top-level",
+  "body": "Plan-33 example shows ok/source/context as top-level fields. Current normalizer preserves unknowns under attrs and adds attrs.source; ok/context remain under attrs/meta to avoid surface churn. Consider promoting these to top-level in V03Event to match the plan example and improve analyst ergonomics, while keeping backward compatibility. Acceptance: add optional top-level ok (exit_code==0), source (plugin.command), and context object; tests updated; docs aligned.",
+  "labels": [],
+  "state": "open",
+  "created_at": "2025-09-04T20:13:29.871993Z",
+  "updated_at": "2025-09-04T20:13:29.871993Z"
+}

@@ -607,3 +607,46 @@ Tip: Pipe to jq for readability:
 ```bash
 nexoscli replay verify --path tracepack/ --output json | jq
 ```
+
+## Normalize events to v0.3
+
+Normalize existing logs or TracePacks to the canonical events schema for downstream analysis.
+
+Why
+- Lock down a stable, analysis-ready shape: schema "nexos/events@0.3".
+- Preserve unknown/legacy fields under attrs; omit missing optionals.
+- Deterministic content/chain hashing, matching verification logic.
+
+Usage
+```bash
+# Normalize a TracePack directory and update manifest with events_v03
+nexoscli replay normalize --to 0.3 --bag ./tracepack --update-manifest
+
+# Normalize a TracePack archive (.tgz) to an external file (read-only archive)
+nexoscli replay normalize --to 0.3 --bag ./tracepack.tgz --out ./events.v0.3.ndjson
+
+# Normalize a shared events log and filter by run_id
+nexoscli replay normalize --to 0.3 --events .nexoscli/log/events.jsonl --run-id RUN-ABC123 --out ./events.v0.3.ndjson
+```
+
+Manifest linkage (when --update-manifest with a directory bag)
+```json
+"events_v03": {
+  "schema": "nexos/events@0.3",
+  "dst": "events.v0.3.ndjson",
+  "lines": 123,
+  "bytes": 4567,
+  "sha256": "sha256:…"
+}
+```
+
+Schema
+- Print the JSON Schema and an inlined example:
+```bash
+nexoscli replay schema events --version 0.3 --output json
+```
+
+Notes
+- Exactly one of --bag or --events is required.
+- For .tgz inputs, --out is required; archives are not modified.
+- The normalizer is read-only except when --update-manifest is specified for a directory bag.
