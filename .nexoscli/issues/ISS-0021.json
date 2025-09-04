@@ -1,0 +1,9 @@
+{
+  "id": "ISS-0021",
+  "title": "Replay verify: implement human-readable --format rendering",
+  "body": "Add text/summary/full pretty-printers for VerifyReport when --output text; keep JSON envelopes canonical. Scope: replay.",
+  "labels": [],
+  "state": "open",
+  "created_at": "2025-09-04T18:50:10.714997Z",
+  "updated_at": "2025-09-04T18:50:10.714997Z"
+}

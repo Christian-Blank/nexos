@@ -572,3 +572,38 @@ Notes:
 - chain_ok is emitted by build and can be re-checked by verify.
 - Event chain verification uses content_hash over the canonical subset and chain_hash(prev+content_hash), per event.v0.3.
 - Cline tasks are included based on file mtime within a padded window around the run time range (±5 minutes).
+
+## Verify & Explain
+
+Use the top-level verifier to validate a TracePack (directory or .tgz) and get actionable explanations. Output is always wrapped in a stable JSON envelope suitable for CI.
+
+Examples:
+```bash
+# Directory or .tgz
+nexoscli replay verify --path tracepack/
+nexoscli replay verify --path tracepack.tgz
+
+# Also dry‑run check patches via git (best effort)
+nexoscli replay verify --path tracepack/ --git-check
+
+# Skip specific checks (comma-separated)
+nexoscli replay verify --path tracepack/ --skip patch-apply,cline
+```
+
+What it checks:
+- manifest.json presence and minimal schema sanity
+- events.ndjson: strict JSON-per-line, single run_id, line count vs manifest
+- fileops/fileops.ndjson (if advertised in manifest): sha/bytes/lines
+- patches/*: presence and sha/bytes; optional git apply --check with --git-check
+- status/*: presence and basic sanity
+- cline/tasks/*: presence if advertised
+- time_range consistency between manifest and first/last event timestamps (warn on slight inconsistencies)
+
+Exit codes:
+- 0: OK
+- 2: Failure (structural or digest mismatch)
+
+Tip: Pipe to jq for readability:
+```bash
+nexoscli replay verify --path tracepack/ --output json | jq
+```

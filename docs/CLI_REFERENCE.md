@@ -13,17 +13,17 @@ Commands:
   tools        Tools & schemas
   completions  Generate shell completions
   man          Print man page to stdout
-  issue        Issue management
-  rules        Rules management (init/lint/export)
+  cline        Cline task history (locate/import) with idempotent ingest
   graph        Graph tools
-  dev          Developer utilities
-  demo         Demo plugin
   replay       Replay/extract TracePacks from logged runs
   workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
-  cline        Cline task history (locate/import) with idempotent ingest
-  term         Run commands with provenance (non-interactive)
-  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
+  rules        Rules management (init/lint/export)
   bundle       TracePack bundles
+  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
+  demo         Demo plugin
+  issue        Issue management
+  dev          Developer utilities
+  term         Run commands with provenance (non-interactive)
   help         Print this message or the help of the given subcommand(s)
 
 Options:
@@ -35,26 +35,6 @@ Options:
 
 ## Tool Specs (for agents)
 
-### `graph.check`
-
-Validate docs/exec_graph.yaml (acyclic, unique ids)
-
-### `graph.impact`
-
-List nodes impacted (downstream) by the given id
-
-### `demo.hello`
-
-Say hello
-
-### `bundle.build`
-
-Build a TracePack bundle
-
-### `bundle.verify`
-
-Verify a TracePack bundle
-
 ### `rules.lint`
 
 Validate rules front-matter
@@ -63,9 +43,33 @@ Validate rules front-matter
 
 Export rules bundle
 
-### `replay.bag.verify`
+### `cline.locate`
 
-Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
+Find Cline storage locations
+
+### `cline.import`
+
+Import Cline task history with idempotent ingest
+
+### `dev.init`
+
+Initialize .nexoscli/ (Plan/Apply, idempotent)
+
+### `dev.plugin.new`
+
+Scaffold a new plugin and optionally register it
+
+### `dev.plugins.check`
+
+Verify plugin folder structure and registration
+
+### `dev.doctor`
+
+Verify local setup (dotdir, event log write, config, OTEL envs); --ci aggregates checks
+
+### `dev.telemetry.report`
+
+Aggregate events.jsonl → counts, p50/p90/avg, error leaderboard
 
 ### `workflow.init`
 
@@ -103,25 +107,21 @@ List workflows (visibility index)
 
 Upsert search attributes for a workflow
 
-### `dev.init`
+### `replay.bag.verify`
 
-Initialize .nexoscli/ (Plan/Apply, idempotent)
+Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
 
-### `dev.plugin.new`
+### `replay.verify`
 
-Scaffold a new plugin and optionally register it
+Verify a TracePack (dir or .tgz) and explain findings
 
-### `dev.plugins.check`
+### `graph.check`
 
-Verify plugin folder structure and registration
+Validate docs/exec_graph.yaml (acyclic, unique ids)
 
-### `dev.doctor`
+### `graph.impact`
 
-Verify local setup (dotdir, event log write, config, OTEL envs); --ci aggregates checks
-
-### `dev.telemetry.report`
-
-Aggregate events.jsonl → counts, p50/p90/avg, error leaderboard
+List nodes impacted (downstream) by the given id
 
 ### `issue.new`
 
@@ -139,11 +139,15 @@ Show a single issue by ID
 
 Close an issue by ID
 
-### `cline.locate`
+### `bundle.build`
 
-Find Cline storage locations
+Build a TracePack bundle
 
-### `cline.import`
+### `bundle.verify`
 
-Import Cline task history with idempotent ingest
+Verify a TracePack bundle
+
+### `demo.hello`
+
+Say hello
 

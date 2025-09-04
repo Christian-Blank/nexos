@@ -144,6 +144,37 @@ struct BagVerifySummary {
     last_seq: Option<u64>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct VerifyArgs {
+    path: String,
+    #[serde(default)]
+    git_check: bool,
+    #[serde(default)]
+    skip: Option<String>,
+    #[serde(default)]
+    format: Option<String>, // text|summary|full
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct Finding {
+    check: String,            // e.g. "events","fileops","patches","patch-apply","status","cline","time-range","manifest"
+    level: String,            // "error" | "warn" | "info"
+    message: String,
+    #[serde(default)]
+    hint: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct VerifyReport {
+    ok: bool,
+    #[serde(default)]
+    run_id: Option<String>,
+    totals: serde_json::Value,      // pass-through of manifest.counts
+    findings: Vec<Finding>,
+    #[serde(default)]
+    suggestions: Vec<String>,
+}
+
 impl Plugin for ReplayPlugin {
     fn name(&self) -> &'static str { "replay" }
     fn version(&self) -> &'static str { env!("CARGO_PKG_VERSION") }
@@ -170,6 +201,13 @@ impl Plugin for ReplayPlugin {
                              .help("If ends with .tar.gz/.tgz -> tarball; otherwise a directory is created"))
                         .arg(Arg::new("include").long("include").value_name("CSV")
                              .help("What to include: events,patches,status,cline,all").default_value("all"))
+                )
+                .subcommand(
+                    Command::new("verify").about("Verify a TracePack (dir or .tgz) and explain issues")
+                        .arg(Arg::new("path").long("path").required(true))
+                        .arg(Arg::new("git-check").long("git-check").action(ArgAction::SetTrue))
+                        .arg(Arg::new("skip").long("skip").value_name("CSV"))
+                        .arg(Arg::new("format").long("format").value_parser(["text","summary","full"]).default_value("text"))
                 )
                 .subcommand(
                     Command::new("bag").about("TracePack v0.2 bag operations")
@@ -543,6 +581,33 @@ impl Plugin for ReplayPlugin {
                 };
                 ctx.ok("replay", "extract", &summary);
                 Ok(0)
+            }
+
+            Some(("verify", sm)) => {
+                let path = sm.get_one::<String>("path").unwrap().to_string();
+                let git_check = sm.get_flag("git-check");
+                let skip_set: std::collections::HashSet<String> = sm
+                    .get_one::<String>("skip")
+                    .map(|s| s.split(',').map(|x| x.trim().to_string()).filter(|s| !s.is_empty()).collect())
+                    .unwrap_or_default();
+                let _fmt = sm.get_one::<String>("format").cloned().unwrap_or_else(|| "text".to_string());
+
+                match replay_verify_explain(&path, git_check, skip_set) {
+                    Ok(report) => {
+                        if report.ok {
+                            let exit = ctx.ok("replay", "verify", &report);
+                            Ok(exit)
+                        } else {
+                            let exit = ctx.err("replay", "verify", "bag.verify.failed", "bag verification failed", None, 2);
+                            Ok(exit)
+                        }
+                    }
+                    Err(e) => {
+                        // Operational error
+                        let exit = ctx.err("replay", "verify", "bag.verify.failed", &format!("verify error: {}", e), None, 2);
+                        Ok(exit)
+                    }
+                }
             }
 
             Some(("bag", sm)) => {
@@ -962,12 +1027,20 @@ impl Plugin for ReplayPlugin {
     }
 
     fn tool_specs(&self) -> Vec<ToolSpec> {
-        vec![ToolSpec{
-            name: "replay.bag.verify".to_string(),
-            about: "Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity".to_string(),
-            args_schema: schema_for!(BagVerifyArgs),
-            result_schema: schema_for!(BagVerifySummary),
-        }]
+        vec![
+            ToolSpec{
+                name: "replay.bag.verify".to_string(),
+                about: "Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity".to_string(),
+                args_schema: schema_for!(BagVerifyArgs),
+                result_schema: schema_for!(BagVerifySummary),
+            },
+            ToolSpec{
+                name: "replay.verify".to_string(),
+                about: "Verify a TracePack (dir or .tgz) and explain findings".to_string(),
+                args_schema: schema_for!(VerifyArgs),
+                result_schema: schema_for!(VerifyReport),
+            }
+        ]
     }
 }
 
@@ -1350,6 +1423,332 @@ fn include_fileops_for_extract(
         }
     }
     None
+}
+
+fn replay_verify_explain(path: &str, git_check: bool, skip: std::collections::HashSet<String>) -> anyhow::Result<VerifyReport> {
+    use std::collections::BTreeSet;
+    // Load manifest
+    let (manifest, _fmt) = match read_bag_manifest(path) {
+        Ok(t) => t,
+        Err(_e) => {
+            return Ok(VerifyReport{
+                ok: false,
+                run_id: None,
+                totals: serde_json::json!({}),
+                findings: vec![Finding{
+                    check: "manifest".into(),
+                    level: "error".into(),
+                    message: "manifest.json not found or unreadable".into(),
+                    hint: Some("Re-run extraction (nexoscli replay extract --run-id ...)".into()),
+                }],
+                suggestions: vec![],
+            });
+        }
+    };
+
+    let run_id = manifest.get("run_id").and_then(|x| x.as_str()).map(|s| s.to_string());
+    let counts = manifest.get("counts").cloned().unwrap_or(serde_json::json!({}));
+    let mut findings: Vec<Finding> = Vec::new();
+
+    // Events path resolution (TracePack default root; fallback to bag topics)
+    let mut events_rel = manifest
+        .pointer("/topics/events/path")
+        .and_then(|x| x.as_str())
+        .unwrap_or("events.ndjson")
+        .to_string();
+
+    let mut events_bytes = read_bag_topic_bytes(path, &events_rel)?.0;
+    if events_bytes.is_empty() && events_rel != "topics/events.ndjson" {
+        events_rel = "topics/events.ndjson".to_string();
+        events_bytes = read_bag_topic_bytes(path, &events_rel)?.0;
+    }
+
+    // Events checks
+    if !skip.contains("events") {
+        if events_bytes.is_empty() {
+            findings.push(Finding{
+                check: "events".into(),
+                level: "error".into(),
+                message: format!("missing {}", events_rel),
+                hint: Some("Re-extract the bag; ensure the run had events".into()),
+            });
+        } else {
+            let s = std::str::from_utf8(&events_bytes).unwrap_or("");
+            let mut lines: u64 = 0;
+            let mut bad: u64 = 0;
+            let mut run_ids: BTreeSet<String> = BTreeSet::new();
+            let mut first_ts: Option<time::OffsetDateTime> = None;
+            let mut last_ts: Option<time::OffsetDateTime> = None;
+
+            for raw in s.lines() {
+                if raw.trim().is_empty() { continue; }
+                lines += 1;
+                match serde_json::from_str::<serde_json::Value>(raw) {
+                    Ok(v) => {
+                        if let Some(r) = v.get("run_id").and_then(|x| x.as_str()) {
+                            run_ids.insert(r.to_string());
+                        }
+                        if let Some(ts) = v.get("ts").and_then(|x| x.as_str()).and_then(|ss| time::OffsetDateTime::parse(ss, &Rfc3339).ok()) {
+                            if first_ts.is_none() { first_ts = Some(ts); }
+                            last_ts = Some(ts);
+                        }
+                    }
+                    Err(_) => bad += 1,
+                }
+            }
+
+            if bad > 0 {
+                findings.push(Finding{
+                    check: "events".into(),
+                    level: "error".into(),
+                    message: format!("{} non-JSON lines in events", bad),
+                    hint: Some("events must be strict JSON per line; do not hand-edit".into()),
+                });
+            }
+            if run_ids.len() > 1 {
+                findings.push(Finding{
+                    check: "events".into(),
+                    level: "error".into(),
+                    message: format!("multiple run_id values present: {:?}", run_ids),
+                    hint: Some("bags are per-run; ensure extraction used one run_id".into()),
+                });
+            }
+
+            // counts comparison: support both TracePack (events_lines) and Bag (events)
+            if let Some(w) = manifest.pointer("/counts/events").and_then(|x| x.as_u64())
+                .or_else(|| manifest.pointer("/counts/events_lines").and_then(|x| x.as_u64())) {
+                if w != lines {
+                    findings.push(Finding{
+                        check: "events".into(),
+                        level: "error".into(),
+                        message: format!("line count mismatch manifest={} actual={}", w, lines),
+                        hint: Some("Regenerate with nexoscli replay extract".into()),
+                    });
+                }
+            }
+
+            // time-range consistency: support v0.2 bag (start/end) and TracePack (from/to)
+            let m_start = manifest.pointer("/time_range/start").and_then(|x| x.as_str())
+                .or_else(|| manifest.pointer("/time_range/from").and_then(|x| x.as_str()));
+            let m_end = manifest.pointer("/time_range/end").and_then(|x| x.as_str())
+                .or_else(|| manifest.pointer("/time_range/to").and_then(|x| x.as_str()));
+            if let (Some(mf), Some(mt), Some(fr), Some(to)) = (m_start, m_end, first_ts, last_ts) {
+                if let (Ok(mf_ts), Ok(mt_ts)) = (time::OffsetDateTime::parse(mf, &Rfc3339), time::OffsetDateTime::parse(mt, &Rfc3339)) {
+                    if fr < mf_ts || to > mt_ts {
+                        findings.push(Finding{
+                            check: "time-range".into(),
+                            level: "warn".into(),
+                            message: format!("event timestamps outside manifest window: actual=({}, {}) manifest=({}, {})", fr, to, mf_ts, mt_ts),
+                            hint: Some("Re-extract to refresh manifest.time_range".into()),
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // Fileops checks (Plan-31)
+    if !skip.contains("fileops") {
+        if let Some(fo) = manifest.get("fileops") {
+            let dst = fo.get("dst").and_then(|x| x.as_str()).unwrap_or("fileops/fileops.ndjson");
+            let bytes = read_bag_topic_bytes(path, dst)?.0;
+            if bytes.is_empty() {
+                findings.push(Finding{
+                    check: "fileops".into(),
+                    level: "error".into(),
+                    message: format!("missing {}", dst),
+                    hint: Some("Re-extract after running with --fs-topic (Plan-31)".into()),
+                });
+            } else {
+                let got_lines = std::str::from_utf8(&bytes).unwrap_or("").lines().filter(|l| !l.trim().is_empty()).count() as u64;
+                let got_bytes = bytes.len() as u64;
+                let got_sha = sha256(&bytes);
+                if let Some(exp) = fo.get("lines").and_then(|x| x.as_u64()) {
+                    if exp != got_lines {
+                        findings.push(Finding{
+                            check: "fileops".into(),
+                            level: "error".into(),
+                            message: format!("lines mismatch manifest={} actual={}", exp, got_lines),
+                            hint: Some("Do not edit fileops stream; regenerate the bag".into()),
+                        });
+                    }
+                }
+                if let Some(exp) = fo.get("bytes").and_then(|x| x.as_u64()) {
+                    if exp != got_bytes {
+                        findings.push(Finding{
+                            check: "fileops".into(),
+                            level: "error".into(),
+                            message: format!("bytes mismatch manifest={} actual={}", exp, got_bytes),
+                            hint: Some("Re-extract to refresh fileops".into()),
+                        });
+                    }
+                }
+                if let Some(exp) = fo.get("sha256").and_then(|x| x.as_str()) {
+                    if exp != got_sha {
+                        findings.push(Finding{
+                            check: "fileops".into(),
+                            level: "error".into(),
+                            message: "sha256 mismatch".into(),
+                            hint: Some("Regenerate; verify no in-place edits".into()),
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // Helper to verify advertised artifact lists
+    let mut verify_list = |check_name: &str, arr_key: &str| -> anyhow::Result<(u64, u64)> {
+        let mut tot = 0u64;
+        let mut err = 0u64;
+        if let Some(arr) = manifest.get(arr_key).and_then(|x| x.as_array()) {
+            for item in arr {
+                let dst = item.get("dst").and_then(|x| x.as_str()).unwrap_or("");
+                if dst.is_empty() { continue; }
+                tot += 1;
+                let b = read_bag_topic_bytes(path, dst)?.0;
+                if b.is_empty() {
+                    findings.push(Finding{
+                        check: check_name.into(),
+                        level: if check_name == "status" { "warn".into() } else { "error".into() },
+                        message: format!("missing {}", dst),
+                        hint: Some("Re-extract to restore advertised artifact".into()),
+                    });
+                    if check_name != "status" { err += 1; }
+                    continue;
+                }
+                if let Some(exp) = item.get("bytes").and_then(|x| x.as_u64()) {
+                    let got = b.len() as u64;
+                    if exp != got {
+                        findings.push(Finding{
+                            check: check_name.into(),
+                            level: if check_name == "status" { "warn".into() } else { "error".into() },
+                            message: format!("{} bytes mismatch (exp {}, got {})", dst, exp, got),
+                            hint: Some("Artifacts are append-only; do not edit".into()),
+                        });
+                        if check_name != "status" { err += 1; }
+                    }
+                }
+                if let Some(exp) = item.get("sha256").and_then(|x| x.as_str()) {
+                    let got = sha256(&b);
+                    if exp != got {
+                        findings.push(Finding{
+                            check: check_name.into(),
+                            level: if check_name == "status" { "warn".into() } else { "error".into() },
+                            message: format!("{} sha mismatch", dst),
+                            hint: Some("Re-extract from original run".into()),
+                        });
+                        if check_name != "status" { err += 1; }
+                    }
+                }
+            }
+        }
+        Ok((tot, err))
+    };
+
+    // Patches/status/cline checks (skippable)
+    let (patches_tot, _patches_err) = if !skip.contains("patches") { verify_list("patches", "patches")? } else { (0,0) };
+    let (status_tot, _status_err)   = if !skip.contains("status")  { verify_list("status",  "status_files")? } else { (0,0) };
+    let (cline_tot, _cline_err)     = if !skip.contains("cline")   { verify_list("cline",   "cline_tasks")? } else { (0,0) };
+
+    // Compare counts against manifest if present
+    if let Some(c) = manifest.get("counts") {
+        if let Some(wp) = c.get("patches").and_then(|x| x.as_u64()) {
+            if wp != patches_tot {
+                findings.push(Finding{
+                    check: "patches".into(),
+                    level: "error".into(),
+                    message: format!("patches count manifest={} actual={}", wp, patches_tot),
+                    hint: Some("Regenerate manifest by re-extracting".into()),
+                });
+            }
+        }
+        if let Some(ws) = c.get("status").and_then(|x| x.as_u64()) {
+            if ws != status_tot {
+                findings.push(Finding{
+                    check: "status".into(),
+                    level: "warn".into(),
+                    message: format!("status count manifest={} actual={}", ws, status_tot),
+                    hint: Some("Re-extract with status capture enabled".into()),
+                });
+            }
+        }
+        if let Some(wc) = c.get("cline").and_then(|x| x.as_u64()).or_else(|| c.get("cline_tasks").and_then(|x| x.as_u64())) {
+            if wc != cline_tot {
+                findings.push(Finding{
+                    check: "cline".into(),
+                    level: "error".into(),
+                    message: format!("cline tasks count manifest={} actual={}", wc, cline_tot),
+                    hint: Some("Re-extract with --include cline".into()),
+                });
+            }
+        }
+    }
+
+    // Optional: patch applicability via git apply --check
+    if git_check && !skip.contains("patch-apply") {
+        if which_git() && is_git_repo() {
+            // Use manifest-listed patches in a stable order
+            if let Some(arr) = manifest.get("patches").and_then(|x| x.as_array()) {
+                let mut dsts: Vec<String> = arr.iter().filter_map(|it| it.get("dst").and_then(|x| x.as_str()).map(|s| s.to_string())).collect();
+                dsts.sort();
+                for p in dsts.into_iter().take(10) {
+                    let b = read_bag_topic_bytes(path, &p)?.0;
+                    if b.is_empty() { continue; }
+                    let tf = tempfile::NamedTempFile::new()?;
+                    std::fs::write(tf.path(), &b)?;
+                    let ok = std::process::Command::new("git")
+                        .args(["apply", "--check", tf.path().to_str().unwrap()])
+                        .status().ok().map(|s| s.success()).unwrap_or(false);
+                    if !ok {
+                        findings.push(Finding{
+                            check: "patch-apply".into(),
+                            level: "warn".into(),
+                            message: format!("git apply --check failed for {}", p),
+                            hint: Some("Apply on a throwaway branch; ensure base range matches manifest.git".into()),
+                        });
+                    }
+                }
+            }
+        } else {
+            findings.push(Finding{
+                check: "patch-apply".into(),
+                level: "info".into(),
+                message: "git not available or not a repository; skipped --git-check".into(),
+                hint: None,
+            });
+        }
+    }
+
+    // Suggestions
+    if findings.iter().any(|f| f.check == "patches" && f.level == "error") && !findings.iter().any(|f| f.check == "events" && f.level == "error") {
+        // Patches problematic but events fine
+        // Provide consolidation hint
+        // (Avoid duplicates)
+        findings.push(Finding{
+            check: "advice".into(),
+            level: "info".into(),
+            message: "If patches were expected, ensure they were captured by 'nexoscli term run' and included by the extractor.".into(),
+            hint: None,
+        });
+    }
+
+    // Finalize
+    let ok = !findings.iter().any(|f| f.level == "error");
+    Ok(VerifyReport{
+        ok,
+        run_id,
+        totals: counts,
+        findings,
+        suggestions: vec![],
+    })
+}
+
+fn which_git() -> bool {
+    std::process::Command::new("git").arg("--version").output().ok().map(|o| o.status.success()).unwrap_or(false)
+}
+fn is_git_repo() -> bool {
+    std::process::Command::new("git").args(["rev-parse","--is-inside-work-tree"]).output().ok().map(|o| o.status.success()).unwrap_or(false)
 }
 
 const TRACEPACK_README: &str = r#"# TracePack

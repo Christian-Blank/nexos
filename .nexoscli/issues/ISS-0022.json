@@ -1,0 +1,9 @@
+{
+  "id": "ISS-0022",
+  "title": "Unify bag.verify and replay.verify code paths",
+  "body": "Extract shared verification logic into a single verifier module to reduce drift. Preserve both CLI surfaces. Scope: replay.",
+  "labels": [],
+  "state": "open",
+  "created_at": "2025-09-04T18:50:11.264148Z",
+  "updated_at": "2025-09-04T18:50:11.264148Z"
+}
