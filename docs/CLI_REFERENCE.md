@@ -13,15 +13,15 @@ Commands:
   tools        Tools & schemas
   completions  Generate shell completions
   man          Print man page to stdout
-  cline        Cline task history (locate/import) with idempotent ingest
-  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
-  dev          Developer utilities
-  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
   demo         Demo plugin
-  rules        Rules management (init/lint/export)
+  cline        Cline task history (locate/import) with idempotent ingest
   bundle       TracePack bundles
   term         Run commands with provenance (non-interactive)
+  rules        Rules management (init/lint/export)
   graph        Graph tools
+  dev          Developer utilities
+  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
+  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
   issue        Issue management
   replay       Replay/extract TracePacks from logged runs
   help         Print this message or the help of the given subcommand(s)
@@ -35,34 +35,6 @@ Options:
 
 ## Tool Specs (for agents)
 
-### `demo.hello`
-
-Say hello
-
-### `graph.check`
-
-Validate docs/exec_graph.yaml (acyclic, unique ids)
-
-### `graph.impact`
-
-List nodes impacted (downstream) by the given id
-
-### `issue.new`
-
-Create a new local issue
-
-### `issue.list`
-
-List issues (optionally by state)
-
-### `issue.show`
-
-Show a single issue by ID
-
-### `issue.close`
-
-Close an issue by ID
-
 ### `rules.lint`
 
 Validate rules front-matter
@@ -70,14 +42,6 @@ Validate rules front-matter
 ### `rules.export`
 
 Export rules bundle
-
-### `bundle.build`
-
-Build a TracePack bundle
-
-### `bundle.verify`
-
-Verify a TracePack bundle
 
 ### `workflow.init`
 
@@ -115,13 +79,21 @@ List workflows (visibility index)
 
 Upsert search attributes for a workflow
 
-### `cline.locate`
+### `issue.new`
 
-Find Cline storage locations
+Create a new local issue
 
-### `cline.import`
+### `issue.list`
 
-Import Cline task history with idempotent ingest
+List issues (optionally by state)
+
+### `issue.show`
+
+Show a single issue by ID
+
+### `issue.close`
+
+Close an issue by ID
 
 ### `dev.init`
 
@@ -142,4 +114,36 @@ Verify local setup (dotdir, event log write, config, OTEL envs); --ci aggregates
 ### `dev.telemetry.report`
 
 Aggregate events.jsonl → counts, p50/p90/avg, error leaderboard
+
+### `bundle.build`
+
+Build a TracePack bundle
+
+### `bundle.verify`
+
+Verify a TracePack bundle
+
+### `cline.locate`
+
+Find Cline storage locations
+
+### `cline.import`
+
+Import Cline task history with idempotent ingest
+
+### `replay.bag.verify`
+
+Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
+
+### `graph.check`
+
+Validate docs/exec_graph.yaml (acyclic, unique ids)
+
+### `graph.impact`
+
+List nodes impacted (downstream) by the given id
+
+### `demo.hello`
+
+Say hello
 

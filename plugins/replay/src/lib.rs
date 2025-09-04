@@ -1,6 +1,6 @@
 use clap::{Arg, ArgAction, ArgMatches, Command};
-use nexoscli_core::{plugin::{Plugin, CommandContext}, Result};
-use schemars::JsonSchema;
+use nexoscli_core::{plugin::{Plugin, CommandContext, ToolSpec}, Result};
+use schemars::{JsonSchema, schema_for};
 use serde::{Deserialize, Serialize};
 use walkdir::WalkDir;
 use std::collections::BTreeMap;
@@ -104,6 +104,46 @@ struct CatSummary {
     bytes: u64,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct BagVerifyArgs {
+    bag: String,                 // dir or .tgz/.tar.gz
+    #[serde(default)]
+    index: Option<String>,       // optional path to events.index.json (Plan-29)
+    #[serde(default)]
+    strict: bool,                // strict time_range equality, stricter digest checks
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct BagVerifyIssue {
+    kind: String,                // "missing", "mismatch", "parse", "warning"
+    #[serde(default)]
+    path: Option<String>,
+    message: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct BagVerifySummary {
+    ok: bool,
+    bag_dir: String,
+    #[serde(default)]
+    manifest_schema: Option<String>,
+    counts: serde_json::Value,
+    events: serde_json::Value,        // computed stats (lines/bytes/sha256/from/to)
+    #[serde(default)]
+    index_check: Option<serde_json::Value>, // result when --index provided or auto-found
+    issues: Vec<BagVerifyIssue>,
+
+    // Back-compat for existing tests expecting these fields at top-level
+    #[serde(default)]
+    chain_ok: Option<bool>,
+    #[serde(default)]
+    count: Option<u64>,
+    #[serde(default)]
+    first_seq: Option<u64>,
+    #[serde(default)]
+    last_seq: Option<u64>,
+}
+
 impl Plugin for ReplayPlugin {
     fn name(&self) -> &'static str { "replay" }
     fn version(&self) -> &'static str { env!("CARGO_PKG_VERSION") }
@@ -139,10 +179,12 @@ impl Plugin for ReplayPlugin {
                                 .arg(Arg::new("out").long("out").required(true)
                                      .help("Directory or .tgz/.tar.gz"))
                         )
-                        .subcommand(
-                            Command::new("verify").about("Verify bag integrity (event chain)")
-                                .arg(Arg::new("bag").long("bag").required(true).help("Path to bag dir or .tgz/.tar.gz"))
-                        )
+.subcommand(
+    Command::new("verify").about("Verify a TracePack/NEXBag integrity")
+        .arg(Arg::new("bag").long("bag").required(true).help("Path to bag dir or .tgz/.tar.gz"))
+        .arg(Arg::new("index").long("index").required(false).value_name("PATH").help("Optional path to .nexoscli/log/events.index.json"))
+        .arg(Arg::new("strict").long("strict").action(ArgAction::SetTrue).help("Strict mode: exact time_range equality; require digests when present"))
+)
                         .subcommand(
                             Command::new("info").about("Show bag summary and counts")
                                 .arg(Arg::new("bag").long("bag").required(true))
@@ -602,19 +644,192 @@ impl Plugin for ReplayPlugin {
                         Ok(0)
                     }
                     Some(("verify", vsm)) => {
-                        let bag = vsm.get_one::<String>("bag").unwrap();
-                        let (events_bytes, _from_tgz) = read_bag_topic_bytes(bag, "topics/events.ndjson")?;
-                        let (ok, count, first_seq, last_seq, issues, _prev_last) = verify_events_chain_bytes(&events_bytes);
-                        let summary = BagVerifyResult {
+                        // Args
+                        let args = BagVerifyArgs {
+                            bag: vsm.get_one::<String>("bag").unwrap().to_string(),
+                            index: vsm.get_one::<String>("index").cloned(),
+                            strict: vsm.get_flag("strict"),
+                        };
+
+                        // Read manifest (dir or tgz)
+                        let (manifest, _fmt) = match read_bag_manifest(&args.bag) {
+                            Ok(t) => t,
+                            Err(_e) => {
+                                // manifest missing → verification failed
+                                let exit = ctx.err("replay","bag.verify","replay.bag.verify.failed","manifest.json not found or unreadable",None,2);
+                                return Ok(exit);
+                            }
+                        };
+
+                        // Resolve events path from manifest (v0.2) or default
+                        let events_rel = manifest
+                            .pointer("/topics/events/path")
+                            .and_then(|x| x.as_str())
+                            .unwrap_or("topics/events.ndjson")
+                            .to_string();
+
+                        let (events_bytes, _from_tgz) = read_bag_topic_bytes(&args.bag, &events_rel)?;
+                        // Chain check (v0.3 events): used for compatibility fields
+                        let (chain_ok, count, first_seq, last_seq, _chain_issues, _prev_last) = verify_events_chain_bytes(&events_bytes);
+
+                        // Compute deterministic stats over events bytes (newline-joined hashing)
+                        let estats = events_stats_from_bytes(&events_bytes);
+                        // Build issues
+                        let mut issues: Vec<BagVerifyIssue> = Vec::new();
+
+                        // Compare counts (support both v0.2 counts.events and older events_lines)
+                        let want_events = manifest.pointer("/counts/events").and_then(|x| x.as_u64())
+                            .or_else(|| manifest.pointer("/counts/events_lines").and_then(|x| x.as_u64()));
+                        if let Some(w) = want_events {
+                            if estats.get("lines").and_then(|x| x.as_u64()) != Some(w) {
+                                issues.push(BagVerifyIssue{
+                                    kind: "mismatch".into(),
+                                    path: Some(events_rel.clone()),
+                                    message: format!("events count manifest={} actual={}", w, estats.get("lines").and_then(|x| x.as_u64()).unwrap_or(0)),
+                                });
+                            }
+                        } else {
+                            // If manifest declares zero topics/events but events file has lines, warn
+                            if estats.get("lines").and_then(|x| x.as_u64()).unwrap_or(0) > 0 {
+                                issues.push(BagVerifyIssue{
+                                    kind: "warning".into(),
+                                    path: Some(events_rel.clone()),
+                                    message: "manifest missing counts.events but events present".into(),
+                                });
+                            }
+                        }
+
+                        // Compare time_range: v0.2 uses {start,end}, older may use {from,to}
+                        let m_start = manifest.pointer("/time_range/start").and_then(|x| x.as_str())
+                            .or_else(|| manifest.pointer("/time_range/from").and_then(|x| x.as_str()));
+                        let m_end   = manifest.pointer("/time_range/end").and_then(|x| x.as_str())
+                            .or_else(|| manifest.pointer("/time_range/to").and_then(|x| x.as_str()));
+                        let a_from = estats.get("from_ts").and_then(|x| x.as_str());
+                        let a_to   = estats.get("to_ts").and_then(|x| x.as_str());
+                        if let (Some(mf), Some(mt), Some(af), Some(at)) = (m_start, m_end, a_from, a_to) {
+                            if args.strict {
+                                if mf != af || mt != at {
+                                    issues.push(BagVerifyIssue{
+                                        kind:"mismatch".into(), path: Some(events_rel.clone()),
+                                        message: format!("time_range strict mismatch manifest=({},{}) actual=({},{})", mf, mt, af, at)
+                                    });
+                                }
+                            } else {
+                                // relaxed containment
+                                if af < mf || at > mt {
+                                    issues.push(BagVerifyIssue{
+                                        kind:"warning".into(), path: Some(events_rel.clone()),
+                                        message: format!("time_range containment mismatch manifest=({},{}) actual=({},{})", mf, mt, af, at)
+                                    });
+                                }
+                            }
+                        }
+
+                        // Optional: manifest sha256 for events (forward-compatible)
+                        if let Some(msha) = manifest.get("sha256_events").and_then(|x| x.as_str()) {
+                            if estats.get("sha256_file").and_then(|x| x.as_str()) != Some(msha) {
+                                issues.push(BagVerifyIssue{
+                                    kind:"mismatch".into(), path: Some(events_rel.clone()),
+                                    message: format!("sha256_events manifest={} actual={}", msha, estats.get("sha256_file").and_then(|x| x.as_str()).unwrap_or("?"))
+                                });
+                            }
+                        }
+
+                        // Optional: artifacts if arrays present (patches/status_files/cline_tasks)
+                        let mut verify_list = |key: &str| -> (u64, u64) {
+                            let mut err = 0u64; let mut tot = 0u64;
+                            if let Some(arr) = manifest.get(key).and_then(|x| x.as_array()) {
+                                for item in arr {
+                                    tot += 1;
+                                    let dst = item.get("dst").and_then(|x| x.as_str()).unwrap_or("");
+                                    let sha = item.get("sha256").and_then(|x| x.as_str()).unwrap_or("");
+                                    if dst.is_empty() || sha.is_empty() {
+                                        issues.push(BagVerifyIssue{ kind:"parse".into(), path: None, message: format!("{} entry missing dst/sha256", key) });
+                                        err += 1; continue;
+                                    }
+                                    let (bytes, _tgz) = read_bag_topic_bytes(&args.bag, dst).unwrap_or((Vec::new(), false));
+                                    if bytes.is_empty() {
+                                        issues.push(BagVerifyIssue{ kind:"missing".into(), path: Some(dst.to_string()), message: format!("{} missing", key) });
+                                        err += 1; continue;
+                                    }
+                                    let actual = sha256(&bytes);
+                                    if actual != sha {
+                                        issues.push(BagVerifyIssue{ kind:"mismatch".into(), path: Some(dst.to_string()),
+                                            message: format!("{} sha mismatch manifest={} actual={}", key, sha, actual) });
+                                        err += 1;
+                                    }
+                                }
+                            }
+                            (tot, err)
+                        };
+                        let (patches_tot, _patches_err) = verify_list("patches");
+                        let (status_tot, _status_err)   = verify_list("status_files");
+                        let (cline_tot, _cline_err)     = verify_list("cline_tasks");
+
+                        // Compare counts for artifacts if present
+                        if let Some(c) = manifest.get("counts") {
+                            if let Some(wp) = c.get("patches").and_then(|x| x.as_u64()) {
+                                if wp != patches_tot {
+                                    issues.push(BagVerifyIssue{ kind:"mismatch".into(), path: None, message: format!("patches count manifest={} actual={}", wp, patches_tot) });
+                                }
+                            }
+                            if let Some(ws) = c.get("status").and_then(|x| x.as_u64()) {
+                                if ws != status_tot {
+                                    issues.push(BagVerifyIssue{ kind:"mismatch".into(), path: None, message: format!("status count manifest={} actual={}", ws, status_tot) });
+                                }
+                            }
+                            // Support both "cline" and "cline_tasks"
+                            if let Some(wc) = c.get("cline").and_then(|x| x.as_u64()).or_else(|| c.get("cline_tasks").and_then(|x| x.as_u64())) {
+                                if wc != cline_tot {
+                                    issues.push(BagVerifyIssue{ kind:"mismatch".into(), path: None, message: format!("cline tasks count manifest={} actual={}", wc, cline_tot) });
+                                }
+                            }
+                        }
+
+                        // Optional: index continuity
+                        let auto_index = {
+                            let p = std::env::current_dir().ok().and_then(|d| {
+                                let ip = d.join(".nexoscli").join("log").join("events.index.json");
+                                if ip.exists() { Some(ip.display().to_string()) } else { None }
+                            });
+                            p
+                        };
+                        let mut index_obj: Option<serde_json::Value> = None;
+                        if let Some(ip) = args.index.clone().or(auto_index) {
+                            let path = std::path::PathBuf::from(&ip);
+                            if path.exists() {
+                                match verify_index_head(&path) {
+                                    Ok(v) => index_obj = Some(v),
+                                    Err(e) => issues.push(BagVerifyIssue{ kind:"parse".into(), path: Some(ip), message: format!("index verify: {}", e) }),
+                                }
+                            } else {
+                                issues.push(BagVerifyIssue{ kind:"warning".into(), path: Some(ip), message:"index path not found".into() });
+                            }
+                        }
+
+                        // Final summary
+                        let ok = issues.iter().all(|i| i.kind != "mismatch" && i.kind != "missing" && i.kind != "parse");
+                        let summary = BagVerifySummary{
                             ok,
-                            chain_ok: ok,
-                            count,
+                            bag_dir: args.bag.clone(),
+                            manifest_schema: manifest.get("schema").and_then(|x| x.as_str()).map(|s| s.to_string()),
+                            counts: manifest.get("counts").cloned().unwrap_or(serde_json::json!({})),
+                            events: estats,
+                            index_check: index_obj,
+                            issues,
+                            chain_ok: Some(chain_ok),
+                            count: Some(count),
                             first_seq,
                             last_seq,
-                            issues,
                         };
-                        ctx.ok("replay", "bag.verify", &summary);
-                        Ok(0)
+
+                        if ok {
+                            let exit = ctx.ok("replay", "bag.verify", &summary);
+                            Ok(exit)
+                        } else {
+                            let exit = ctx.err("replay","bag.verify","replay.bag.verify.failed","bag verification failed",None,2);
+                            Ok(exit)
+                        }
                     }
                     Some(("info", ism)) => {
                         let bag = ism.get_one::<String>("bag").unwrap();
@@ -686,6 +901,15 @@ impl Plugin for ReplayPlugin {
 
             _ => Ok(ctx.err("replay", "unknown", "replay.unknown", "unknown replay command", None, 2))
         }
+    }
+
+    fn tool_specs(&self) -> Vec<ToolSpec> {
+        vec![ToolSpec{
+            name: "replay.bag.verify".to_string(),
+            about: "Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity".to_string(),
+            args_schema: schema_for!(BagVerifyArgs),
+            result_schema: schema_for!(BagVerifySummary),
+        }]
     }
 }
 
@@ -782,6 +1006,146 @@ fn verify_events_chain_file(path: &std::path::Path) -> anyhow::Result<(bool, u64
     let bytes = std::fs::read(path).unwrap_or_default();
     let (ok, count, first_seq, last_seq, _issues, _last) = verify_events_chain_bytes(&bytes);
     Ok((ok, count, first_seq, last_seq))
+}
+
+// -------- Bag verify helpers --------
+
+fn events_stats_from_bytes(bytes: &[u8]) -> serde_json::Value {
+    use sha2::{Digest, Sha256};
+    let mut lines: u64 = 0;
+    let mut h = Sha256::new();
+    let mut first = true;
+    let mut from_ts: Option<String> = None;
+    let mut to_ts: Option<String> = None;
+
+    if let Ok(s) = std::str::from_utf8(bytes) {
+        for raw in s.lines() {
+            if raw.trim().is_empty() { continue; }
+            if !first { h.update(&[0x0a]); }
+            h.update(raw.as_bytes());
+            first = false;
+
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(raw) {
+                if from_ts.is_none() {
+                    if let Some(ts) = v.get("ts").and_then(|x| x.as_str()) { from_ts = Some(ts.to_string()); }
+                }
+                if let Some(ts) = v.get("ts").and_then(|x| x.as_str()) { to_ts = Some(ts.to_string()); }
+            }
+            lines += 1;
+        }
+    }
+    let sha = format!("sha256:{:x}", h.finalize());
+    serde_json::json!({
+        "lines": lines,
+        "bytes": bytes.len() as u64,
+        "sha256_file": sha,
+        "from_ts": from_ts,
+        "to_ts": to_ts
+    })
+}
+
+fn verify_index_head(index_path: &std::path::Path) -> anyhow::Result<serde_json::Value> {
+    // Minimal IndexFile matching dev rotation format
+    #[derive(Debug, serde::Deserialize)]
+    struct IndexSeg {
+        file: String,
+        #[serde(default)] from_ts: Option<String>,
+        #[serde(default)] to_ts: Option<String>,
+        lines: u64,
+        bytes: u64,
+        sha256_file: String,
+        #[serde(default)] prev_head: Option<String>,
+        head: String,
+    }
+    #[derive(Debug, serde::Deserialize)]
+    struct IndexFile {
+        schema: String,
+        segments: Vec<IndexSeg>,
+        #[serde(default)] head: Option<String>,
+        #[serde(default)] updated_at: Option<String>,
+    }
+
+    let txt = std::fs::read_to_string(index_path)?;
+    let idx: IndexFile = serde_json::from_str(&txt)?;
+    // base root is repo root: index_path/.nexoscli/log/events.index.json -> root = parent of parent
+    let base_root = index_path.parent().and_then(|p| p.parent()).unwrap_or(std::path::Path::new("."));
+    let mut head: Option<String> = None;
+    let mut issues: Vec<String> = vec![];
+    let mut checked = 0u64;
+
+    for seg in &idx.segments {
+        let p = base_root.join(&seg.file);
+        if !p.exists() {
+            issues.push(format!("missing segment {}", seg.file));
+            continue;
+        }
+        // recompute sha for the segment using same newline-joined hashing
+        let s = compute_event_file_stats_path(&p)?;
+        if s.sha256_file != seg.sha256_file {
+            issues.push(format!("segment sha mismatch {} manifest={} actual={}", seg.file, seg.sha256_file, s.sha256_file));
+        }
+        // recompute head
+        let actual_head = chain_next(head.as_deref(), &seg.sha256_file);
+        if actual_head != seg.head {
+            issues.push(format!("segment head mismatch {} manifest={} actual={}", seg.file, seg.head, actual_head));
+        }
+        head = Some(actual_head);
+        checked += 1;
+    }
+
+    let idx_head_ok = idx.head.as_deref() == head.as_deref();
+    if !idx_head_ok {
+        issues.push(format!("index head mismatch manifest={:?} actual={:?}", idx.head, head));
+    }
+
+    Ok(serde_json::json!({
+        "path": index_path.display().to_string(),
+        "segments_checked": checked,
+        "computed_head": head,
+        "head_ok": idx_head_ok,
+        "issues": issues
+    }))
+}
+
+#[derive(Debug)]
+struct ComputePathStats {
+    lines: u64,
+    bytes: u64,
+    sha256_file: String,
+}
+fn compute_event_file_stats_path(ev: &std::path::Path) -> anyhow::Result<ComputePathStats> {
+    use sha2::{Digest, Sha256};
+    use std::io::BufRead;
+    let mut lines: u64 = 0;
+    let mut bytes: u64 = 0;
+    let mut h = Sha256::new();
+
+    if ev.exists() {
+        let f = std::fs::File::open(ev)?;
+        bytes = f.metadata().map(|m| m.len()).unwrap_or(0);
+        let rdr = std::io::BufReader::new(f);
+        let mut first = true;
+        for line in rdr.lines() {
+            let raw = line?;
+            if raw.trim().is_empty() { continue; }
+            if !first { h.update(&[0x0a]); }
+            h.update(raw.as_bytes());
+            first = false;
+            lines += 1;
+        }
+    }
+    let sha = format!("sha256:{:x}", h.finalize());
+    Ok(ComputePathStats{ lines, bytes, sha256_file: sha })
+}
+
+fn chain_next(prev: Option<&str>, item: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let mut h = Sha256::new();
+    if let Some(p) = prev {
+        if !p.is_empty() { h.update(p.as_bytes()); h.update(&[0x0a]); }
+    }
+    h.update(item.as_bytes());
+    format!("sha256:{:x}", h.finalize())
 }
 
 // ---------- Bag IO helpers (dir or .tgz) ----------

@@ -1,3 +1,6 @@
+---
+Implemented in: commit db60b1b8ea606f4ca1d40ed42da8e693f58fc458 feat(dev-plugin): add event log rotation + continuity (rotate/status, events-rotation) (TASK-20250904-event-log-rotation)
+---
 Perfect—keeping momentum and sticking to the observability-first center of gravity.
 
 ⸻

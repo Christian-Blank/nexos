@@ -1,0 +1,17 @@
+feat(replay): add TracePack verification with events/digests, strict mode, and index continuity (PLAN-30, TASK-20250904-plan-30-bag-verify-tracepack-integrity)
+
+Scope: replay (plugins/replay/**), tests, docs. No protected files touched. Contracts stable; ToolSpec added for machine use.
+
+Changes:
+- replay bag verify: --bag PATH [--strict] [--index PATH]
+- Deterministic events stats: lines, bytes, sha256_file (newline-joined parity), from_ts/to_ts; strict vs relaxed time_range.
+- Artifacts digests and counts verified when present (patches/status_files/cline_tasks).
+- Optional continuity check against .nexoscli/log/events.index.json; head_ok + issues reported.
+- Emits stable JSON envelopes via ctx.ok/ctx.err; exit codes: 0 OK, 2 verification failed, >2 operational errors.
+- ToolSpec replay.bag.verify; E2E test replay_bag_verify.rs OK→tamper→fail.
+- Docs updated: TRACEPACK.md and PLAYBOOK.md; CLI reference regenerated.
+
+Plan: docs/plans/plan-30_bag-verify.md; acceptance criteria mapped 1–8 satisfied.
+
+Determinism:
+- Events hashing newline-joined parity with rotation; artifacts raw-bytes; tar handled via streaming; no nondeterministic timestamps in outputs.

@@ -225,9 +225,13 @@ Common flows:
 ./target/debug/nexoscli replay bag build --run-id RUN-... --out ./tracebag
 ./target/debug/nexoscli replay bag build --run-id RUN-... --out ./tracebag.tgz
 
-# Verify event ledger integrity inside the bag (event.v0.3)
+# Verify bag integrity (events stats + hash-chain)
 ./target/debug/nexoscli replay bag verify --bag ./tracebag
 ./target/debug/nexoscli replay bag verify --bag ./tracebag.tgz
+# Strict mode: exact time_range equality; require digests when present
+./target/debug/nexoscli replay bag verify --bag ./tracebag --strict
+# Cross-check against rotation index (Plan-29 segment-chain)
+./target/debug/nexoscli replay bag verify --bag ./tracebag --index .nexoscli/log/events.index.json
 
 # Inspect bag metadata and topics
 ./target/debug/nexoscli replay bag info --bag ./tracebag

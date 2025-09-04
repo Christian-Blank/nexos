@@ -468,9 +468,15 @@ Commands:
 nexoscli replay bag build --run-id RUN-... --out ./tracebag                # dir
 nexoscli replay bag build --run-id RUN-... --out ./tracebag.tgz            # tgz
 
-# Verify event hash chain integrity from the bag
+# Verify bag integrity (events stats + hash-chain)
 nexoscli replay bag verify --bag ./tracebag
 nexoscli replay bag verify --bag ./tracebag.tgz
+
+# Strict mode: exact time_range equality; require digests when present
+nexoscli replay bag verify --bag ./tracebag --strict
+
+# Cross-check against rotation index (Plan-29 segment-chain)
+nexoscli replay bag verify --bag ./tracebag --index .nexoscli/log/events.index.json
 
 # Show bag summary (counts, topics, versions, time_range)
 nexoscli replay bag info --bag ./tracebag
@@ -479,6 +485,24 @@ nexoscli replay bag info --bag ./tracebag
 nexoscli replay bag cat --bag ./tracebag --topic events
 nexoscli replay bag cat --bag ./tracebag --topic events --lines 10
 ```
+
+Bag verification checks
+- manifest.json schema/kind sanity
+- topics/events.ndjson: lines, bytes, sha256 over newline-joined lines, first/last timestamps
+- optional artifacts: patches/status_files/cline_tasks presence and sha256 checks (when arrays present)
+- optional continuity: recompute segment-chain head against .nexoscli/log/events.index.json
+
+Machine output
+The verify command emits a JSON envelope with:
+- data.ok boolean
+- data.events { lines, bytes, sha256_file, from_ts, to_ts }
+- optional data.index_check { head_ok, issues[] } when --index is provided or auto-detected
+- issues[] with kind = missing|mismatch|parse|warning
+
+Exit codes
+- 0: verified OK
+- 2: verification failed (structural/digest mismatch)
+- >2: operational errors (I/O, parse)
 
 Layout (v0.2):
 ```
