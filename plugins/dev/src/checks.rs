@@ -146,19 +146,30 @@ pub fn check_events_schema(root: &std::path::Path, since: Option<OffsetDateTime>
                 }
 
                 // decode against owned mirror type (avoids lifetime issues) and check schema tag
-                match serde_json::from_str::<EventLineV03Owned>(&raw) {
-                    Ok(_ev) => {
-                        let tag_ok = v.get("schema").and_then(|x| x.as_str()) == Some(nexoscli_core::contracts::EVENT_SCHEMA_V03);
-                        if !tag_ok {
+                    match serde_json::from_str::<EventLineV03Owned>(&raw) {
+                        Ok(_ev) => {
+                            let tag_ok = v.get("schema").and_then(|x| x.as_str()) == Some(nexoscli_core::contracts::EVENT_SCHEMA_V03);
+                            if !tag_ok {
+                                out.ok = false;
+                                out.errors.push(format!("line {}: missing or wrong schema tag", idx+1));
+                            }
+                            // Strengthened structure checks to mirror EventLineV03 required fields (without decoding into generic Event)
+                            let mut missing = Vec::new();
+                            if v.get("ts").and_then(|x| x.as_str()).is_none() { missing.push("ts"); }
+                            if v.get("plugin").and_then(|x| x.as_str()).is_none() { missing.push("plugin"); }
+                            if v.get("command").and_then(|x| x.as_str()).is_none() { missing.push("command"); }
+                            if v.get("exit_code").and_then(|x| x.as_i64()).is_none() { missing.push("exit_code"); }
+                            if v.get("content_hash").and_then(|x| x.as_str()).is_none() { missing.push("content_hash"); }
+                            if !missing.is_empty() {
+                                out.ok = false;
+                                out.errors.push(format!("line {}: missing required fields: {}", idx+1, missing.join(",")));
+                            }
+                        }
+                        Err(e) => {
                             out.ok = false;
-                            out.errors.push(format!("line {}: missing or wrong schema tag", idx+1));
+                            out.errors.push(format!("line {}: Event decode: {}", idx+1, e));
                         }
                     }
-                    Err(e) => {
-                        out.ok = false;
-                        out.errors.push(format!("line {}: Event decode: {}", idx+1, e));
-                    }
-                }
                 out.lines += 1;
             }
             Err(e) => { out.ok=false; out.errors.push(format!("line {}: json parse: {}", idx+1, e)); }

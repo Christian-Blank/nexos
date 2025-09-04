@@ -90,6 +90,14 @@ nexoscli dev doctor --checks redaction,events,task-coverage
    - Measures percentage of events with task context
    - Helps identify workflow adoption and correlation gaps
 
+4. Events Schema (`events-schema`):
+   - Parses each events.jsonl line and validates schema tag equals event.v0.3
+   - Strengthened structure checks for required fields (ts, plugin, command, exit_code, content_hash); tolerant window via --since
+
+5. Events Chain (`events-chain`):
+   - Verifies rolling digest and line count against .nexoscli/log/events.chain.json in CI (read-only)
+   - Local runs refresh the chain manifest deterministically
+
 #### CI Integration
 
 Use `--require` flag to enforce specific checks in CI pipelines:

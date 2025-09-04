@@ -217,7 +217,7 @@ impl Plugin for DevPlugin {
                         .arg(Arg::new("ci").long("ci").action(ArgAction::SetTrue)
                              .help("Aggregate repo checks and exit non-zero on failure"))
                         .arg(Arg::new("checks").long("checks").value_name("CSV")
-                             .help("Subset of checks: graph,plugins,config,events,tools,cline (default: all)"))
+                             .help("Subset of checks: graph,plugins,config,events,tools,events-schema,events-chain,cline,rules (default: all)"))
                 )
                 // dev telemetry
                 .subcommand(

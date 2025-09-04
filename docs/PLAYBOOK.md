@@ -165,6 +165,8 @@ cat .nexoscli/engine/outbox/*.json
 - **redaction**: Validates `.nexoscli/redact.yaml` exists and is well-formed
 - **events**: Validates event log structure and content integrity
 - **task-coverage**: Measures percentage of events with task context (helps track workflow adoption)
+- **events-schema**: Parses `.nexoscli/log/events.jsonl` lines, validates schema tag equals `event.v0.3`, and enforces required fields (ts, plugin, command, exit_code, content_hash); honors `--since`
+- **events-chain**: Verifies rolling digest and line count against `.nexoscli/log/events.chain.json` in CI (read-only); local runs refresh deterministically
 
 **CI Integration:**
 ```bash
