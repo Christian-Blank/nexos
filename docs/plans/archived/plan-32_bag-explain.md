@@ -1,3 +1,6 @@
+---
+Implemented in: commit 6498cd507f40aa75a2ebe81fb392cd4e2e430471 feat(replay): PLAN-32 Bag Explain — add top-level replay verify with explainable findings, tests, and docs
+---
 Absolutely—here’s Implementation Plan #32 — “Bag Explain (replay verify)”.
 This adds a human‑friendly, CI‑ready verifier for TracePacks (bags). It checks structure, checksums, line counts, run consistency, and (optionally) patch applicability, then explains any failures with actionable suggestions.
 
