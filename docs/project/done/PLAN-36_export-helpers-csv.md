@@ -1,3 +1,13 @@
+---
+status: done
+plan_id: '36'
+slug: export-helpers-csv
+task_id: TASK-20250905-existing
+started_at: 2025-09-05T09:22:23.421885Z
+source: next
+completed_at: 2025-09-05T09:30:40.405182Z
+implemented_in: 0a631d9
+---
 Below is Implementation Plan #36 — “Export helpers (CSV)”.
 It adds a lightweight, dependency‑free (beyond csv crate) way to export events and fileops from a bag into analyst‑friendly CSV files. This is deliberately minimal and robust so we can use it in notebooks and spreadsheets immediately, and extend later (Parquet/annotations in #37).
 

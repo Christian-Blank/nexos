@@ -101,6 +101,7 @@ git commit -m "chore(plans): mark PLAN-<ID> <slug> as done (divider=${PLAN_SHA})
 - [ ] Divider commit created.
 - [ ] Plan updated (status=done, implemented_in, completed_at) and moved to done/.
 - [ ] Task ended + bundle produced.
+- [ ] All files commited - no untracked or unstaged changes.
 
 ---
 

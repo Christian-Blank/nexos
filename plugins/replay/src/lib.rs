@@ -8,6 +8,7 @@ use time::format_description::well_known::Rfc3339;
 
 mod schemas;
 mod fileops;
+mod export;
 
 pub struct ReplayPlugin;
 impl ReplayPlugin { pub fn new() -> Self { Self } }
@@ -369,6 +370,13 @@ impl Plugin for ReplayPlugin {
                                 .arg(Arg::new("bag").long("bag").required(true).value_name("DIR"))
                                 .arg(Arg::new("out").long("out").value_name("PATH"))
                         )
+                )
+                .subcommand(
+                    Command::new("export").about("Export CSV artifacts from a bag")
+                        .arg(Arg::new("bag").long("bag").required(true).value_name("DIR"))
+                        .arg(Arg::new("what").long("what").value_parser(["events","fileops","all"]).default_value("all"))
+                        .arg(Arg::new("as").long("as").value_parser(["csv"]).default_value("csv"))
+                        .arg(Arg::new("out").long("out").value_name("PATH").help("Output directory for exported files"))
                 )
                 .subcommand(
                     Command::new("bag").about("TracePack v0.2 bag operations")
@@ -967,6 +975,43 @@ impl Plugin for ReplayPlugin {
                 Ok(exit)
             }
 
+            Some(("export", sm)) => {
+                let bag = sm.get_one::<String>("bag").unwrap().to_string();
+                let what = sm.get_one::<String>("what").map(|s| s.as_str()).unwrap_or("all");
+                let fmt = sm.get_one::<String>("as").map(|s| s.as_str()).unwrap_or("csv");
+                let out_opt = sm.get_one::<String>("out").cloned();
+
+                if fmt != "csv" {
+                    let exit = ctx.err("replay","export","replay.export.failed","unsupported --as format",None,2);
+                    return Ok(exit);
+                }
+                let bagp = std::path::Path::new(&bag);
+                if !bagp.is_dir() {
+                    let exit = ctx.err("replay","export","replay.export.failed","bag path is not a directory",None,2);
+                    return Ok(exit);
+                }
+
+                match crate::export::export_csv(&bag, what, out_opt.as_deref()) {
+                    Ok((written, counts)) => {
+                        let exit = ctx.ok("replay","export",&serde_json::json!({
+                            "bag": bag,
+                            "format": "csv",
+                            "written": written,
+                            "counts": {
+                                "events": counts.events_rows,
+                                "fileops": counts.fileops_rows,
+                                "skipped": counts.skipped
+                            }
+                        }));
+                        Ok(exit)
+                    }
+                    Err(e) => {
+                        let exit = ctx.err("replay","export","replay.export.failed",&format!("export error: {}", e),None,2);
+                        Ok(exit)
+                    }
+                }
+            }
+
             Some(("fileops", fsm)) => {
                 match fsm.subcommand() {
                     Some(("derive", dsm)) => {
@@ -1485,6 +1530,12 @@ impl Plugin for ReplayPlugin {
                 about: "Derive fileops.ndjson from a bag's patches".to_string(),
                 args_schema: schema_for!(FileopsDeriveArgs),
                 result_schema: schema_for!(FileopsDeriveResult),
+            },
+            ToolSpec{
+                name: "replay.export".to_string(),
+                about: "Export bag artifacts to CSV".to_string(),
+                args_schema: schema_for!(serde_json::Value),
+                result_schema: schema_for!(serde_json::Value),
             }
         ]
     }

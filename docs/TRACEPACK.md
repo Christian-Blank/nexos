@@ -117,6 +117,51 @@ nexoscli replay fileops derive --bag ./tracepack --out ./fileops.ndjson --output
 nexoscli replay validate --bag ./tracepack --what fileops --output json
 ```
 
+### CSV Export (analyst-friendly)
+
+Export CSVs for quick spreadsheet analysis directly from a TracePack/NEXBag directory.
+
+Usage:
+```bash
+# Export both events and file operations to CSV (defaults)
+nexoscli replay export --bag ./tracepack --what all --as csv
+
+# Export only events
+nexoscli replay export --bag ./tracepack --what events --as csv
+
+# Export only fileops
+nexoscli replay export --bag ./tracepack --what fileops --as csv
+
+# Choose a custom output directory
+nexoscli replay export --bag ./tracepack --what all --as csv --out ./exports/csv
+```
+
+Defaults:
+- what: all
+- as: csv
+- out: ./exports/csv under the bag (e.g., tracepack/exports/csv)
+
+Outputs:
+- tracepack/exports/csv/events.csv
+- tracepack/exports/csv/fileops.csv
+
+Path resolution (tolerant of legacy layouts):
+- Events source: prefer tracepack/events.ndjson; fallback tracepack/topics/events.ndjson
+- FileOps source: prefer tracepack/fileops/fileops.ndjson; fallback tracepack/fileops.ndjson
+
+Notes:
+- CSV headers are always written, even if there are zero rows.
+- Empty/non-JSON lines in NDJSON are skipped; missing fields render as empty CSV cells.
+- v0 supports directory bags; extract archives (.tgz) to a directory before exporting.
+
+Columns:
+
+events.csv
+- ts, run_id, plugin, command, exit_code, dur_ms, error_code, args_hash, content_hash, task_id, stage, session_id, attrs_cmd, attrs_cwd, attrs_json
+
+fileops.csv
+- ts, run_id, op, path, from, to, bytes, digest_after, patch_sha256, patch_lines, source
+
 ## Integration with CLI Workflows
 
 ### 1. Development Debugging

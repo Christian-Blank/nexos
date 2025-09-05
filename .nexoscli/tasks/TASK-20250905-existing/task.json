@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20250905-existing",
+  "title": "...existing...",
+  "stage": "done",
+  "status": "ended",
+  "created_at": "2025-09-05T09:22:23.412129Z",
+  "started_at": "2025-09-05T09:22:23.420349Z",
+  "ended_at": "2025-09-05T09:30:40.307714Z",
+  "sessions": [
+    {
+      "id": "SES-0dfeeb74bf39",
+      "start": "2025-09-05T09:22:23.420394Z",
+      "end": "2025-09-05T09:30:40.307632Z"
+    }
+  ],
+  "notes": []
+}
