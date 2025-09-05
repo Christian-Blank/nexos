@@ -1,16 +1,16 @@
 {
   "id": "TASK-20250905-add-to-an-event-row-by-sequence-index",
   "title": "add to an event row (by sequence index)",
-  "stage": "planning",
-  "status": "active",
+  "stage": "done",
+  "status": "ended",
   "created_at": "2025-09-05T09:49:16.940917Z",
   "started_at": "2025-09-05T09:49:16.948104Z",
-  "ended_at": null,
+  "ended_at": "2025-09-05T10:09:27.697938Z",
   "sessions": [
     {
       "id": "SES-34757df52e3d",
       "start": "2025-09-05T09:49:16.948143Z",
-      "end": null
+      "end": "2025-09-05T10:09:27.697865Z"
     }
   ],
   "notes": []
