@@ -1,10 +1,12 @@
 ---
-status: in-progress
+status: done
 plan_id: '45'
 slug: rules_v0
 task_id: TASK-20250905-plan-45-rules-v0-reset
 started_at: 2025-09-05T21:04:38.550347Z
 source: next
+completed_at: 2025-09-05T21:07:30.860145Z
+implemented_in: '1318e77'
 ---
 # PLAN-45 — Rules v0 (reset)
 

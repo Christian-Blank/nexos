@@ -1,0 +1,20 @@
+{
+  "cline_tasks": [],
+  "counts": {
+    "cline": 0,
+    "events_lines": 23,
+    "patches": 0,
+    "status": 0
+  },
+  "created_at": "2025-09-05T21:07:30.846602Z",
+  "kind": "tracepack.task",
+  "patches": [],
+  "session_id": "SES-8de737f19809",
+  "status_files": [],
+  "task_id": "TASK-20250905-plan-45-rules-v0-reset",
+  "time_range": {
+    "from": "2025-09-05T21:04:38.549332Z",
+    "to": "2025-09-05T21:07:30.753085Z"
+  },
+  "version": "0.1"
+}

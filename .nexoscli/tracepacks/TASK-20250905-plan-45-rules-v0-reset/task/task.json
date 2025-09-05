@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20250905-plan-45-rules-v0-reset",
+  "title": "PLAN-45 — Rules v0 (reset)",
+  "stage": "done",
+  "status": "ended",
+  "created_at": "2025-09-05T21:04:38.540234Z",
+  "started_at": "2025-09-05T21:04:38.548862Z",
+  "ended_at": "2025-09-05T21:07:30.75269Z",
+  "sessions": [
+    {
+      "id": "SES-8de737f19809",
+      "start": "2025-09-05T21:04:38.548903Z",
+      "end": "2025-09-05T21:07:30.752595Z"
+    }
+  ],
+  "notes": []
+}
