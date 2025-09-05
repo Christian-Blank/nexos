@@ -34,6 +34,20 @@ Core documentation and decision records for the NEXOS CLI project.
 - [`SPECS/README.md`](SPECS/README.md) - Generated JSON Schemas from real types (do not hand-edit)
 - Regenerate: `nexoscli dev schemas export --out docs/SPECS`
 
+**Planning & Plans:**
+- [`project/README.md`](project/README.md) — Plan lifecycle directories and CLI usage
+- Workflows:
+  - Start: [`prompts/cline/start_new_task.workflow.md`](prompts/cline/start_new_task.workflow.md)
+  - Finalize: [`prompts/cline/finalize_task.workflow.md`](prompts/cline/finalize_task.workflow.md)
+
+Quick Plan Lifecycle (CLI-native):
+```
+nexoscli dev init --yes
+nexoscli dev plans start --output json
+# implement work…
+nexoscli dev plans finalize --output json
+```
+
 ## For AI Agents
 
 Parse YAML front-matter in each document as the authoritative record. The markdown body provides human context. Build execution DAG from `exec_graph.yaml` and follow dependency chains.

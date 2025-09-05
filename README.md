@@ -204,6 +204,29 @@ Glossary (short)
 
 This README is the narrative index. For precise rules and invariants, follow the links to the origin documents and the machine-readable model.
 
+## Plan Lifecycle (CLI-native)
+
+Manage plans deterministically via the dev plugin (no manual YAML edits):
+
+```
+nexoscli dev init --yes
+nexoscli dev plans start --output json
+# implement work…
+nexoscli dev plans finalize --output json
+```
+
+- Folders: docs/project/{next,current,done,archived}
+- Start: creates+starts task, writes front‑matter (status=in-progress, plan_id, slug, task_id, started_at, source=next), moves next → current
+- Finalize: writes implemented_in (HEAD), completes front‑matter (status=done, completed_at), ends task + bundle, moves current → done
+
+Troubleshooting:
+- If an active task blocks start: `nexoscli task pause` (or `nexoscli task end --task <ID> || true`) then retry start.
+
+See also:
+- docs/project/README.md — directory structure and commands
+- docs/prompts/cline/start_new_task.workflow.md
+- docs/prompts/cline/finalize_task.workflow.md
+
 ## TracePack & NEXBags (TracePack v0.2)
 
 Portable run artifacts for analysis, sharing, and replay.

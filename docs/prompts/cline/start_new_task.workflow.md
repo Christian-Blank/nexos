@@ -13,8 +13,8 @@ Output: one implementation commit (divider happens in the Finalize workflow).
   - @/docs/PLAYBOOK.md
 
 - Run:
-  nexoscli dev init --yes
-  nexoscli dev doctor --ci --checks graph,plugins,config,events,tools --require plugins,graph
+  cargo run -p nexoscli dev init --yes
+  cargo run -p nexoscli dev doctor --ci --checks graph,plugins,config,events,tools --require plugins,graph
 
 - Choose a scope label (e.g., workflow-plugin, dev-plugin, task-plugin, observability, cline-ingest). Respect .clinerules/scope.json. If you must go beyond scope: stop, open CP/ADR.
 
@@ -24,10 +24,10 @@ Output: one implementation commit (divider happens in the Finalize workflow).
 
 - Start using the CLI-native flow (front‑matter updated in Rust; no Python/shell templating):
 
-  nexoscli dev plans start --output json
+  cargo run -p nexoscli dev plans start --output json
 
 What happens:
-- Picks first docs/project/next/PLAN-*.md (or pass --plan PATH).
+- Picks first docs/project/next/PLAN-*.md (or pass --plan PATH), first as in plan ascending by number.
 - Creates task and starts it.
 - Updates front‑matter: status=in-progress, plan_id, slug, task_id, started_at, source=next.
 - Moves the file to docs/project/current/.
@@ -44,8 +44,8 @@ What happens:
 - Validate frequently:
   cargo build --workspace
   cargo test  --workspace
-  nexoscli dev docs build
-  nexoscli dev telemetry report --since 24h
+  cargo run -p nexoscli dev docs build
+  cargo run -p nexoscli dev telemetry report --since 24h
 
 - If public contracts changed: write/attach ADR (docs/ADRs/ADR-YYYYMMDD-*.md) and update snapshots in the dedicated PR.
 
@@ -76,9 +76,9 @@ Stop here. The divider & plan finalization happens in the Finalize workflow.
 
   Resolution:
   - Pause current active task:
-    nexoscli task pause
+    cargo run -p nexoscli task pause
   - Retry start:
-    nexoscli dev plans start --output json
+    cargo run -p nexoscli dev plans start --output json
   - If you must end the previous task first:
-    nexoscli task end --task TASK-20250905-build || true
-    nexoscli dev plans start --output json
+    cargo run -p nexoscli task end --task TASK-20250905-build || true
+    cargo run -p nexoscli dev plans start --output json

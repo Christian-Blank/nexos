@@ -1,5 +1,32 @@
 # Core Workflows (v0)
 
+## Plan Lifecycle (CLI-native)
+
+Manage plans deterministically with the dev plugin — do not hand-edit plan front‑matter or move plan files manually.
+
+Quick start:
+```
+nexoscli dev init --yes
+nexoscli dev plans start --output json
+# implement work…
+nexoscli dev plans finalize --output json
+```
+
+What happens:
+- Start: creates + starts a task, updates front‑matter (status=in-progress, plan_id, slug, task_id, started_at, source=next), moves next → current
+- Finalize: records implemented_in (HEAD), writes completed_at + status=done, ends task + bundle, moves current → done
+
+Troubleshooting:
+- If an active task blocks start:
+  - Pause: `nexoscli task pause`
+  - Or end: `nexoscli task end --task <ID> || true`
+  - Retry start: `nexoscli dev plans start --output json`
+
+References:
+- docs/project/README.md — plan folders and commands
+- docs/prompts/cline/start_new_task.workflow.md
+- docs/prompts/cline/finalize_task.workflow.md
+
 ## 1) After each effort — Rule Sweep (10–15 min)
 
 **Goal**: Keep the system simple and accurate by adding/changing/removing rules based on evidence.

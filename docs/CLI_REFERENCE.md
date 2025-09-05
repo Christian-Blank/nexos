@@ -13,17 +13,17 @@ Commands:
   tools        Tools & schemas
   completions  Generate shell completions
   man          Print man page to stdout
-  demo         Demo plugin
-  graph        Graph tools
-  bundle       TracePack bundles
-  replay       Replay/extract TracePacks from logged runs
-  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
-  term         Run commands with provenance (non-interactive)
-  cline        Cline task history (locate/import) with idempotent ingest
-  dev          Developer utilities
-  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
-  rules        Rules management (init/lint/export)
   issue        Issue management
+  dev          Developer utilities
+  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
+  rules        Rules management (init/lint/export)
+  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
+  term         Run commands with provenance (non-interactive)
+  bundle       TracePack bundles
+  demo         Demo plugin
+  cline        Cline task history (locate/import) with idempotent ingest
+  graph        Graph tools
+  replay       Replay/extract TracePacks from logged runs
   help         Print this message or the help of the given subcommand(s)
 
 Options:
@@ -35,41 +35,13 @@ Options:
 
 ## Tool Specs (for agents)
 
-### `workflow.init`
+### `rules.lint`
 
-Create a workflow spec template
+Validate rules front-matter
 
-### `workflow.plan`
+### `rules.export`
 
-Plan (idempotency-aware)
-
-### `workflow.validate`
-
-Validate a workflow spec (schema + invariants)
-
-### `workflow.run`
-
-Run a workflow spec sequentially
-
-### `workflow.status`
-
-Show effects, history, visibility
-
-### `workflow.signal`
-
-Send a signal to a running workflow
-
-### `workflow.query`
-
-Query workflow runtime state
-
-### `workflow.list`
-
-List workflows (visibility index)
-
-### `workflow.upsert-sa`
-
-Upsert search attributes for a workflow
+Export rules bundle
 
 ### `dev.init`
 
@@ -111,30 +83,6 @@ Show plan front-matter and derived ids
 
 Show the next plan candidate (docs/project/next)
 
-### `cline.locate`
-
-Find Cline storage locations
-
-### `cline.import`
-
-Import Cline task history with idempotent ingest
-
-### `graph.check`
-
-Validate docs/exec_graph.yaml (acyclic, unique ids)
-
-### `graph.impact`
-
-List nodes impacted (downstream) by the given id
-
-### `bundle.build`
-
-Build a TracePack bundle
-
-### `bundle.verify`
-
-Verify a TracePack bundle
-
 ### `replay.bag.verify`
 
 Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
@@ -163,9 +111,57 @@ Get schema JSON
 
 Validate bag artifacts (events/fileops) against schemas
 
-### `demo.hello`
+### `workflow.init`
 
-Say hello
+Create a workflow spec template
+
+### `workflow.plan`
+
+Plan (idempotency-aware)
+
+### `workflow.validate`
+
+Validate a workflow spec (schema + invariants)
+
+### `workflow.run`
+
+Run a workflow spec sequentially
+
+### `workflow.status`
+
+Show effects, history, visibility
+
+### `workflow.signal`
+
+Send a signal to a running workflow
+
+### `workflow.query`
+
+Query workflow runtime state
+
+### `workflow.list`
+
+List workflows (visibility index)
+
+### `workflow.upsert-sa`
+
+Upsert search attributes for a workflow
+
+### `graph.check`
+
+Validate docs/exec_graph.yaml (acyclic, unique ids)
+
+### `graph.impact`
+
+List nodes impacted (downstream) by the given id
+
+### `cline.locate`
+
+Find Cline storage locations
+
+### `cline.import`
+
+Import Cline task history with idempotent ingest
 
 ### `issue.new`
 
@@ -183,11 +179,15 @@ Show a single issue by ID
 
 Close an issue by ID
 
-### `rules.lint`
+### `demo.hello`
 
-Validate rules front-matter
+Say hello
 
-### `rules.export`
+### `bundle.build`
 
-Export rules bundle
+Build a TracePack bundle
+
+### `bundle.verify`
+
+Verify a TracePack bundle
 

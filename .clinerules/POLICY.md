@@ -10,6 +10,8 @@ This repository uses a strict contracts‑first approach. Agents and humans must
 - Use **task** lifecycle so work is traceable and reproducible (`task bundle`).
 
 Examples:
+- Plan start: `nexoscli dev plans start --output json`
+- Plan finalize: `nexoscli dev plans finalize --output json`
 - New plugin: `nexoscli dev plugin new --name demo --register --yes`
 - Health: `nexoscli dev doctor --ci --checks graph,plugins,events`
 - Contracts: `nexoscli dev docs build` then commit if no drift.

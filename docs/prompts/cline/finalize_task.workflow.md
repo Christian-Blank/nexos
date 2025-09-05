@@ -7,8 +7,8 @@ Input: the single plan in docs/project/current/PLAN-*.md.
 
 ## 0) Pre‑flight
 
-nexoscli dev init --yes
-nexoscli dev doctor --ci --checks graph,plugins,config,events,tools --require plugins,graph
+cargo run -p nexoscli dev init --yes
+cargo run -p nexoscli dev doctor --ci --checks graph,plugins,config,events,tools --require plugins,graph
 
 ---
 
@@ -16,13 +16,13 @@ nexoscli dev doctor --ci --checks graph,plugins,config,events,tools --require pl
 
 cargo build --workspace
 cargo test  --workspace
-nexoscli dev docs build
-nexoscli dev telemetry report --since 24h
+cargo run -p nexoscli dev docs build
+cargo run -p nexoscli dev telemetry report --since 24h
 
 If observability/replay was touched and a bag exists (optional):
 
 # optional if relevant for the plan
-nexoscli replay verify --bag <bag-dir> || true
+cargo run -p nexoscli replay verify --bag <bag-dir> || true
 
 ---
 
@@ -32,15 +32,15 @@ nexoscli replay verify --bag <bag-dir> || true
 - Keep plugin docs in their bounded context folder (co‑located with code).
 - Re‑run:
 
-nexoscli dev docs build
+cargo run -p nexoscli dev docs build
 
 ---
 
 ## 3) Rules maintenance
 
-nexoscli rules lint
-nexoscli rules export --for human --out docs/RULES.md
-nexoscli rules export --for cline --out .clinerules/compiled.md
+cargo run -p nexoscli rules lint
+cargo run -p nexoscli rules export --for human --out docs/RULES.md
+cargo run -p nexoscli rules export --for cline --out .clinerules/compiled.md
 
 Add/update rules if the development process or surfaces changed.
 
@@ -57,7 +57,7 @@ Add/update rules if the development process or surfaces changed.
 
 Create small atomic issues for high‑impact items:
 
-nexoscli issue new --title "Follow-up: <short>" --labels '["plan","followup"]' --body "<what/why>"
+cargo run -p nexoscli issue new --title "Follow-up: <short>" --labels '["plan","followup"]' --body "<what/why>"
 
 ---
 
@@ -87,7 +87,7 @@ PLAN_SHA=$(git rev-parse --short HEAD)
 
 # CLI-native finalize (Rust): writes status=done, implemented_in (HEAD), completed_at;
 # ends task + bundles; moves file to docs/project/done/
-nexoscli dev plans finalize --output json
+cargo run -p nexoscli dev plans finalize --output json
 
 # Commit moved plan file (mark as done with divider sha)
 git add --all
@@ -112,14 +112,14 @@ git commit -m "chore(plans): mark PLAN-<ID> <slug> as done (divider=${PLAN_SHA})
 
   Resolutions:
   - Pause the current active task:
-    nexoscli task pause
+    cargo run -p nexoscli task pause
   - If needed, end the previous task explicitly (best-effort):
-    nexoscli task end --task <TASK_ID> || true
+    cargo run -p nexoscli task end --task <TASK_ID> || true
   - Retry finalize:
-    nexoscli dev plans finalize --output json
+    cargo run -p nexoscli dev plans finalize --output json
 
 - No plan under current/:
   - Ensure a plan was started via:
-    nexoscli dev plans start --output json
+    cargo run -p nexoscli dev plans start --output json
   - Or pass a specific path:
-    nexoscli dev plans finalize --plan docs/project/current/PLAN-XX_slug.md --output json
+    cargo run -p nexoscli dev plans finalize --plan docs/project/current/PLAN-XX_slug.md --output json

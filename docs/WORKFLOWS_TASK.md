@@ -1,5 +1,10 @@
 # Task Workflows
 
+Note on Plans (PLAN-34):
+- Starting a plan via `nexoscli dev plans start` automatically creates and starts a task, updates the plan’s front‑matter, and moves it to `docs/project/current/`.
+- Use the `task` commands below normally to pause/resume/stage/end/bundle as you work.
+- Finalize plans with `nexoscli dev plans finalize` (records `implemented_in`, ends task + bundle best‑effort, moves to `docs/project/done/`).
+
 NEXOS provides workflow engine abstraction for task lifecycle management, allowing you to run task transitions either locally or prepare Temporal workflow envelopes.
 
 ## Engine Selection
