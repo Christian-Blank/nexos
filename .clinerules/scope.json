@@ -41,6 +41,11 @@
       ".clinerules/**",
       "nexoscli-bin/tests/**",
       "docs/**"
+    ],
+    "rules": [
+      "plugins/rules/**",
+      "nexoscli-bin/tests/**",
+      "docs/**"
     ]
   }
 }
