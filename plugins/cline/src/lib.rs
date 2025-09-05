@@ -7,6 +7,7 @@ use time::{OffsetDateTime, Duration, format_description::well_known::Rfc3339};
 use walkdir::WalkDir;
 
 mod correlation;
+mod normalize;
 
 pub struct ClinePlugin;
 impl ClinePlugin { pub fn new() -> Self { Self } }
@@ -110,6 +111,12 @@ impl Plugin for ClinePlugin {
                     .arg(Arg::new("dry-run").long("dry-run").action(ArgAction::SetTrue))
             )
             .subcommand(
+                ClapCommand::new("normalize").about("Normalize Cline tasks → AIM streams (.nexoscli/agents/streams/Cline/<task>/messages.ndjson)")
+                    .arg(Arg::new("since").long("since").value_name("WINDOW"))
+                    .arg(Arg::new("task-id").long("task-id").value_name("ID"))
+                    .arg(Arg::new("overwrite").long("overwrite").action(ArgAction::SetTrue))
+            )
+            .subcommand(
                 ClapCommand::new("correlate").about("Correlate Cline tasks to runs")
                     .arg(Arg::new("run-id").long("run-id").value_name("RUN"))
                     .arg(Arg::new("since").long("since").value_name("WINDOW"))
@@ -159,19 +166,49 @@ impl Plugin for ClinePlugin {
                 };
                 Ok(exit)
             }
+            Some(("normalize", m)) => {
+                let dot = std::env::current_dir()?.join(".nexoscli");
+                let since = parse_since(m.get_one::<String>("since"));
+                let overwrite = m.get_flag("overwrite");
+                let only_task = m.get_one::<String>("task-id").map(|s| s.as_str());
+                let sum = crate::normalize::normalize_since(&dot, since, overwrite, only_task)?;
+                return Ok(ctx.ok("cline","normalize",&serde_json::to_value(sum)?));
+            }
             Some(("correlate", m)) => {
                 let dot = std::env::current_dir()?.join(".nexoscli");
                 let pad = crate::correlation::parse_pad(m.get_one::<String>("pad"));
+                // best-effort ensure AIM streams exist
+                let _ = crate::normalize::normalize_since(&dot, None, false, None);
+
                 if let Some(run) = m.get_one::<String>("run-id") {
                     let rec = crate::correlation::correlate_run(&dot, run, pad)?;
-                    if m.get_flag("write") { crate::correlation::persist_record(&dot, &rec)?; }
-                    return Ok(ctx.ok("cline","correlate.one",&serde_json::to_value(rec)?));
+                    // attach message stats
+                    let msg_stats = correlate_messages_for_run(&dot, &rec);
+                    let mut v = serde_json::to_value(&rec)?;
+                    if let Some(obj) = v.as_object_mut() {
+                        obj.insert("msg_stats".into(), msg_stats);
+                    }
+                    if m.get_flag("write") {
+                        crate::correlation::persist_record(&dot, &rec)?;
+                        // persist sibling messages summary
+                        let corr_dir = dot.join("cline").join("corr");
+                        std::fs::create_dir_all(&corr_dir).ok();
+                        std::fs::write(corr_dir.join(format!("{}.messages.json", rec.run_id)), serde_json::to_vec_pretty(&v)?)?;
+                    }
+                    return Ok(ctx.ok("cline","correlate.one",&v));
                 } else {
                     let since = crate::correlation::parse_since(m.get_one::<String>("since"));
                     let write = m.get_flag("write");
                     let (sum, recs) = crate::correlation::correlate_since(&dot, since, pad, write)?;
+                    // compute message coverage
+                    let mut with_msgs: u64 = 0;
+                    for r in &recs {
+                        let stats = correlate_messages_for_run(&dot, r);
+                        if stats.get("messages_in_window").and_then(|x| x.as_u64()).unwrap_or(0) > 0 { with_msgs += 1; }
+                    }
+                    let msg_cov = if recs.is_empty() { 1.0 } else { with_msgs as f64 / recs.len() as f64 };
                     return Ok(ctx.ok("cline","correlate",&serde_json::json!({
-                        "summary": sum, "count": recs.len(), "examples": recs.iter().take(2).cloned().collect::<Vec<_>>()
+                        "summary": sum, "count": recs.len(), "message_coverage": msg_cov
                     })));
                 }
             }
@@ -527,4 +564,54 @@ fn save_index(outdir: &Path, idx: &Index) -> anyhow::Result<()> {
     if let Some(dir) = p.parent() { fs::create_dir_all(dir)?; }
     fs::write(p, serde_json::to_vec_pretty(idx)?)?;
     Ok(())
+}
+
+/* -------- helper: correlate AIM messages within run window -------- */
+fn correlate_messages_for_run(dot: &std::path::Path, rec: &crate::correlation::CorrRecord) -> serde_json::Value {
+    // derive window
+    let start = time::OffsetDateTime::parse(&rec.window.start, &time::format_description::well_known::Rfc3339).ok();
+    let end   = time::OffsetDateTime::parse(&rec.window.end, &time::format_description::well_known::Rfc3339).ok();
+    if start.is_none() || end.is_none() { return serde_json::json!({}); }
+    let (start, end) = (start.unwrap(), end.unwrap());
+
+    // load AIM streams for listed tasks
+    let mut total = 0u64;
+    let mut by_role = std::collections::BTreeMap::<String,u64>::new();
+    let mut user_ts: Option<time::OffsetDateTime> = None;
+    let mut first_assistant_ts: Option<time::OffsetDateTime> = None;
+    let mut code_blocks = 0u64;
+
+    for t in &rec.tasks {
+        let tid = t.id.clone();
+        let msgs_path = dot.join("agents").join("streams").join("Cline").join(&tid).join("messages.ndjson");
+        if !msgs_path.exists() { continue; }
+        if let Ok(lines) = std::fs::read_to_string(&msgs_path) {
+            for line in lines.lines() {
+                let v: serde_json::Value = match serde_json::from_str(line) { Ok(v) => v, _ => continue };
+                let ts = v.get("created_at").and_then(|x| x.as_str()).and_then(|s| time::OffsetDateTime::parse(s, &time::format_description::well_known::Rfc3339).ok());
+                if ts.is_none() { continue; }
+                let ts = ts.unwrap();
+                if ts < start || ts > end { continue; }
+                total += 1;
+                let role = v.get("role").and_then(|x| x.as_str()).unwrap_or("assistant").to_string();
+                *by_role.entry(role.clone()).or_insert(0) += 1;
+                if role == "user" { user_ts = Some(ts); }
+                if role == "assistant" && first_assistant_ts.is_none() { first_assistant_ts = Some(ts); }
+                if let Some(arr) = v.get("code_blocks").and_then(|x| x.as_array()) { code_blocks += arr.len() as u64; }
+            }
+        }
+    }
+
+    // latency (ms): first assistant reply after latest preceding user msg in window
+    let latency_ms = match (user_ts, first_assistant_ts) {
+        (Some(u), Some(a)) if a >= u => (a - u).whole_milliseconds().max(0) as u64,
+        _ => 0
+    };
+
+    serde_json::json!({
+        "messages_in_window": total,
+        "by_role": by_role,
+        "first_reply_latency_ms": latency_ms,
+        "code_blocks_in_window": code_blocks
+    })
 }

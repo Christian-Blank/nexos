@@ -10,6 +10,7 @@ mod schemas;
 mod fileops;
 mod export;
 mod annotate;
+mod extract;
 
 pub struct ReplayPlugin;
 impl ReplayPlugin { pub fn new() -> Self { Self } }
@@ -626,6 +627,7 @@ impl Plugin for ReplayPlugin {
 
                 // 2b) Include Cline tasks (optional)
                 let mut manifest_cline: Vec<serde_json::Value> = vec![];
+                let mut cline_msgs: u64 = 0;
 
                 if want_cline {
                     // Destination root for cline tasks inside the bag
@@ -730,6 +732,12 @@ impl Plugin for ReplayPlugin {
                     }
                 }
 
+                // Also include AIM messages (AIM streams) overlapping the bag window
+                if want_cline {
+                    let pad = time::Duration::minutes(5);
+                    cline_msgs = crate::extract::include_cline_messages(&default_stage, run_id.as_str(), pad).unwrap_or(0);
+                }
+
                 // 3) Manifest + README
                 // Reload fileops info (if any) recorded during events processing
                 let (mut manifest_fileops, mut fileops_lines) = {
@@ -779,6 +787,7 @@ impl Plugin for ReplayPlugin {
                         "patches": counts.patches,
                         "status": counts.status,
                         "cline": counts.cline,
+                        "cline_messages": cline_msgs,
                         "fileops_lines": fileops_lines
                     },
                     "git": { "from": plan.from, "to": plan.to },

@@ -14,4 +14,5 @@ time = { version = "0.3", features = ["parsing", "formatting"] }
 dirs = "5"
 sha2 = "0.10"
 clap = "4.5"
+regex = { workspace = true }
 spin_sleep = "1"

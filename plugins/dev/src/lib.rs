@@ -321,6 +321,11 @@ impl Plugin for DevPlugin {
                                 .arg(Arg::new("since").long("since").value_name("WINDOW")
                                      .help("24h | 7d | RFC3339 (inclusive)"))
                         )
+                        .subcommand(
+                            Command::new("hai")
+                                .about("Aggregate AI-interaction metrics from AIM streams (.nexoscli/agents/streams/*)")
+                                .arg(Arg::new("since").long("since").value_name("WINDOW"))
+                        )
                 )
                 // dev docs
                 .subcommand(
@@ -933,7 +938,8 @@ endpoint = ""
                                     let (_c_cor, v_cor) = run_cli_json(&cwd, &["cline","correlate","--since","24h","--pad","5m","--dry-run"])?;
                                     let cov = v_cor["data"]["summary"]["coverage"].as_f64().unwrap_or(0.0);
                                     let total = v_cor["data"]["summary"]["runs_total"].as_u64().unwrap_or(0);
-                                    detail = format!("storage={} imported~{} coverage={:.0}% over {} runs", storage, imp, cov*100.0, total);
+                                    let msg_cov = v_cor["data"]["message_coverage"].as_f64().unwrap_or(0.0);
+                                    detail = format!("storage={} imported~{} task_cov={:.0}% msg_cov={:.0}% over {} runs", storage, imp, cov*100.0, msg_cov*100.0, total);
                                 } else {
                                     detail = format!("import dry-run failed for {}", storage);
                                     fix = Some("Inspect storage path; ensure readable JSON files under tasks/".into());
@@ -1169,6 +1175,74 @@ endpoint = ""
                         slowest_commands: slow,
                     };
                     let exit = ctx.ok("dev","telemetry.report",&r);
+                    return Ok(exit);
+                } else if let Some(("hai", m)) = tm.subcommand() {
+                    let since_s = m.get_one::<String>("since").cloned();
+                    let since_ts: Option<OffsetDateTime> = match since_s.as_deref() {
+                        None => None,
+                        Some(s) if s.ends_with('h') => s[..s.len()-1].parse::<i64>().ok().map(|h| OffsetDateTime::now_utc() - Duration::hours(h)),
+                        Some(s) if s.ends_with('d') => s[..s.len()-1].parse::<i64>().ok().map(|d| OffsetDateTime::now_utc() - Duration::days(d)),
+                        Some(s) => OffsetDateTime::parse(s, &Rfc3339).ok(),
+                    };
+
+                    let root = std::env::current_dir()?;
+                    let streams = root.join(".nexoscli").join("agents").join("streams");
+                    let mut prompts: u64 = 0;
+                    let mut responses: u64 = 0;
+                    let mut first_reply_latencies: Vec<u64> = Vec::new();
+                    let mut code_blocks: u64 = 0;
+
+                    if streams.exists() {
+                        for prov in std::fs::read_dir(&streams)? {
+                            let prov = prov?;
+                            if !prov.file_type()?.is_dir() { continue; }
+                            for sid in std::fs::read_dir(prov.path())? {
+                                let sid = sid?;
+                                if !sid.file_type()?.is_dir() { continue; }
+                                let msgs = sid.path().join("messages.ndjson");
+                                if !msgs.exists() { continue; }
+                                let s = std::fs::read_to_string(&msgs)?;
+                                let mut last_user_ts: Option<OffsetDateTime> = None;
+                                let mut counted_reply = false;
+                                for line in s.lines() {
+                                    let v: serde_json::Value = match serde_json::from_str(line) { Ok(v) => v, _ => continue };
+                                    let ts = v.get("created_at").and_then(|x| x.as_str()).and_then(|s| OffsetDateTime::parse(s, &Rfc3339).ok());
+                                    if let Some(since) = since_ts {
+                                        if ts.map(|t| t < since).unwrap_or(false) { continue; }
+                                    }
+                                    let role = v.get("role").and_then(|x| x.as_str()).unwrap_or("assistant");
+                                    match role {
+                                        "user" => { prompts += 1; last_user_ts = ts; counted_reply = false; }
+                                        "assistant" => {
+                                            responses += 1;
+                                            if let (Some(u), Some(a)) = (last_user_ts, ts) {
+                                                if !counted_reply && a >= u {
+                                                    first_reply_latencies.push((a - u).whole_milliseconds().max(0) as u64);
+                                                    counted_reply = true;
+                                                }
+                                            }
+                                            if let Some(arr) = v.get("code_blocks").and_then(|x| x.as_array()) {
+                                                code_blocks += arr.len() as u64;
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    first_reply_latencies.sort_unstable();
+                    let p50 = percentile(&first_reply_latencies, 50.0);
+                    let p90 = percentile(&first_reply_latencies, 90.0);
+                    let out = serde_json::json!({
+                        "since": since_s,
+                        "prompts": prompts,
+                        "responses": responses,
+                        "reply_latency_ms": { "p50": p50, "p90": p90, "count": first_reply_latencies.len() },
+                        "code_blocks": code_blocks
+                    });
+                    let exit = ctx.ok("dev","telemetry.hai",&out);
                     return Ok(exit);
                 }
                 Ok(2)

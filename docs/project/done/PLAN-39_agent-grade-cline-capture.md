@@ -1,3 +1,13 @@
+---
+status: done
+plan_id: '39'
+slug: agent-grade-cline-capture
+task_id: TASK-20250905-import-cline-tasks-unchanged
+started_at: 2025-09-05T19:42:18.268941Z
+source: next
+completed_at: 2025-09-05T20:25:28.920757Z
+implemented_in: a34e74c
+---
 Below is Implementation Plan #39 — “Agent‑grade Cline capture (message‑level normalization & correlation)”
 (hardens Human↔AI observability so experiments are analyzable like fully automated runs)
 

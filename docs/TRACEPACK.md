@@ -434,6 +434,51 @@ Notes
 - Durable artifacts: correlation JSON per run lives under .nexoscli/cline/corr/ and is bundle‑friendly.
 - On-the-fly compute uses the same rule when no persisted record is present.
 
+### Agent Interaction Messages (AIM) — Cline (v0)
+
+AIM streams provide a provider-agnostic, message-level view of Cline activity. Messages are normalized to `.nexoscli/agents/streams/Cline/<task_id>/messages.ndjson` and can be deterministically included in TracePacks/NEXBags filtered to a run's time window (±pad).
+
+Workflow
+```bash
+# 1) Normalize recent Cline tasks into AIM streams
+nexoscli cline normalize --since 24h --overwrite
+
+# 2) Correlate runs to tasks (attaches message stats/coverage in summary)
+nexoscli cline correlate --since 24h --pad 5m --dry-run
+
+# 3) Extract a bag including Cline messages filtered to the run window
+nexoscli replay extract --run-id RUN-... --include cline --out ./tracebag
+# -> writes cline/messages.ndjson and updates manifest.counts.cline_messages
+```
+
+AIM row (example)
+```json
+{
+  "schema": "aim.row.v0",
+  "stream": "Cline/TASK-123",
+  "provider": "Cline",
+  "task_id": "TASK-123",
+  "message_id": "MSG-1",
+  "idx": 0,
+  "role": "user",
+  "created_at": "2025-09-05T12:01:00Z",
+  "text_preview": "Configure CI for ...",
+  "content_digest": "sha256:…",
+  "code_blocks": [
+    { "lang": "bash", "lines": 4, "digest": "sha256:…" }
+  ],
+  "tool_calls": [
+    { "name": "execute_command", "args_digest": "sha256:…" }
+  ],
+  "source_file": ".nexoscli/cline/tasks/TASK-123.json"
+}
+```
+
+Notes
+- Messages are filtered by `created_at` ∈ [run.start..run.end] expanded by pad (default 5m).
+- When no overlap is found, the extractor may include all messages as a deterministic fallback to avoid empty artifacts.
+- The bag manifest records `counts.cline_messages` when messages are included.
+
 ## Cline Tasks (optional)
 
 If you pass `--include cline` (or `--include all`), the extractor selects normalized Cline tasks
@@ -472,6 +517,7 @@ patches/               # git patches from term run
 status/                # git status snapshots
   seq-0001-<name>.status
   seq-0002-<name>.status
+cline/messages.ndjson  # AIM messages filtered to time window (±5m)
 cline/tasks/           # Cline tasks from time window
   2025-09-01T12-00-00Z-task_123.json
   2025-09-01T12-15-30Z-task_456.json
@@ -495,7 +541,8 @@ README.md              # this documentation
     "steps": 3,
     "patches": 2,
     "status": 2,
-    "cline": 2
+    "cline": 2,
+    "cline_messages": 12
   },
   "git": {
     "from": "HEAD~1",
@@ -671,7 +718,8 @@ tracebag/
     events.ndjson       # event_v0.3 lines
     term/commands.ndjson   # (reserved for Phase B)
     files/watch.ndjson     # (optional; reserved)
-  cline/tasks/          # normalized Cline tasks within time window (±5m)
+  cline/messages.ndjson    # AIM messages filtered to time window (±5m)
+  cline/tasks/             # normalized Cline tasks within time window (±5m)
   README.md
 ```
 

@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20250905-import-cline-tasks-unchanged",
+  "title": "Import Cline tasks (unchanged)",
+  "stage": "done",
+  "status": "ended",
+  "created_at": "2025-09-05T19:42:18.25916Z",
+  "started_at": "2025-09-05T19:42:18.267695Z",
+  "ended_at": "2025-09-05T20:25:28.796529Z",
+  "sessions": [
+    {
+      "id": "SES-e7f9602a4f36",
+      "start": "2025-09-05T19:42:18.267726Z",
+      "end": "2025-09-05T20:25:28.796457Z"
+    }
+  ],
+  "notes": []
+}

@@ -13,17 +13,17 @@ Commands:
   tools        Tools & schemas
   completions  Generate shell completions
   man          Print man page to stdout
-  cline        Cline task history (locate/import) with idempotent ingest
-  rules        Rules management (init/lint/export)
-  bundle       TracePack bundles
-  graph        Graph tools
-  demo         Demo plugin
-  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
+  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
   issue        Issue management
-  dev          Developer utilities
   term         Run commands with provenance (non-interactive)
   replay       Replay/extract TracePacks from logged runs
-  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
+  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
+  rules        Rules management (init/lint/export)
+  graph        Graph tools
+  bundle       TracePack bundles
+  cline        Cline task history (locate/import) with idempotent ingest
+  dev          Developer utilities
+  demo         Demo plugin
   help         Print this message or the help of the given subcommand(s)
 
 Options:
@@ -34,6 +34,30 @@ Options:
 ```
 
 ## Tool Specs (for agents)
+
+### `issue.new`
+
+Create a new local issue
+
+### `issue.list`
+
+List issues (optionally by state)
+
+### `issue.show`
+
+Show a single issue by ID
+
+### `issue.close`
+
+Close an issue by ID
+
+### `bundle.build`
+
+Build a TracePack bundle
+
+### `bundle.verify`
+
+Verify a TracePack bundle
 
 ### `dev.init`
 
@@ -75,6 +99,30 @@ Show plan front-matter and derived ids
 
 Show the next plan candidate (docs/project/next)
 
+### `demo.hello`
+
+Say hello
+
+### `cline.locate`
+
+Find Cline storage locations
+
+### `cline.import`
+
+Import Cline task history with idempotent ingest
+
+### `cline.correlate`
+
+Correlate Cline tasks to runs by time
+
+### `rules.lint`
+
+Validate rules front-matter
+
+### `rules.export`
+
+Export rules bundle
+
 ### `replay.bag.verify`
 
 Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
@@ -111,13 +159,13 @@ Derive fileops.ndjson from a bag's patches
 
 Export bag artifacts to CSV
 
-### `bundle.build`
+### `graph.check`
 
-Build a TracePack bundle
+Validate docs/exec_graph.yaml (acyclic, unique ids)
 
-### `bundle.verify`
+### `graph.impact`
 
-Verify a TracePack bundle
+List nodes impacted (downstream) by the given id
 
 ### `workflow.init`
 
@@ -154,52 +202,4 @@ List workflows (visibility index)
 ### `workflow.upsert-sa`
 
 Upsert search attributes for a workflow
-
-### `issue.new`
-
-Create a new local issue
-
-### `issue.list`
-
-List issues (optionally by state)
-
-### `issue.show`
-
-Show a single issue by ID
-
-### `issue.close`
-
-Close an issue by ID
-
-### `graph.check`
-
-Validate docs/exec_graph.yaml (acyclic, unique ids)
-
-### `graph.impact`
-
-List nodes impacted (downstream) by the given id
-
-### `cline.locate`
-
-Find Cline storage locations
-
-### `cline.import`
-
-Import Cline task history with idempotent ingest
-
-### `cline.correlate`
-
-Correlate Cline tasks to runs by time
-
-### `rules.lint`
-
-Validate rules front-matter
-
-### `rules.export`
-
-Export rules bundle
-
-### `demo.hello`
-
-Say hello
 

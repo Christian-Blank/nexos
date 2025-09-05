@@ -235,7 +235,7 @@ nexoscli dev doctor --ci --checks events-rotation --require events-rotation
 - Include doctor checks in CI/CD pipelines  
 - Monitor task coverage metrics to track workflow adoption
 - Use `--require` flag to enforce critical checks in automated environments
-- Cline correlation coverage (info): `nexoscli dev doctor --ci --checks cline` runs `cline locate` and a dry‑run `cline import`, then computes coverage via `cline correlate --since 24h --pad 5m --dry-run` and reports it in the cline check detail. Ensure host globalStorage is mounted or set `NEXOS_CLINE_STORAGE` in Dev Containers/CI.
+- Cline correlation coverage (info): `nexoscli dev doctor --ci --checks cline` runs `cline locate` and a dry‑run `cline import`, then computes task coverage and message_coverage via `cline correlate --since 24h --pad 5m --dry-run` and reports both in the cline check detail. Ensure host globalStorage is mounted or set `NEXOS_CLINE_STORAGE` in Dev Containers/CI.
 
 ## TracePack & NEXBags (TracePack v0.2)
 

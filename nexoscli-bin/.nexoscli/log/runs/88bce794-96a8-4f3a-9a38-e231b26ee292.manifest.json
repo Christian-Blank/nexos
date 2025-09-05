@@ -1,0 +1,14 @@
+{
+  "chain_ok": true,
+  "count": 1,
+  "first_hash": "sha256:0e84285b2f298db5c3010b3242f84002bd0049b55e95b162ed45a74e46ba1cde",
+  "first_seq": 1,
+  "last_hash": "sha256:0e84285b2f298db5c3010b3242f84002bd0049b55e95b162ed45a74e46ba1cde",
+  "last_seq": 1,
+  "run_id": "88bce794-96a8-4f3a-9a38-e231b26ee292",
+  "time_range": {
+    "from": "2025-09-05T20:24:42.874225Z",
+    "to": "2025-09-05T20:24:42.874225Z"
+  },
+  "version": "0.2"
+}
