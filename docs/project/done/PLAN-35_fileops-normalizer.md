@@ -1,3 +1,13 @@
+---
+status: done
+plan_id: '35'
+slug: fileops-normalizer
+task_id: TASK-20250905-build
+started_at: 2025-09-05T08:54:55.767863Z
+source: next
+completed_at: 2025-09-05T09:07:17.499897Z
+implemented_in: f229c08
+---
 Below is Implementation Plan #35 — “FileOps normalizer (v0)”.
 It generates fileops.ndjson for each run/bag in the canonical schema nexos/fileops@0.1 and wires it into replay extract, so every TracePack includes machine‑readable file operations (create/modify/delete/rename) derived from the captured patches.
 

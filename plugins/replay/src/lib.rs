@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 use time::format_description::well_known::Rfc3339;
 
 mod schemas;
+mod fileops;
 
 pub struct ReplayPlugin;
 impl ReplayPlugin { pub fn new() -> Self { Self } }
@@ -258,6 +259,20 @@ struct ValidateResult {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct FileopsDeriveArgs {
+    bag: String,
+    #[serde(default)]
+    out: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct FileopsDeriveResult {
+    bag: String,
+    out: String,
+    lines: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 struct V03Event {
     #[serde(default = "v03_schema_tag")]
     schema: String,          // fixed: "nexos/events@0.3"
@@ -346,6 +361,14 @@ impl Plugin for ReplayPlugin {
                     Command::new("validate").about("Validate bag artifacts against schemas")
                         .arg(Arg::new("bag").long("bag").required(true).value_name("DIR"))
                         .arg(Arg::new("what").long("what").value_parser(["events","fileops","all"]).default_value("all"))
+                )
+                .subcommand(
+                    Command::new("fileops").about("FileOps utilities")
+                        .subcommand(
+                            Command::new("derive").about("Derive fileops.ndjson from bag patches")
+                                .arg(Arg::new("bag").long("bag").required(true).value_name("DIR"))
+                                .arg(Arg::new("out").long("out").value_name("PATH"))
+                        )
                 )
                 .subcommand(
                     Command::new("bag").about("TracePack v0.2 bag operations")
@@ -642,7 +665,7 @@ impl Plugin for ReplayPlugin {
 
                 // 3) Manifest + README
                 // Reload fileops info (if any) recorded during events processing
-                let (manifest_fileops, fileops_lines) = {
+                let (mut manifest_fileops, mut fileops_lines) = {
                     let mf_path = default_stage.join(".fileops.manifest.json");
                     let fl_path = default_stage.join(".fileops.lines");
                     if mf_path.exists() {
@@ -652,6 +675,30 @@ impl Plugin for ReplayPlugin {
                         (v, ln)
                     } else { (None, 0) }
                 };
+
+                // PLAN-35: derive fileops from patches if not already included via fs.topic
+                if manifest_fileops.is_none() {
+                    let patches_dir = default_stage.join("patches");
+                    if patches_dir.is_dir() {
+                        if let Ok(rows) = crate::fileops::derive_for_bag(&default_stage, Some(run_id.as_str()), last_ts.as_deref()) {
+                            let dst_rel = std::path::Path::new("fileops").join("fileops.ndjson");
+                            let dst_abs = default_stage.join(&dst_rel);
+                            if let Ok(n) = crate::fileops::write_fileops_ndjson(&dst_abs, &rows) {
+                                let bytes = std::fs::read(&dst_abs).unwrap_or_default();
+                                let sha = sha256(&bytes);
+                                manifest_fileops = Some(serde_json::json!({
+                                    "dst": dst_rel.display().to_string(),
+                                    "sha256": sha,
+                                    "bytes": bytes.len() as u64,
+                                    "lines": n as u64,
+                                    "from": serde_json::Value::Null,
+                                    "to": serde_json::Value::Null
+                                }));
+                                fileops_lines = n as u64;
+                            }
+                        }
+                    }
+                }
 
                 let manifest = serde_json::json!({
                     "version": "0.1",
@@ -918,6 +965,59 @@ impl Plugin for ReplayPlugin {
                     ctx.err("replay","validate","replay.validate.failed","validation failed",None,2)
                 };
                 Ok(exit)
+            }
+
+            Some(("fileops", fsm)) => {
+                match fsm.subcommand() {
+                    Some(("derive", dsm)) => {
+                        let bag = dsm.get_one::<String>("bag").unwrap().to_string();
+                        let out_opt = dsm.get_one::<String>("out").cloned();
+
+                        // Try to read manifest.json for run_id and time_range end
+                        let mut rid: Option<String> = None;
+                        let mut ts_to: Option<String> = None;
+                        let man_path = std::path::Path::new(&bag).join("manifest.json");
+                        if man_path.exists() {
+                            if let Ok(raw) = std::fs::read(&man_path) {
+                                if let Ok(v) = serde_json::from_slice::<serde_json::Value>(&raw) {
+                                    rid = v.get("run_id").and_then(|x| x.as_str()).map(|s| s.to_string());
+                                    ts_to = v.pointer("/time_range/to")
+                                        .or_else(|| v.pointer("/time_range/end"))
+                                        .and_then(|x| x.as_str())
+                                        .map(|s| s.to_string());
+                                }
+                            }
+                        }
+
+                        let rows = match fileops::derive_for_bag(std::path::Path::new(&bag), rid.as_deref(), ts_to.as_deref()) {
+                            Ok(r) => r,
+                            Err(e) => {
+                                let exit = ctx.err("replay","fileops.derive","replay.fileops.derive.failed",&format!("derive error: {}", e),None,2);
+                                return Ok(exit);
+                            }
+                        };
+
+                        let out_path = if let Some(o) = out_opt {
+                            std::path::PathBuf::from(o)
+                        } else {
+                            fileops::default_cli_out_for_bag(std::path::Path::new(&bag))
+                        };
+                        let n = match fileops::write_fileops_ndjson(&out_path, &rows) {
+                            Ok(n) => n,
+                            Err(e) => {
+                                let exit = ctx.err("replay","fileops.derive","replay.fileops.derive.failed",&format!("write error: {}", e),None,2);
+                                return Ok(exit);
+                            }
+                        };
+                        let exit = ctx.ok("replay","fileops.derive",&serde_json::json!({
+                            "bag": bag,
+                            "out": out_path.display().to_string(),
+                            "lines": n
+                        }));
+                        Ok(exit)
+                    }
+                    _ => Ok(ctx.err("replay","fileops","replay.fileops.failed","unknown fileops subcommand",None,2))
+                }
             }
 
             Some(("bag", sm)) => {
@@ -1379,6 +1479,12 @@ impl Plugin for ReplayPlugin {
                 about: "Validate bag artifacts (events/fileops) against schemas".to_string(),
                 args_schema: schema_for!(ValidateArgs),
                 result_schema: schema_for!(ValidateResult),
+            },
+            ToolSpec{
+                name: "replay.fileops.derive".to_string(),
+                about: "Derive fileops.ndjson from a bag's patches".to_string(),
+                args_schema: schema_for!(FileopsDeriveArgs),
+                result_schema: schema_for!(FileopsDeriveResult),
             }
         ]
     }

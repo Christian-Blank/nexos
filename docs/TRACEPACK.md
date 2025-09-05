@@ -41,6 +41,7 @@ patches/               # git patches from term run
 status/                # git status snapshots
   seq-0001-<name>.status
   seq-0002-<name>.status  
+fileops/fileops.ndjson          # derived file operations (Plan-35)
 README.md              # this documentation
 ```
 
@@ -93,6 +94,27 @@ git checkout -b test-replay
 for patch in tracepack/patches/seq-*.patch; do
   git apply "$patch"
 done
+```
+
+### File Operations (Plan-35)
+
+When file-change topic (fs-topic) is not present, file operations are derived from patches:
+
+- Derivation: replay extract scans patches/seq-*.patch unified diffs and classifies ops by headers:
+  - "new file mode" → create
+  - "deleted file mode" → delete
+  - "rename from"/"rename to" → rename
+  - otherwise → modify
+- Output: fileops/fileops.ndjson is written and linked in manifest.json as fileops with counts.fileops_lines.
+- Validation: replay validate resolves fileops/fileops.ndjson or fileops.ndjson.
+
+Standalone derivation and validation:
+```bash
+# Derive fileops.ndjson from a bag directory (patches present)
+nexoscli replay fileops derive --bag ./tracepack --out ./fileops.ndjson --output json
+
+# Validate only fileops in a bag directory
+nexoscli replay validate --bag ./tracepack --what fileops --output json
 ```
 
 ## Integration with CLI Workflows
