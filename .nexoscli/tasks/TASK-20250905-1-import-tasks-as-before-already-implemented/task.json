@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20250905-1-import-tasks-as-before-already-implemented",
+  "title": "1) Import tasks as before (already implemented)",
+  "stage": "done",
+  "status": "ended",
+  "created_at": "2025-09-05T19:30:37.099295Z",
+  "started_at": "2025-09-05T19:30:37.10768Z",
+  "ended_at": "2025-09-05T19:30:37.861951Z",
+  "sessions": [
+    {
+      "id": "SES-c08adbebb7eb",
+      "start": "2025-09-05T19:30:37.107713Z",
+      "end": "2025-09-05T19:30:37.861846Z"
+    }
+  ],
+  "notes": []
+}

@@ -6,11 +6,11 @@ Run the standard pre‑flight (nexoscli dev init, nexoscli dev doctor --ci ...) 
 
 ⸻
 
-Plan #41 — Env & Repo Snapshot (P0)
+Plan #40 — Env & Repo Snapshot (P0)
 
 Goal: Every TracePack (bag) records tool versions, OS/arch, and repo state (branch/HEAD/dirty) in the manifest.
 
-41.1 Add helpers to the replay plugin
+40.1 Add helpers to the replay plugin
 
 File: plugins/replay/src/lib.rs
 Add these near other helpers (or in a new util.rs and mod util; if you prefer).
@@ -58,7 +58,7 @@ fn collect_git_snapshot(repo_root: &Path) -> serde_json::Value {
     })
 }
 
-41.2 Write snapshots into bag manifest during extract
+40.2 Write snapshots into bag manifest during extract
 
 Where you build the TracePack manifest (in your replay extract implementation), extend it:
 
@@ -71,7 +71,7 @@ manifest["git"]   = collect_git_snapshot(&repo_root);
 
 This is additive and backward compatible with the current manifest.
 
-41.3 Tiny helper (optional): dev env print
+40.3 Tiny helper (optional): dev env print
 
 File: plugins/dev/src/lib.rs
 Add a small command to print what we capture (handy for debugging).
@@ -134,11 +134,11 @@ pub(super) fn collect_git_snapshot_for_dev(root: &std::path::Path) -> serde_json
 
 ⸻
 
-Plan #42 — Verify++ & Doctor v0 profile (P0)
+Plan #41 — Verify++ & Doctor v0 profile (P0)
 
 Goal: replay verify validates schemas, counts, patch dry‑run, and warns on missing Cline coverage. Add --profile v0 to dev doctor.
 
-42.1 Add JSON‑schema validation to replay verify
+41.1 Add JSON‑schema validation to replay verify
 
 File: plugins/replay/Cargo.toml
 
@@ -281,7 +281,7 @@ if patches_dir.exists() {
     verify_report.patches_check = Some(ok_all);
 }
 
-42.3 Cline coverage guard
+41.3 Cline coverage guard
 
 // Warn if term.run present but no cline artifacts
 let has_term = std::fs::read_to_string(&events_p)
@@ -299,7 +299,7 @@ if has_term && !has_cline {
     verify_report.warnings.push("cline_coverage_zero".into());
 }
 
-42.4 Doctor v0 profile
+41.4 Doctor v0 profile
 
 File: plugins/dev/src/lib.rs
 	•	Extend the doctor subcommand CLI:
@@ -335,13 +335,13 @@ The rest of the doctor code can stay as‑is; this just presets sensible gates f
 
 ⸻
 
-Plan #43 — Labels: env → bag + event normalization (P0)
+Plan #42 — Labels: env → bag + event normalization (P0)
 
 Goal: Make it easy to label experiments consistently. We’ll support post‑hoc annotation at bag level (manifest.labels) and write those labels into normalized events rows (attrs.labels) so analysts can filter by label directly.
 
 We intentionally avoid touching the protected core to inject labels at emit‑time. For v0, post‑hoc labeling at bag level and events@0.3 rewriting is sufficient and deterministic.
 
-43.1 Extend replay annotate
+42.1 Extend replay annotate
 
 File: plugins/replay/src/lib.rs
 	•	Extend CLI to accept labels and to inject labels into events:
@@ -435,11 +435,11 @@ This guarantees the labels are in the manifest and in every events row, which ma
 
 ⸻
 
-Plan #44 — Dataset Card & Analyst Quickstart (P0)
+Plan #43 — Dataset Card & Analyst Quickstart (P0)
 
 Goal: Every bag includes a dataset card (README) with what/when/how + “load me” code. Add a top-level Quickstart doc for analysts.
 
-44.1 Generate dataset card on extract/verify
+43.1 Generate dataset card on extract/verify
 
 File: plugins/replay/src/lib.rs — add helper and call it at the end of extract and in verify --fix-readme (optional).
 
@@ -484,7 +484,7 @@ Call it:
 
 write_dataset_card(&bag_dir, &manifest).ok();
 
-44.2 Add an analyst quickstart doc
+43.2 Add an analyst quickstart doc
 
 File: docs/analysis/QUICKSTART.md
 
@@ -533,7 +533,7 @@ if msgs_file.exists():
 
 ---
 
-## Plan #45 — v0 Acceptance E2E (P0)
+## Plan #44 — v0 Acceptance E2E (P0)
 
 **Goal:** One end‑to‑end test that exercises extract → verify → annotate → export → doctor with minimal synthetic data.
 
@@ -626,23 +626,11 @@ Already in tree from earlier steps; verify counts & schema now enforced.
 Annotate landed (manifest + events labels). CSV export already present; Parquet is P1.
 	•	#37 Cline correlation hardening
 Verify warns on cline=0 when term.run is present; earlier plans added messages capture path.
-	•	#41 Env & Repo Snapshot ✅ (this PR)
-	•	#42 Verify++ & Doctor‑v0 ✅ (this PR)
-	•	#43 Labels consistency (env → bag/events) ✅ (post‑hoc annotate)
-	•	#44 Dataset card & Quickstart ✅ (bag/README.md + docs/analysis/QUICKSTART.md)
-	•	#45 v0 E2E ✅ (new test)
-
-P1 (nice next immediately after ship)
-	•	#46 Parquet export
-Add replay export --format parquet using parquet2/arrow2 (feature‑gated).
-	•	#47 Catalog
-replay catalog add|list|rm with .nexoscli/tracepacks/index.json.
-	•	#48 Scrub & Publish
-Policy‑driven scrub pass + manifest.scrubbed=true + doctor soft gate.
-	•	#49 Cohorts
-Cross‑run rollups by labels → minimal CSV/JSON aggregates.
-	•	#50 Rules DRI workflow (local)
-Encode DRI as a YAML workflow (same activity contracts) to be Temporal‑ready.
+	•	#40 Env & Repo Snapshot ✅ (this PR)
+	•	#41 Verify++ & Doctor‑v0 ✅ (this PR)
+	•	#42 Labels consistency (env → bag/events) ✅ (post‑hoc annotate)
+	•	#43 Dataset card & Quickstart ✅ (bag/README.md + docs/analysis/QUICKSTART.md)
+	•	#44 v0 E2E ✅ (new test)
 
 Notes / adjustments learned while implementing:
 	•	For label propagation, editing protected core to inject env labels into live events would require an ADR. The v0‑friendly compromise is post‑hoc labeling during normalization/annotation, which still gives analysts row‑level labels with zero drift risk. If we want emit‑time labels later, we’ll draft a tiny ADR to add a labels passthrough to the core envelope.

@@ -1,3 +1,13 @@
+---
+status: done
+plan_id: '38'
+slug: cline-correlation-handling
+task_id: TASK-20250905-1-import-tasks-as-before-already-implemented
+started_at: 2025-09-05T19:30:37.109008Z
+source: next
+completed_at: 2025-09-05T19:30:37.952585Z
+implemented_in: '0813762'
+---
 Below is Implementation Plan #38 — “Cline correlation hardening”
 (closes the loop for Human‑AI experiments; makes Cline ↔ runs/bags correlation first‑class, durable, and analyzable)
 
