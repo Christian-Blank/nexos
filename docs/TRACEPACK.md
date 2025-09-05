@@ -733,6 +733,88 @@ Notes:
 - Event chain verification uses content_hash over the canonical subset and chain_hash(prev+content_hash), per event.v0.3.
 - Cline tasks are included based on file mtime within a padded window around the run time range (±5 minutes).
 
+## Manifest additions (Plan-40)
+
+To improve auditability and analysis, the extractor augments manifest.json with environment and repo context, plus deterministic counts:
+
+- tools: versions of nexoscli, rustc, cargo (best-effort; nulls possible)
+- env: OS/arch of the host building the pack
+- git: branch, head, dirty plus the existing {from,to} range
+- counts: always includes events_lines; conditionally includes fileops and cline_messages
+  - For back-compat, counts.fileops_lines may also be present and equals counts.fileops
+
+Example (additions highlighted):
+```json
+{
+  "version": "0.1",
+  "kind": "tracepack",
+  "run_id": "RUN-...",
+  "created_at": "2025-09-02T07:30:00Z",
+  "time_range": { "from": "2025-09-02T07:29:15Z", "to": "2025-09-02T07:29:45Z" },
+  "counts": {
+    "events_lines": 124,
+    "patches": 2,
+    "status": 2,
+    "fileops": 6,              // optional
+    "cline_messages": 18        // optional
+  },
+  "tools": {
+    "nexoscli": "nexoscli 0.1.0 (rev ...)",
+    "rustc": "rustc 1.80.0 (...)",
+    "cargo": "cargo 1.80.0 (...)"
+  },
+  "env": {
+    "os": "macos",
+    "arch": "x86_64"
+  },
+  "git": {
+    "from": "HEAD~1",
+    "to": "HEAD",
+    "branch": "main",
+    "head": "abc1234...",
+    "dirty": false
+  }
+}
+```
+
+Notes
+- All snapshot fields are best-effort: extractor never fails if tools or git are unavailable.
+- counts.fileops_lines can appear for legacy consumers; counts.fileops is the canonical boolean-matching target in verify++.
+
+## Verify++ (Plan-41)
+
+The top-level verifier now performs richer validation and emits structured info suitable for CI gating:
+
+- Schema validation (streaming):
+  - events.ndjson against nexos/events@0.3 (when present)
+  - fileops/fileops.ndjson against nexos/fileops@0.1 (when advertised)
+  - Per-artifact report: { ok, lines, valid, invalid, errors[] }
+- Counts check:
+  - Recompute events/fileops line counts; compare to manifest.counts
+  - Emit counts_match booleans; missing counts are warn-only
+- Patch dry-run:
+  - If patches/* exist and --git-check is passed, run git apply --check; aggregate to patches_check
+- Cline coverage (warn-only):
+  - had_term_run if any term.run exists in events
+  - has_cline_artifacts if cline/messages.ndjson has lines or cline/tasks/* exist
+  - If had_term_run && !has_cline_artifacts → warning cline_coverage_zero
+
+Result shape (excerpt):
+```json
+{
+  "data": {
+    "ok": true,
+    "events": { "ok": true, "lines": 124, "valid": 124, "invalid": 0, "errors": [] },
+    "fileops": { "ok": true, "lines": 6, "valid": 6, "invalid": 0, "errors": [] },
+    "counts_match": { "events_lines": true, "fileops": true },
+    "patches_check": true,
+    "cline_coverage": { "had_term_run": true, "has_cline_artifacts": true, "warning": null }
+  }
+}
+```
+
+- ok decision (v0): events.ok && fileops.ok && patches_check (if patches exist). Counts mismatch and cline coverage remain warnings.
+
 ## Verify & Explain
 
 Use the top-level verifier to validate a TracePack (directory or .tgz) and get actionable explanations. Output is always wrapped in a stable JSON envelope suitable for CI.

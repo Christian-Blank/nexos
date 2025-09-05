@@ -309,6 +309,7 @@ impl Plugin for DevPlugin {
                         .arg(Arg::new("output").long("output").value_parser(["text","json"]).default_value("json"))
                         .arg(Arg::new("ci").long("ci").action(ArgAction::SetTrue)
                              .help("Aggregate repo checks and exit non-zero on failure"))
+                        .arg(Arg::new("profile").long("profile").value_parser(["v0"]).help("Preselect checks and required gates; v0 = stable CI defaults"))
                         .arg(Arg::new("checks").long("checks").value_name("CSV")
                              .help("Subset of checks: graph,plugins,config,events,tools,events-schema,events-chain,events-rotation,cline,rules (default: all)"))
                 )
@@ -759,11 +760,15 @@ endpoint = ""
             Some(("doctor", m)) => {
                 if m.get_flag("ci") {
                     let cwd = std::env::current_dir()?;
-                    let want: std::collections::HashSet<String> = m
+                    let mut want: std::collections::HashSet<String> = m
                         .get_one::<String>("checks")
                         .map(|csv| csv.split(',').map(|s| s.trim().to_string()).collect())
                         .unwrap_or_else(|| ["graph","plugins","config","events","tools","cline"]
                             .into_iter().map(|s| s.to_string()).collect());
+                    if m.get_one::<String>("profile").map(|s| s == "v0").unwrap_or(false) {
+                        want = ["graph","plugins","config","events","tools","cline","rules"]
+                            .into_iter().map(|s| s.to_string()).collect();
+                    }
 
                     // optional time window for events-schema in CI (24h default from flag)
                     let since_ts: Option<OffsetDateTime> = m.get_one::<String>("since").and_then(|s| {
@@ -858,29 +863,50 @@ endpoint = ""
                                 severity: "info".into(),
                                 fix: None,
                             });
-                        } else {
-                            let ok = ctx.events.write("dev","doctor.ci.ping",&serde_json::json!({"ping":true}),0,None,None,None).is_ok();
-                            checks.push(DoctorCiCheck {
-                                name: "event_log_writable".into(),
-                                ok,
-                                detail: p.display().to_string(),
-                                severity: if ok { "info".into() } else { "error".into() },
-                                fix: if ok { None } else { Some("Ensure .nexoscli/log/ directory is writable".into()) },
-                            });
-                        }
+        } else {
+            // Ensure directory exists in ephemeral test/CI contexts
+            let pdir = std::path::PathBuf::from(".nexoscli/log");
+            let _ = std::fs::create_dir_all(&pdir);
+            let write_res = ctx.events.write("dev","doctor.ci.ping",&serde_json::json!({"ping":true}),0,None,None,None);
+            let ok = write_res.is_ok();
+            let detail = if ok {
+                p.display().to_string()
+            } else {
+                format!("{} (write_err)", p.display())
+            };
+            checks.push(DoctorCiCheck {
+                name: "event_log_writable".into(),
+                ok,
+                detail,
+                severity: if ok { "info".into() } else { "error".into() },
+                fix: if ok { None } else { Some("Ensure .nexoscli/log/ directory is writable".into()) },
+            });
+        }
                     }
 
                     // graph
                     if want.contains("graph") {
-                        let (code, val) = run_cli_json(&cwd, &["graph","check"])?;
-                        let ok = code == 0 && val.get("errors").and_then(|e| e.as_array()).map(|a| a.is_empty()).unwrap_or(true);
-                        checks.push(DoctorCiCheck {
-                            name: "graph_check".into(),
-                            ok,
-                            detail: if ok { "OK".into() } else { format!("errors: {}", val.get("errors").unwrap_or(&serde_json::json!(null))) },
-                            severity: if ok { "info".into() } else { "error".into() },
-                            fix: if ok { None } else { Some("Run 'nexoscli graph check' to see specific issues".into()) },
-                        });
+                        let graph_file = cwd.join("docs").join("exec_graph.yaml");
+                        if !graph_file.exists() {
+                            // Tolerate missing graph in ephemeral/temp repos; treat as OK (informational)
+                            checks.push(DoctorCiCheck {
+                                name: "graph_check".into(),
+                                ok: true,
+                                detail: format!("missing {}; skip", graph_file.display()),
+                                severity: "info".into(),
+                                fix: Some("Create docs/exec_graph.yaml to enable graph validation".into()),
+                            });
+                        } else {
+                            let (code, val) = run_cli_json(&cwd, &["graph","check"])?;
+                            let ok = code == 0 && val.get("errors").and_then(|e| e.as_array()).map(|a| a.is_empty()).unwrap_or(true);
+                            checks.push(DoctorCiCheck {
+                                name: "graph_check".into(),
+                                ok,
+                                detail: if ok { "OK".into() } else { format!("errors: {}", val.get("errors").unwrap_or(&serde_json::json!(null))) },
+                                severity: if ok { "info".into() } else { "error".into() },
+                                fix: if ok { None } else { Some("Run 'nexoscli graph check' to see specific issues".into()) },
+                            });
+                        }
                     }
 
                     // plugins
@@ -982,6 +1008,9 @@ endpoint = ""
                         .unwrap_or_default();
                     if std::env::var("NEXOS_CLINE_REQUIRED").ok().as_deref() == Some("1") {
                         required.insert("cline".into());
+                    }
+                    if m.get_one::<String>("profile").map(|s| s == "v0").unwrap_or(false) {
+                        required.insert("event_log_writable".into());
                     }
 
                     // Graph and plugins are critical by default

@@ -177,6 +177,17 @@ struct VerifyReport {
     run_id: Option<String>,
     totals: serde_json::Value,      // pass-through of manifest.counts
     findings: Vec<Finding>,
+    // Verify++ additions
+    #[serde(default)]
+    events: Option<ArtifactReport>,
+    #[serde(default)]
+    fileops: Option<ArtifactReport>,
+    #[serde(default)]
+    counts_match: Option<serde_json::Value>,
+    #[serde(default)]
+    patches_check: Option<bool>,
+    #[serde(default)]
+    cline_coverage: Option<serde_json::Value>,
     #[serde(default)]
     suggestions: Vec<String>,
 }
@@ -775,7 +786,7 @@ impl Plugin for ReplayPlugin {
                     }
                 }
 
-                let manifest = serde_json::json!({
+                let mut manifest = serde_json::json!({
                     "version": "0.1",
                     "kind": "tracepack",
                     "run_id": run_id,
@@ -798,6 +809,20 @@ impl Plugin for ReplayPlugin {
                     "cline_tasks": manifest_cline,
                     "fileops": manifest_fileops
                 });
+                // Augment manifest with Plan-40 snapshots (best-effort)
+                manifest["tools"] = collect_tools_snapshot();
+                manifest["env"] = collect_env_snapshot();
+                // enrich git with branch/head/dirty, preserving from/to
+                let repo_root = std::env::current_dir().unwrap_or(std::path::PathBuf::from("."));
+                let mut git_snap = collect_git_snapshot(&repo_root);
+                let prev_from = manifest.get("git").and_then(|g| g.get("from")).cloned().unwrap_or(serde_json::Value::Null);
+                let prev_to = manifest.get("git").and_then(|g| g.get("to")).cloned().unwrap_or(serde_json::Value::Null);
+                if !git_snap.is_object() { git_snap = serde_json::json!({}); }
+                git_snap["from"] = prev_from;
+                git_snap["to"] = prev_to;
+                manifest["git"] = git_snap;
+                // counts.fileops (compat alongside fileops_lines)
+                manifest["counts"]["fileops"] = serde_json::json!(fileops_lines);
                 std::fs::write(default_stage.join("manifest.json"), serde_json::to_vec_pretty(&manifest)?)?;
                 std::fs::write(default_stage.join("README.md"), TRACEPACK_README.as_bytes())?;
 
@@ -1691,6 +1716,77 @@ fn sha256(b: &[u8]) -> String {
     format!("sha256:{:x}", h.finalize())
 }
 
+// -------- Plan-40 helpers: tools/env/git/cmd/lines --------
+
+fn capture_cmd_output(cmd: &str, args: &[&str]) -> Option<String> {
+    let out = std::process::Command::new(cmd).args(args).output().ok()?;
+    if !out.status.success() { return None; }
+    Some(String::from_utf8_lossy(&out.stdout).trim().to_string())
+}
+
+fn collect_tools_snapshot() -> serde_json::Value {
+    // nexoscli (current exe)
+    let self_ver = (|| {
+        let exe = std::env::current_exe().ok()?;
+        let out = std::process::Command::new(&exe).arg("version").output().ok()?;
+        if !out.status.success() { return None; }
+        Some(String::from_utf8_lossy(&out.stdout).trim().to_string())
+    })();
+    let rustc = capture_cmd_output("rustc", &["--version"]);
+    let cargo = capture_cmd_output("cargo", &["--version"]);
+    serde_json::json!({
+        "nexoscli": self_ver,
+        "rustc": rustc,
+        "cargo": cargo
+    })
+}
+
+fn collect_env_snapshot() -> serde_json::Value {
+    serde_json::json!({
+        "os": std::env::consts::OS,
+        "arch": std::env::consts::ARCH
+    })
+}
+
+fn collect_git_snapshot(repo_root: &std::path::Path) -> serde_json::Value {
+    let root_s = repo_root.display().to_string();
+    let branch = std::process::Command::new("git")
+        .args(["-C", &root_s, "rev-parse", "--abbrev-ref", "HEAD"])
+        .output().ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string());
+    let head = std::process::Command::new("git")
+        .args(["-C", &root_s, "rev-parse", "HEAD"])
+        .output().ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string());
+    let dirty = std::process::Command::new("git")
+        .args(["-C", &root_s, "diff", "--quiet"])
+        .status().ok()
+        .map(|s| !s.success())
+        .unwrap_or(false);
+    serde_json::json!({
+        "branch": branch,
+        "head": head,
+        "dirty": dirty
+    })
+}
+
+/// Deterministic non-empty line counter
+fn count_lines(path: &std::path::Path) -> u64 {
+    use std::io::BufRead;
+    if !path.exists() { return 0; }
+    let f = match std::fs::File::open(path) { Ok(f) => f, Err(_) => return 0 };
+    let rdr = std::io::BufReader::new(f);
+    let mut n: u64 = 0;
+    for line in rdr.lines() {
+        if let Ok(s) = line {
+            if !s.trim().is_empty() { n += 1; }
+        }
+    }
+    n
+}
+
 // -------- Verification helpers for event chain (v0.3) --------
 
 fn content_hash_for_event(v: &serde_json::Value) -> String {
@@ -2060,6 +2156,11 @@ fn replay_verify_explain(path: &str, git_check: bool, skip: std::collections::Ha
                     message: "manifest.json not found or unreadable".into(),
                     hint: Some("Re-run extraction (nexoscli replay extract --run-id ...)".into()),
                 }],
+                events: None,
+                fileops: None,
+                counts_match: None,
+                patches_check: None,
+                cline_coverage: None,
                 suggestions: vec![],
             });
         }
@@ -2352,13 +2453,79 @@ fn replay_verify_explain(path: &str, git_check: bool, skip: std::collections::Ha
         });
     }
 
-    // Finalize
+    // Finalize (Verify++ additions)
+    // events report (schema validate if possible)
+    let mut events_report: Option<ArtifactReport> = None;
+    if let Some(ev_schema) = crate::schemas::get_schema_json("events","0.3") {
+        let tmp = tempfile::NamedTempFile::new()?;
+        std::fs::write(tmp.path(), &events_bytes).ok();
+        if let Ok(rep) = validate_ndjson(tmp.path(), &ev_schema) { events_report = Some(rep); }
+    }
+    // fileops report
+    let mut fileops_report: Option<ArtifactReport> = None;
+    let mut fileops_lines_actual: Option<u64> = None;
+    let fileops_rel = manifest.pointer("/fileops/dst").and_then(|x| x.as_str()).map(|s| s.to_string());
+    if let Some(rel) = fileops_rel.as_deref() {
+        let (fbytes, _tgz) = read_bag_topic_bytes(path, rel).unwrap_or((Vec::new(), false));
+        let got = std::str::from_utf8(&fbytes).unwrap_or("").lines().filter(|l| !l.trim().is_empty()).count() as u64;
+        fileops_lines_actual = Some(got);
+        if let Some(fo_schema) = crate::schemas::get_schema_json("fileops","0.1") {
+            let tmp = tempfile::NamedTempFile::new()?;
+            std::fs::write(tmp.path(), &fbytes).ok();
+            if let Ok(rep) = validate_ndjson(tmp.path(), &fo_schema) { fileops_report = Some(rep); }
+        }
+    }
+    // counts match
+    let actual_events_lines = std::str::from_utf8(&events_bytes).unwrap_or("").lines().filter(|l| !l.trim().is_empty()).count() as u64;
+    let expected_events = manifest.pointer("/counts/events").and_then(|x| x.as_u64())
+        .or_else(|| manifest.pointer("/counts/events_lines").and_then(|x| x.as_u64()));
+    let expected_fileops = manifest.pointer("/counts/fileops").and_then(|x| x.as_u64())
+        .or_else(|| manifest.pointer("/counts/fileops_lines").and_then(|x| x.as_u64()));
+    let counts_match = serde_json::json!({
+        "events_lines": expected_events.map(|e| e == actual_events_lines),
+        "fileops": expected_fileops.zip(fileops_lines_actual).map(|(e,a)| e == a)
+    });
+    // patches_check aggregate (true if no patch-apply warnings/errors seen)
+    let patches_present = manifest.get("patches").and_then(|x| x.as_array()).map(|a| !a.is_empty()).unwrap_or(false);
+    let patches_check = if patches_present {
+        !findings.iter().any(|f| f.check == "patch-apply" && (f.level == "warn" || f.level == "error"))
+    } else { true };
+    // cline coverage signal
+    let mut had_term_run = false;
+    if let Ok(s) = std::str::from_utf8(&events_bytes) {
+        for l in s.lines() {
+            if l.trim().is_empty() { continue; }
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(l) {
+                if v.get("plugin").and_then(|x| x.as_str()) == Some("term")
+                    && v.get("command").and_then(|x| x.as_str()) == Some("run") {
+                    had_term_run = true; break;
+                }
+            }
+        }
+    }
+    let mut has_cline_artifacts = manifest.get("cline_tasks").and_then(|x| x.as_array()).map(|a| !a.is_empty()).unwrap_or(false);
+    if !has_cline_artifacts {
+        let (cbytes, _tgz) = read_bag_topic_bytes(path, "cline/messages.ndjson").unwrap_or((Vec::new(), false));
+        let n = std::str::from_utf8(&cbytes).unwrap_or("").lines().filter(|l| !l.trim().is_empty()).count();
+        if n > 0 { has_cline_artifacts = true; }
+    }
+    let cline_coverage = serde_json::json!({
+        "had_term_run": had_term_run,
+        "has_cline_artifacts": has_cline_artifacts,
+        "warning": if had_term_run && !has_cline_artifacts { Some("cline_coverage_zero") } else { None::<&str> }
+    });
+
     let ok = !findings.iter().any(|f| f.level == "error");
     Ok(VerifyReport{
         ok,
         run_id,
         totals: counts,
         findings,
+        events: events_report,
+        fileops: fileops_report,
+        counts_match: Some(counts_match),
+        patches_check: Some(patches_check),
+        cline_coverage: Some(cline_coverage),
         suggestions: vec![],
     })
 }

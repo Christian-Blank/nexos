@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20250905-",
+  "title": "...",
+  "stage": "planning",
+  "status": "active",
+  "created_at": "2025-09-05T22:51:58.826936Z",
+  "started_at": "2025-09-05T22:51:58.835849Z",
+  "ended_at": null,
+  "sessions": [
+    {
+      "id": "SES-5d6176d55a8d",
+      "start": "2025-09-05T22:51:58.835881Z",
+      "end": null
+    }
+  ],
+  "notes": []
+}

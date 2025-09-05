@@ -14,16 +14,16 @@ Commands:
   completions  Generate shell completions
   man          Print man page to stdout
   graph        Graph tools
-  replay       Replay/extract TracePacks from logged runs
-  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
   bundle       TracePack bundles
   cline        Cline task history (locate/import) with idempotent ingest
-  term         Run commands with provenance (non-interactive)
-  demo         Demo plugin
-  dev          Developer utilities
   task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
-  rules        Rules management (init/lint/export)
+  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
+  dev          Developer utilities
   issue        Issue management
+  demo         Demo plugin
+  rules        Rules management (init/lint/export)
+  replay       Replay/extract TracePacks from logged runs
+  term         Run commands with provenance (non-interactive)
   help         Print this message or the help of the given subcommand(s)
 
 Options:
@@ -34,62 +34,6 @@ Options:
 ```
 
 ## Tool Specs (for agents)
-
-### `rules.lint`
-
-Validate rules front-matter
-
-### `rules.export`
-
-Export rules bundle
-
-### `graph.check`
-
-Validate docs/exec_graph.yaml (acyclic, unique ids)
-
-### `graph.impact`
-
-List nodes impacted (downstream) by the given id
-
-### `demo.hello`
-
-Say hello
-
-### `replay.bag.verify`
-
-Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
-
-### `replay.verify`
-
-Verify a TracePack (dir or .tgz) and explain findings
-
-### `replay.normalize`
-
-Normalize events to v0.3 (from bag or events file)
-
-### `replay.schema.events`
-
-JSON Schema for events v0.3
-
-### `replay.schema.list`
-
-List available schemas
-
-### `replay.schema.get`
-
-Get schema JSON
-
-### `replay.validate`
-
-Validate bag artifacts (events/fileops) against schemas
-
-### `replay.fileops.derive`
-
-Derive fileops.ndjson from a bag's patches
-
-### `replay.export`
-
-Export bag artifacts to CSV
 
 ### `workflow.init`
 
@@ -127,29 +71,29 @@ List workflows (visibility index)
 
 Upsert search attributes for a workflow
 
-### `bundle.build`
+### `demo.hello`
 
-Build a TracePack bundle
+Say hello
 
-### `bundle.verify`
+### `rules.lint`
 
-Verify a TracePack bundle
+Validate rules front-matter
 
-### `issue.new`
+### `rules.export`
 
-Create a new local issue
+Export rules bundle
 
-### `issue.list`
+### `cline.locate`
 
-List issues (optionally by state)
+Find Cline storage locations
 
-### `issue.show`
+### `cline.import`
 
-Show a single issue by ID
+Import Cline task history with idempotent ingest
 
-### `issue.close`
+### `cline.correlate`
 
-Close an issue by ID
+Correlate Cline tasks to runs by time
 
 ### `dev.init`
 
@@ -191,15 +135,71 @@ Show plan front-matter and derived ids
 
 Show the next plan candidate (docs/project/next)
 
-### `cline.locate`
+### `replay.bag.verify`
 
-Find Cline storage locations
+Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
 
-### `cline.import`
+### `replay.verify`
 
-Import Cline task history with idempotent ingest
+Verify a TracePack (dir or .tgz) and explain findings
 
-### `cline.correlate`
+### `replay.normalize`
 
-Correlate Cline tasks to runs by time
+Normalize events to v0.3 (from bag or events file)
+
+### `replay.schema.events`
+
+JSON Schema for events v0.3
+
+### `replay.schema.list`
+
+List available schemas
+
+### `replay.schema.get`
+
+Get schema JSON
+
+### `replay.validate`
+
+Validate bag artifacts (events/fileops) against schemas
+
+### `replay.fileops.derive`
+
+Derive fileops.ndjson from a bag's patches
+
+### `replay.export`
+
+Export bag artifacts to CSV
+
+### `bundle.build`
+
+Build a TracePack bundle
+
+### `bundle.verify`
+
+Verify a TracePack bundle
+
+### `issue.new`
+
+Create a new local issue
+
+### `issue.list`
+
+List issues (optionally by state)
+
+### `issue.show`
+
+Show a single issue by ID
+
+### `issue.close`
+
+Close an issue by ID
+
+### `graph.check`
+
+Validate docs/exec_graph.yaml (acyclic, unique ids)
+
+### `graph.impact`
+
+List nodes impacted (downstream) by the given id
 

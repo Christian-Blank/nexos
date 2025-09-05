@@ -1,3 +1,11 @@
+---
+status: in-progress
+plan_id: '40'
+slug: 41_env-and-repo
+task_id: TASK-20250905-create-some-activity
+started_at: 2025-09-05T21:32:07.008949Z
+source: next
+---
 Plan #40 + #41 — Env & Repo Snapshot + Verify++ & Doctor v0
 
 Status: proposal (v0)
