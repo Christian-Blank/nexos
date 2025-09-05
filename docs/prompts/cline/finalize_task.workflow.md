@@ -8,7 +8,7 @@ Input: the single plan in docs/project/current/PLAN-*.md.
 ## 0) Pre‑flight
 
 cargo run -p nexoscli dev init --yes
-cargo run -p nexoscli dev doctor --ci --checks graph,plugins,config,events,tools --require plugins,graph
+cargo run -p nexoscli dev doctor --ci --checks="graph,plugins,config,events,tools" --require="plugins,graph"
 
 ---
 

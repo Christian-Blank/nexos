@@ -14,7 +14,7 @@ Output: one implementation commit (divider happens in the Finalize workflow).
 
 - Run:
   cargo run -p nexoscli dev init --yes
-  cargo run -p nexoscli dev doctor --ci --checks graph,plugins,config,events,tools --require plugins,graph
+  cargo run -p nexoscli dev doctor --ci --checks="graph,plugins,config,events,tools" --require="plugins,graph"
 
 - Choose a scope label (e.g., workflow-plugin, dev-plugin, task-plugin, observability, cline-ingest). Respect .clinerules/scope.json. If you must go beyond scope: stop, open CP/ADR.
 

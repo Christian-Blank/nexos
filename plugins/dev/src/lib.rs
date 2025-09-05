@@ -2056,9 +2056,36 @@ fn run_cli_json(cwd: &Path, args: &[&str]) -> anyhow::Result<(i32, serde_json::V
     }
     let out = Proc::new(exe).current_dir(cwd).args(&a).output()?;
     let code = out.status.code().unwrap_or(-1);
-    let val: serde_json::Value = serde_json::from_slice(&out.stdout)
-        .map_err(|e| anyhow::anyhow!("stdout not JSON for {:?}: {}", a, e))?;
-    Ok((code, val))
+    match parse_json_resilient(&out.stdout) {
+        Some(val) => Ok((code, val)),
+        None => {
+            let stdout_head = String::from_utf8_lossy(&out.stdout).chars().take(300).collect::<String>();
+            let stderr_head = String::from_utf8_lossy(&out.stderr).chars().take(300).collect::<String>();
+            Err(anyhow::anyhow!(
+                "stdout not JSON for {:?}; code={}. stdout_head={:?} stderr_head={:?}",
+                a, code, stdout_head, stderr_head
+            ))
+        }
+    }
+}
+
+fn parse_json_resilient(bytes: &[u8]) -> Option<serde_json::Value> {
+    // Strip UTF-8 BOM if present
+    let bytes = if bytes.starts_with(&[0xEF, 0xBB, 0xBF]) { &bytes[3..] } else { bytes };
+    // Fast path
+    if let Ok(v) = serde_json::from_slice::<serde_json::Value>(bytes) { return Some(v); }
+    // Trim whitespace and retry
+    let s = String::from_utf8_lossy(bytes);
+    let trimmed = s.trim();
+    if let Ok(v) = serde_json::from_str::<serde_json::Value>(trimmed) { return Some(v); }
+    // Try last JSON-looking line (tolerate benign logs before JSON)
+    for line in trimmed.lines().rev() {
+        let l = line.trim();
+        if l.starts_with('{') || l.starts_with('[') {
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(l) { return Some(v); }
+        }
+    }
+    None
 }
 
 fn run_cli_text(cwd: &Path, args: &[&str]) -> anyhow::Result<(i32, String)> {
