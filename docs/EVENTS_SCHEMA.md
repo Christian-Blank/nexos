@@ -105,3 +105,21 @@ Notes
 - Unknown/legacy fields are never dropped; they are preserved under attrs.
 - Missing optional fields are omitted.
 - Hashing is deterministic and read-only; normalization does not modify inputs.
+
+## Retrieve JSON Schema (CLI)
+You can list and export the canonical JSON Schema embedded in the CLI:
+```bash
+# List available schemas
+nexoscli replay schema list --output json
+
+# Export the events v0.3 JSON Schema to a file
+nexoscli replay schema get --name events --version 0.3 --out ./events.schema.json
+```
+
+## Validate bags against schemas (v0)
+Validate a directory-based bag produced by `replay extract`:
+```bash
+nexoscli replay validate --bag ./bag-dir --output json
+```
+- Reports per-artifact results with counts and up to 10 concise errors.
+- Directory bags only in v0 (untar archives first if needed).

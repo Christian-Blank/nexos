@@ -6,6 +6,8 @@ use walkdir::WalkDir;
 use std::collections::BTreeMap;
 use time::format_description::well_known::Rfc3339;
 
+mod schemas;
+
 pub struct ReplayPlugin;
 impl ReplayPlugin { pub fn new() -> Self { Self } }
 
@@ -218,6 +220,44 @@ struct SchemaResult {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct SchemaRow { name: String, version: String, id: String, description: String }
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct SchemaListResult { schemas: Vec<SchemaRow> }
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct SchemaGetArgs { name: String, version: String, #[serde(default)] out: Option<String> }
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct SchemaGetResult { name: String, version: String, id: String, bytes: usize, #[serde(default)] written: Option<String> }
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct ValidateArgs {
+    bag: String,
+    #[serde(default)] what: Option<String>, // events | fileops | all
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct ArtifactReport {
+    ok: bool,
+    lines: u64,
+    valid: u64,
+    invalid: u64,
+    #[serde(default)]
+    errors: Vec<String>, // first N error messages with line numbers
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct ValidateResult {
+    bag: String,
+    summary_ok: bool,
+    #[serde(default)]
+    events: Option<ArtifactReport>,
+    #[serde(default)]
+    fileops: Option<ArtifactReport>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 struct V03Event {
     #[serde(default = "v03_schema_tag")]
     schema: String,          // fixed: "nexos/events@0.3"
@@ -289,11 +329,23 @@ impl Plugin for ReplayPlugin {
                         .arg(Arg::new("update-manifest").long("update-manifest").action(ArgAction::SetTrue))
                 )
                 .subcommand(
-                    Command::new("schema").about("Print schemas for replay surfaces")
+                    Command::new("schema").about("Schemas bundle")
+                        .subcommand(Command::new("list").about("List available schemas"))
+                        .subcommand(
+                            Command::new("get").about("Get schema JSON")
+                                .arg(Arg::new("name").long("name").required(true).value_parser(["events","fileops"]))
+                                .arg(Arg::new("version").long("version").required(true).value_name("N.N"))
+                                .arg(Arg::new("out").long("out").value_name("PATH"))
+                        )
                         .subcommand(
                             Command::new("events").about("Print events schema")
                                 .arg(Arg::new("version").long("version").required(true).value_parser(["0.3"]))
                         )
+                )
+                .subcommand(
+                    Command::new("validate").about("Validate bag artifacts against schemas")
+                        .arg(Arg::new("bag").long("bag").required(true).value_name("DIR"))
+                        .arg(Arg::new("what").long("what").value_parser(["events","fileops","all"]).default_value("all"))
                 )
                 .subcommand(
                     Command::new("bag").about("TracePack v0.2 bag operations")
@@ -734,6 +786,39 @@ impl Plugin for ReplayPlugin {
 
             Some(("schema", sm)) => {
                 match sm.subcommand() {
+                    Some(("list", _)) => {
+                        let rows: Vec<SchemaRow> = schemas::list().into_iter().map(|s| SchemaRow{
+                            name: s.name.to_string(),
+                            version: s.version.to_string(),
+                            id: s.id.to_string(),
+                            description: s.description.to_string(),
+                        }).collect();
+                        let exit = ctx.ok("replay","schema.list",&SchemaListResult{ schemas: rows });
+                        Ok(exit)
+                    }
+                    Some(("get", gm)) => {
+                        let name = gm.get_one::<String>("name").unwrap().to_string();
+                        let version = gm.get_one::<String>("version").unwrap().to_string();
+                        let outp = gm.get_one::<String>("out").cloned();
+                        let schema = match schemas::get_schema_json(&name, &version) {
+                            Some(s) => s,
+                            None => {
+                                return Ok(ctx.err("replay","schema.get","replay.schema.unknown",&format!("unknown schema {}/{}", name, version),None,2));
+                            }
+                        };
+                        let bytes = serde_json::to_vec_pretty(&schema).unwrap_or_default().len();
+                        let written = if let Some(path) = outp.clone() {
+                            if let Some(dir) = std::path::Path::new(&path).parent() { std::fs::create_dir_all(dir).ok(); }
+                            std::fs::write(&path, serde_json::to_vec_pretty(&schema).unwrap_or_default()).ok();
+                            Some(path)
+                        } else { None };
+                        let id = schemas::list().into_iter()
+                            .find(|s| s.name==name && s.version==version).map(|s| s.id).unwrap_or("");
+                        let exit = ctx.ok("replay","schema.get",&SchemaGetResult{
+                            name, version, id: id.to_string(), bytes, written
+                        });
+                        Ok(exit)
+                    }
                     Some(("events", esm)) => {
                         let version = esm.get_one::<String>("version").map(|s| s.as_str()).unwrap_or("");
                         if version != "0.3" {
@@ -774,6 +859,65 @@ impl Plugin for ReplayPlugin {
                     }
                     _ => Ok(ctx.err("replay","schema","replay.schema.failed","unknown schema subcommand",None,2))
                 }
+            }
+
+            Some(("validate", vm)) => {
+                let bag = vm.get_one::<String>("bag").unwrap().to_string();
+                let what = vm.get_one::<String>("what").map(|s| s.as_str()).unwrap_or("all");
+                let bagp = std::path::PathBuf::from(&bag);
+                if !bagp.is_dir() {
+                    return Ok(ctx.err("replay","validate","replay.validate.nodir","bag path is not a directory",None,2));
+                }
+
+                let mut events_rep: Option<ArtifactReport> = None;
+                let mut fileops_rep: Option<ArtifactReport> = None;
+
+                if what=="events" || what=="all" {
+                    let p = bagp.join("events.ndjson");
+                    if p.exists() {
+                        if let Some(schema) = schemas::get_schema_json("events","0.3") {
+                            match validate_ndjson(&p, &schema) {
+                                Ok(rep) => events_rep = Some(rep),
+                                Err(e) => {
+                                    let exit = ctx.err("replay","validate","replay.validate.failed",&format!("events validation error: {}", e),None,2);
+                                    return Ok(exit);
+                                }
+                            }
+                        }
+                    }
+                }
+                if what=="fileops" || what=="all" {
+                    let p1 = bagp.join("fileops").join("fileops.ndjson");
+                    let p2 = bagp.join("fileops.ndjson");
+                    let p = if p1.exists() { p1 } else { p2 };
+                    if p.exists() {
+                        if let Some(schema) = schemas::get_schema_json("fileops","0.1") {
+                            match validate_ndjson(&p, &schema) {
+                                Ok(rep) => fileops_rep = Some(rep),
+                                Err(e) => {
+                                    let exit = ctx.err("replay","validate","replay.validate.failed",&format!("fileops validation error: {}", e),None,2);
+                                    return Ok(exit);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                let summary_ok = events_rep.as_ref().map(|r| r.ok).unwrap_or(true)
+                    && fileops_rep.as_ref().map(|r| r.ok).unwrap_or(true);
+
+                let out = ValidateResult{
+                    bag,
+                    summary_ok,
+                    events: events_rep,
+                    fileops: fileops_rep,
+                };
+                let exit = if summary_ok {
+                    ctx.ok("replay","validate",&out)
+                } else {
+                    ctx.err("replay","validate","replay.validate.failed","validation failed",None,2)
+                };
+                Ok(exit)
             }
 
             Some(("bag", sm)) => {
@@ -1217,6 +1361,24 @@ impl Plugin for ReplayPlugin {
                 about: "JSON Schema for events v0.3".to_string(),
                 args_schema: schema_for!(SchemaArgs),
                 result_schema: schema_for!(SchemaResult),
+            },
+            ToolSpec{
+                name: "replay.schema.list".to_string(),
+                about: "List available schemas".to_string(),
+                args_schema: schema_for!(serde_json::Value),
+                result_schema: schema_for!(SchemaListResult),
+            },
+            ToolSpec{
+                name: "replay.schema.get".to_string(),
+                about: "Get schema JSON".to_string(),
+                args_schema: schema_for!(SchemaGetArgs),
+                result_schema: schema_for!(SchemaGetResult),
+            },
+            ToolSpec{
+                name: "replay.validate".to_string(),
+                about: "Validate bag artifacts (events/fileops) against schemas".to_string(),
+                args_schema: schema_for!(ValidateArgs),
+                result_schema: schema_for!(ValidateResult),
             }
         ]
     }
@@ -2148,4 +2310,61 @@ fn normalize_from_bag(bag_path: &str, out: Option<&str>, update_manifest: bool) 
     }
 
     Ok(res)
+}
+
+fn validate_ndjson(path: &std::path::Path, schema_json: &serde_json::Value) -> anyhow::Result<ArtifactReport> {
+    use std::io::BufRead;
+
+    let compiled = jsonschema::JSONSchema::compile(schema_json)
+        .map_err(|e| anyhow::anyhow!("invalid schema: {}", e))?;
+
+    let f = std::fs::File::open(path)?;
+    let reader = std::io::BufReader::new(f);
+    let mut lines: u64 = 0;
+    let mut valid: u64 = 0;
+    let mut invalid: u64 = 0;
+    let mut errors: Vec<String> = vec![];
+
+    for (idx, line) in reader.lines().enumerate() {
+        let line_no = (idx + 1) as u64;
+        let l = match line {
+            Ok(s) if !s.trim().is_empty() => s,
+            Ok(_) => { continue; }
+            Err(e) => {
+                invalid += 1;
+                if errors.len() < 10 {
+                    errors.push(format!("line {}: io error: {}", line_no, e));
+                }
+                continue;
+            }
+        };
+        lines += 1;
+        match serde_json::from_str::<serde_json::Value>(&l) {
+            Ok(v) => {
+                match compiled.validate(&v) {
+                    Ok(()) => {
+                        valid += 1;
+                    }
+                    Err(iter) => {
+                        invalid += 1;
+                        if errors.len() < 10 {
+                            let msg = iter.map(|e| e.to_string()).next().unwrap_or_else(|| "schema violation".to_string());
+                            errors.push(format!("line {}: {}", line_no, msg));
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                invalid += 1;
+                if errors.len() < 10 {
+                    errors.push(format!("line {}: json parse error: {}", line_no, e));
+                }
+            }
+        }
+    }
+
+    Ok(ArtifactReport{
+        ok: true,
+        lines, valid, invalid, errors
+    })
 }

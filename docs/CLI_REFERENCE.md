@@ -13,17 +13,17 @@ Commands:
   tools        Tools & schemas
   completions  Generate shell completions
   man          Print man page to stdout
-  bundle       TracePack bundles
-  term         Run commands with provenance (non-interactive)
+  cline        Cline task history (locate/import) with idempotent ingest
+  graph        Graph tools
+  dev          Developer utilities
+  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
   demo         Demo plugin
   issue        Issue management
-  dev          Developer utilities
-  graph        Graph tools
-  cline        Cline task history (locate/import) with idempotent ingest
-  replay       Replay/extract TracePacks from logged runs
-  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
-  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
+  bundle       TracePack bundles
   rules        Rules management (init/lint/export)
+  replay       Replay/extract TracePacks from logged runs
+  term         Run commands with provenance (non-interactive)
+  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
   help         Print this message or the help of the given subcommand(s)
 
 Options:
@@ -34,6 +34,18 @@ Options:
 ```
 
 ## Tool Specs (for agents)
+
+### `demo.hello`
+
+Say hello
+
+### `bundle.build`
+
+Build a TracePack bundle
+
+### `bundle.verify`
+
+Verify a TracePack bundle
 
 ### `cline.locate`
 
@@ -59,17 +71,17 @@ Normalize events to v0.3 (from bag or events file)
 
 JSON Schema for events v0.3
 
-### `demo.hello`
+### `replay.schema.list`
 
-Say hello
+List available schemas
 
-### `rules.lint`
+### `replay.schema.get`
 
-Validate rules front-matter
+Get schema JSON
 
-### `rules.export`
+### `replay.validate`
 
-Export rules bundle
+Validate bag artifacts (events/fileops) against schemas
 
 ### `dev.init`
 
@@ -98,14 +110,6 @@ Validate docs/exec_graph.yaml (acyclic, unique ids)
 ### `graph.impact`
 
 List nodes impacted (downstream) by the given id
-
-### `bundle.build`
-
-Build a TracePack bundle
-
-### `bundle.verify`
-
-Verify a TracePack bundle
 
 ### `issue.new`
 
@@ -158,4 +162,12 @@ List workflows (visibility index)
 ### `workflow.upsert-sa`
 
 Upsert search attributes for a workflow
+
+### `rules.lint`
+
+Validate rules front-matter
+
+### `rules.export`
+
+Export rules bundle
 

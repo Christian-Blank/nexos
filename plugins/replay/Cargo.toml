@@ -16,3 +16,4 @@ tar = { workspace = true }
 flate2 = { workspace = true }
 sha2 = { workspace = true }
 tempfile = { workspace = true }
+jsonschema = "0.17"
