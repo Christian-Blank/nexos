@@ -1,0 +1,20 @@
+{
+  "cline_tasks": [],
+  "counts": {
+    "cline": 0,
+    "events_lines": 3,
+    "patches": 0,
+    "status": 0
+  },
+  "created_at": "2025-09-05T22:52:51.441183Z",
+  "kind": "tracepack.task",
+  "patches": [],
+  "session_id": "SES-5d6176d55a8d",
+  "status_files": [],
+  "task_id": "TASK-20250905-",
+  "time_range": {
+    "from": "2025-09-05T22:51:58.836338Z",
+    "to": "2025-09-05T22:52:51.342216Z"
+  },
+  "version": "0.1"
+}

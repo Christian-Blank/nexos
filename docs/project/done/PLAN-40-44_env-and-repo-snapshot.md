@@ -1,10 +1,12 @@
 ---
-status: in-progress
+status: done
 plan_id: '40'
 slug: 44_env-and-repo-snapshot
 task_id: TASK-20250905-
 started_at: 2025-09-05T22:51:58.837209Z
 source: next
+completed_at: 2025-09-05T22:52:51.445719Z
+implemented_in: 2b9a21f
 ---
 Awesome—let’s close the v0 gaps now. Below you’ll find implementation plans #41–#45 with concrete patches, exactly where to put them, and small E2E tests. At the end I include an updated v0 roadmap with the items we just closed checked off.
 
