@@ -717,3 +717,96 @@ Notes
 - Exactly one of --bag or --events is required.
 - For .tgz inputs, --out is required; archives are not modified.
 - The normalizer is read-only except when --update-manifest is specified for a directory bag.
+
+### Annotations (v0)
+
+Attach labels/notes to a bag, an event row, or a file operation row, and export/join them for analysis.
+
+Bag files:
+- annotations.ndjson — append-only NDJSON, one JSON object per line
+- events.ndjson, fileops/fileops.ndjson — existing sources
+- exports/csv/ — generated CSVs
+
+Schema (v0, stable):
+{
+  "ts": "RFC3339 (creation time)",
+  "source": "human|agent|rule|workflow",
+  "author": "optional string",
+  "labels": ["string", "..."],
+  "note": "optional string",
+  "confidence": 0.0,
+  "target": {
+    "kind": "event|fileop|bag",
+    "seq": 12,                 // 0-based row index in events/fileops (required for event|fileop)
+    "ts": "RFC3339",           // copied from target row if available
+    "run_id": "RUN-...",
+    "plugin": "term",          // events only (best-effort)
+    "command": "run",          // events only (best-effort)
+    "op": "write|move|...",    // fileops only (best-effort)
+    "path": "a.txt"            // fileops only (best-effort)
+  },
+  "attrs": { "free": "shape" } // optional extras
+}
+
+Design: target.seq is the v0 join key. It is stable because events.csv/fileops.csv preserve NDJSON order.
+
+Add & list
+```bash
+# add to an event row (by sequence index)
+nexoscli replay annotate add --bag ./bag --target events  --seq 0 \
+  --label slow --label investigate --note "p90 high" --author you --confidence 0.8
+
+# add to a file operation row
+nexoscli replay annotate add --bag ./bag --target fileops --seq 0 --label write-hot
+
+# bag-level note
+nexoscli replay annotate add --bag ./bag --target bag --label reviewed --note "LGTM"
+
+# list (JSON envelope)
+nexoscli replay annotate list --bag ./bag --output json
+```
+
+Export
+```bash
+# annotations as CSV (always writes header)
+nexoscli replay export --bag ./bag --what annotations
+
+# join annotations into CSVs (adds columns: seq, ann_* )
+nexoscli replay export --bag ./bag --what events   --join annotations
+nexoscli replay export --bag ./bag --what fileops  --join annotations
+```
+
+CSV outputs:
+- annotations.csv header:
+  ann_ts,source,author,labels,note,confidence,target_kind,target_seq,target_ts,target_run_id,target_plugin,target_command,target_op,target_path,attrs_json
+- events_annotated.csv/fileops_annotated.csv: base header + appended:
+  seq,ann_labels,ann_note,ann_author,ann_source,ann_confidence,ann_count
+
+Behavior:
+- Missing sources still produce CSVs with only headers.
+- Joins aggregate per row index (seq). Multiple annotations are combined:
+  - labels/authors/sources deduped and `|`-joined
+  - notes concatenated with " | "
+  - confidence averaged to 3 decimals
+  - ann_count reports number of annotations that matched the row
+- If no annotations exist, join produces the base CSV (no annotated file), or an annotated file with ann_count=0 depending on availability.
+
+Smoke run
+```bash
+cargo build --workspace
+
+# Generate a bag
+./target/debug/nexoscli dev init --yes
+./target/debug/nexoscli term run -- bash -lc 'git init -q && git config user.email t@e && git config user.name T && echo hello> a && git add a && git commit -m init'
+RUN=$(tail -n 1 .nexoscli/log/events.jsonl | jq -r '.run_id')
+./target/debug/nexoscli replay extract --run-id "$RUN" --out bag
+
+# Annotate
+./target/debug/nexoscli replay annotate add --bag bag --target events  --seq 0 --label slow --note "check p90"
+./target/debug/nexoscli replay annotate add --bag bag --target fileops --seq 0 --label write-hot
+
+# Export with joins
+./target/debug/nexoscli replay export --bag bag --what all --join annotations
+ls bag/exports/csv
+# annotations.csv events.csv events_annotated.csv fileops.csv fileops_annotated.csv
+```

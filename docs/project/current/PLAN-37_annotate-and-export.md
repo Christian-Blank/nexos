@@ -1,3 +1,11 @@
+---
+status: in-progress
+plan_id: '37'
+slug: annotate-and-export
+task_id: TASK-20250905-add-to-an-event-row-by-sequence-index
+started_at: 2025-09-05T09:49:16.949232Z
+source: next
+---
 Below is Implementation Plan #37 — “Annotate & Export”.
 It adds a minimal, durable annotations layer for bags and the ability to export annotations (CSV) and join them into your events/fileops CSVs for analysis.
 

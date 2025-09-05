@@ -9,6 +9,7 @@ use time::format_description::well_known::Rfc3339;
 mod schemas;
 mod fileops;
 mod export;
+mod annotate;
 
 pub struct ReplayPlugin;
 impl ReplayPlugin { pub fn new() -> Self { Self } }
@@ -372,10 +373,32 @@ impl Plugin for ReplayPlugin {
                         )
                 )
                 .subcommand(
+                    Command::new("annotate").about("Annotate a bag (add/list)")
+                        .subcommand(
+                            Command::new("add")
+                                .about("Add an annotation")
+                                .arg(Arg::new("bag").long("bag").required(true).value_name("DIR"))
+                                .arg(Arg::new("target").long("target").required(true).value_parser(["events","fileops","bag"]))
+                                .arg(Arg::new("seq").long("seq").value_parser(clap::value_parser!(u64)).help("0-based row index in events/fileops (required for events/fileops targets)"))
+                                .arg(Arg::new("label").long("label").action(ArgAction::Append).value_name("TEXT"))
+                                .arg(Arg::new("note").long("note").value_name("TEXT"))
+                                .arg(Arg::new("author").long("author").value_name("TEXT"))
+                                .arg(Arg::new("source").long("source").default_value("human"))
+                                .arg(Arg::new("confidence").long("confidence").value_parser(clap::value_parser!(f64)))
+                                .arg(Arg::new("attrs").long("attrs").value_name("JSON").help(r#"Optional JSON object with extra fields"#))
+                        )
+                        .subcommand(
+                            Command::new("list")
+                                .about("List annotations")
+                                .arg(Arg::new("bag").long("bag").required(true).value_name("DIR"))
+                        )
+                )
+                .subcommand(
                     Command::new("export").about("Export CSV artifacts from a bag")
                         .arg(Arg::new("bag").long("bag").required(true).value_name("DIR"))
-                        .arg(Arg::new("what").long("what").value_parser(["events","fileops","all"]).default_value("all"))
+                        .arg(Arg::new("what").long("what").value_parser(["events","fileops","annotations","all"]).default_value("all"))
                         .arg(Arg::new("as").long("as").value_parser(["csv"]).default_value("csv"))
+                        .arg(Arg::new("join").long("join").value_name("annotations").help("Join annotations into exported CSVs"))
                         .arg(Arg::new("out").long("out").value_name("PATH").help("Output directory for exported files"))
                 )
                 .subcommand(
@@ -975,24 +998,78 @@ impl Plugin for ReplayPlugin {
                 Ok(exit)
             }
 
+            Some(("annotate", am)) => {
+                match am.subcommand() {
+                    Some(("add", m)) => {
+                        let bag = std::path::PathBuf::from(m.get_one::<String>("bag").unwrap());
+                        let target = m.get_one::<String>("target").unwrap().as_str();
+                        let labels: Vec<String> = m
+                            .get_many::<String>("label")
+                            .map(|v| v.map(|s| s.to_string()).collect())
+                            .unwrap_or_else(|| vec![]);
+                        let note = m.get_one::<String>("note").cloned();
+                        let author = m.get_one::<String>("author").cloned();
+                        let source = m.get_one::<String>("source").cloned().unwrap_or_else(|| "human".into());
+                        let confidence = m.get_one::<f64>("confidence").copied();
+                        let attrs = m.get_one::<String>("attrs").and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok());
+
+                        use crate::annotate as ann;
+                        let out_val = match target {
+                            "events" => {
+                                let seq = *m.get_one::<u64>("seq").expect("--seq required for target=events");
+                                let a = ann::add_for_event(&bag, seq, labels, note, author, source, confidence, attrs)?;
+                                serde_json::to_value(a)?
+                            }
+                            "fileops" => {
+                                let seq = *m.get_one::<u64>("seq").expect("--seq required for target=fileops");
+                                let a = ann::add_for_fileop(&bag, seq, labels, note, author, source, confidence, attrs)?;
+                                serde_json::to_value(a)?
+                            }
+                            "bag" => {
+                                let a = ann::add_for_bag(&bag, labels, note, author, source, confidence, attrs)?;
+                                serde_json::to_value(a)?
+                            }
+                            _ => {
+                                let exit = ctx.err("replay","annotate.add","replay.annotate.bad_target","invalid target",None,2);
+                                return Ok(exit);
+                            },
+                        };
+                        return Ok(ctx.ok("replay","annotate.add",&out_val));
+                    }
+                    Some(("list", m)) => {
+                        let bag = std::path::PathBuf::from(m.get_one::<String>("bag").unwrap());
+                        let items = crate::annotate::list(&bag)?;
+                        return Ok(ctx.ok("replay","annotate.list",&serde_json::json!({
+                            "bag": bag.display().to_string(),
+                            "count": items.len(),
+                            "items": items
+                        })));
+                    }
+                    _ => return Ok(ctx.err("replay","annotate","replay.annotate.unknown","unknown annotate command",None,2)),
+                }
+            }
+
             Some(("export", sm)) => {
                 let bag = sm.get_one::<String>("bag").unwrap().to_string();
                 let what = sm.get_one::<String>("what").map(|s| s.as_str()).unwrap_or("all");
                 let fmt = sm.get_one::<String>("as").map(|s| s.as_str()).unwrap_or("csv");
+                let join = sm.get_one::<String>("join").map(|s| s.as_str());
                 let out_opt = sm.get_one::<String>("out").cloned();
 
                 if fmt != "csv" {
                     let exit = ctx.err("replay","export","replay.export.failed","unsupported --as format",None,2);
                     return Ok(exit);
                 }
-                let bagp = std::path::Path::new(&bag);
+                let bagp = std::path::PathBuf::from(&bag);
                 if !bagp.is_dir() {
                     let exit = ctx.err("replay","export","replay.export.failed","bag path is not a directory",None,2);
                     return Ok(exit);
                 }
 
-                match crate::export::export_csv(&bag, what, out_opt.as_deref()) {
-                    Ok((written, counts)) => {
+                let out_dir = out_opt.map(std::path::PathBuf::from);
+                match crate::export::export_csv_join(&bagp, what, out_dir.as_deref(), join) {
+                    Ok((written_paths, counts)) => {
+                        let written: Vec<String> = written_paths.iter().map(|p| p.display().to_string()).collect();
                         let exit = ctx.ok("replay","export",&serde_json::json!({
                             "bag": bag,
                             "format": "csv",
