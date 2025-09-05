@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20250905-build",
+  "title": "Build",
+  "stage": "planning",
+  "status": "active",
+  "created_at": "2025-09-05T06:09:40.775328Z",
+  "started_at": "2025-09-05T06:09:41.477104Z",
+  "ended_at": null,
+  "sessions": [
+    {
+      "id": "SES-3145b84dcfb5",
+      "start": "2025-09-05T06:09:41.477301Z",
+      "end": null
+    }
+  ],
+  "notes": []
+}

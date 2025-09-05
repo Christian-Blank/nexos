@@ -1,34 +1,28 @@
-# Finalize Task — Verify & Divider (v0)
+# Finalize Task — Verify & Divider (v1, CLI-native)
 
-> Purpose: Verify acceptance, maintain docs/rules, create divider commit, write final metadata into the plan, and move `current/ → done/`.  
-> Input: the single plan in `docs/project/current/PLAN-*.md`.
+Purpose: Verify acceptance, maintain docs/rules, create divider commit, write final metadata into the plan, and move current/ → done/.
+Input: the single plan in docs/project/current/PLAN-*.md.
 
 ---
 
 ## 0) Pre‑flight
 
-```bash
-cargo run -p nexoscli -- dev init --yes
-cargo run -p nexoscli -- dev doctor --ci --checks graph,plugins,config,events,tools --require plugins,graph
-```
+nexoscli dev init --yes
+nexoscli dev doctor --ci --checks graph,plugins,config,events,tools --require plugins,graph
 
 ---
 
 ## 1) Verification (acceptance criteria must hold)
 
-```bash
 cargo build --workspace
 cargo test  --workspace
-cargo run -p nexoscli -- dev docs build
-cargo run -p nexoscli -- dev telemetry report --since 24h
-```
+nexoscli dev docs build
+nexoscli dev telemetry report --since 24h
 
 If observability/replay was touched and a bag exists (optional):
 
-```bash
 # optional if relevant for the plan
-cargo run -p nexoscli -- replay verify --bag <bag-dir> || true
-```
+nexoscli replay verify --bag <bag-dir> || true
 
 ---
 
@@ -38,19 +32,15 @@ cargo run -p nexoscli -- replay verify --bag <bag-dir> || true
 - Keep plugin docs in their bounded context folder (co‑located with code).
 - Re‑run:
 
-```bash
-cargo run -p nexoscli -- dev docs build
-```
+nexoscli dev docs build
 
 ---
 
 ## 3) Rules maintenance
 
-```bash
-cargo run -p nexoscli -- rules lint
-cargo run -p nexoscli -- rules export --for human --out docs/RULES.md
-cargo run -p nexoscli -- rules export --for cline --out .clinerules/compiled.md
-```
+nexoscli rules lint
+nexoscli rules export --for human --out docs/RULES.md
+nexoscli rules export --for cline --out .clinerules/compiled.md
 
 Add/update rules if the development process or surfaces changed.
 
@@ -67,15 +57,13 @@ Add/update rules if the development process or surfaces changed.
 
 Create small atomic issues for high‑impact items:
 
-```bash
-cargo run -p nexoscli -- issue new --title "Follow-up: <short>" --labels '["plan","followup"]' --body "<what/why>"
-```
+nexoscli issue new --title "Follow-up: <short>" --labels '["plan","followup"]' --body "<what/why>"
 
 ---
 
 ## 6) Divider commit
 
-```bash
+# Stage changes (if any) and create divider commit; allow empty if nothing changed
 git add --all
 git commit -m "feat(plan): finalize PLAN-<ID> <slug> (acceptance met)
 
@@ -83,88 +71,27 @@ git commit -m "feat(plan): finalize PLAN-<ID> <slug> (acceptance met)
 - Docs: regenerated
 - Rules: lint/export OK
 - ADR: <id-or-n/a>
+- Follow-ups: <ids-or-n/a>" || git commit --allow-empty -m "feat(plan): finalize PLAN-<ID> <slug> (acceptance met)
+
+- Evidence: tests, doctor, replay verify (if applicable)
+- Docs: regenerated
+- Rules: lint/export OK
+- ADR: <id-or-n/a>
 - Follow-ups: <ids-or-n/a>"
+
 PLAN_SHA=$(git rev-parse --short HEAD)
-```
 
 ---
 
-## 7) Mark plan done (write metadata, move current → done)
+## 7) Finalize plan (write metadata, end task + bundle, move current → done)
 
-```bash
-FILE=$(ls -1 docs/project/current/PLAN-*.md | head -n1)
-test -n "$FILE" || { echo "No plan in current"; exit 1; }
+# CLI-native finalize (Rust): writes status=done, implemented_in (HEAD), completed_at;
+# ends task + bundles; moves file to docs/project/done/
+nexoscli dev plans finalize --output json
 
-NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-python3 - <<'PY'
-from pathlib import Path
-import sys
-import yaml
-
-p = Path(sys.argv[1])
-sha = sys.argv[2]
-now = sys.argv[3]
-
-txt = p.read_text()
-fm, body = {}, txt
-if txt.startswith('---'):
-    _, rest = txt.split('---', 1)
-    if '---' in rest:
-        head, body = rest.split('---', 1)
-    else:
-        head, body = rest, ''
-    fm = yaml.safe_load(head) or {}
-
-fm.update({
-    "status": "done",
-    "implemented_in": sha,
-    "completed_at": now
-})
-
-out = '---\n' + yaml.safe_dump(fm, sort_keys=False) + '---\n' + body.lstrip()
-p.write_text(out)
-PY
-"$FILE" "$PLAN_SHA" "$NOW"
-
-BASENAME=$(basename "$FILE")
-git mv "$FILE" "docs/project/done/$BASENAME"
+# Commit moved plan file (mark as done with divider sha)
 git add --all
-git commit -m "chore(plans): mark $(echo $BASENAME | sed 's/.md$//') as done (divider=$PLAN_SHA)"
-```
-
----
-
-## 8) End task + bundle (traceability)
-
-Recover TASK_ID from the plan’s front‑matter and end the task:
-
-```bash
-TASK_ID=$(python3 - <<'PY'
-from pathlib import Path
-import yaml
-
-plans = sorted(Path("docs/project/done").glob("PLAN-*.md"))
-if not plans:
-    print("")
-else:
-    p = plans[-1]
-    txt = p.read_text()
-    fm = {}
-    if txt.startswith('---'):
-        _, rest = txt.split('---', 1)
-        if '---' in rest:
-            head, _ = rest.split('---', 1)
-        else:
-            head = rest
-        fm = yaml.safe_load(head) or {}
-    print(fm.get("task_id", ""))
-PY
-)
-test -n "$TASK_ID" || { echo "No task_id in plan front-matter"; exit 1; }
-
-cargo run -p nexoscli -- task end --task "$TASK_ID"
-cargo run -p nexoscli -- task bundle --task "$TASK_ID" --out "./${TASK_ID}-bundle.tgz"
-```
+git commit -m "chore(plans): mark PLAN-<ID> <slug> as done (divider=${PLAN_SHA})" || true
 
 ---
 
@@ -175,4 +102,24 @@ cargo run -p nexoscli -- task bundle --task "$TASK_ID" --out "./${TASK_ID}-bundl
 - [ ] Plan updated (status=done, implemented_in, completed_at) and moved to done/.
 - [ ] Task ended + bundle produced.
 
-This finalize flow ensures you don’t forget to end the task and that the plan file itself is the source of truth for task_id and completion metadata.
+---
+
+## Troubleshooting
+
+- Active task prevents starting/resuming or finalize reports task still active:
+
+  Error: Other: task 'TASK-...' is active; pause it before starting/resuming another task
+
+  Resolutions:
+  - Pause the current active task:
+    nexoscli task pause
+  - If needed, end the previous task explicitly (best-effort):
+    nexoscli task end --task <TASK_ID> || true
+  - Retry finalize:
+    nexoscli dev plans finalize --output json
+
+- No plan under current/:
+  - Ensure a plan was started via:
+    nexoscli dev plans start --output json
+  - Or pass a specific path:
+    nexoscli dev plans finalize --plan docs/project/current/PLAN-XX_slug.md --output json

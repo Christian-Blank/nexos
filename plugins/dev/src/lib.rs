@@ -6,8 +6,10 @@ use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command as Proc;
+use std::ffi::OsStr;
 use time::{format_description::well_known::Rfc3339, OffsetDateTime, Duration};
 use tracing::{span, Level};
+use serde_yaml;
 
 use nexoscli_core::plugin::{CommandContext, Plugin, ToolSpec};
 use nexoscli_core::Result;
@@ -162,6 +164,81 @@ struct TelemetryReport {
     slowest_commands: Vec<SlowRow>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanStartArgs {
+    #[serde(default)]
+    plan: Option<String>,
+    #[serde(default)]
+    scope: Option<String>,
+    #[serde(default)]
+    dry_run: bool,
+}
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanStartResult {
+    picked_plan: String,
+    moved_from: String,
+    moved_to: String,
+    task_id: String,
+    title: String,
+    plan_id: String,
+    slug: String,
+    updated_frontmatter: serde_json::Value,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanFinalizeArgs {
+    #[serde(default)]
+    plan: Option<String>,
+    #[serde(default)]
+    bundle_out: Option<String>,
+    #[serde(default)]
+    implemented_in: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanFinalizeResult {
+    plan: String,
+    moved_to: String,
+    task_id: Option<String>,
+    implemented_in: String,
+    bundle_out: Option<String>,
+    frontmatter: serde_json::Value,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanListArgs {
+    #[serde(default)]
+    r#where: Option<String>,
+}
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanRow {
+    folder: String,
+    file: String,
+    plan_id: Option<String>,
+    slug: Option<String>,
+    title: Option<String>,
+    status: Option<String>,
+}
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanListResult {
+    total: usize,
+    items: Vec<PlanRow>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanStatusArgs {
+    plan: String,
+}
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanStatusResult {
+    plan: String,
+    frontmatter: serde_json::Value,
+    title: Option<String>,
+    plan_id: Option<String>,
+    slug: Option<String>,
+    status: Option<String>,
+}
+
 // ---------- Dev plugin ----------
 pub struct DevPlugin;
 impl DevPlugin { pub fn new() -> Self { Self } }
@@ -262,6 +339,33 @@ impl Plugin for DevPlugin {
                                 .about("Write JSON Schemas to a directory")
                                 .arg(Arg::new("out").long("out").required(true).value_name("DIR"))
                         )
+                )
+                // dev plans (project plan lifecycle)
+                .subcommand(
+                    Command::new("plans").about("Project plan lifecycle")
+                      .subcommand(
+                        Command::new("list").about("List plans")
+                          .arg(Arg::new("where").long("where").value_parser(["next","current","done","archived","all"]).default_value("all"))
+                      )
+                      .subcommand(
+                        Command::new("next").about("Show the next plan candidate under docs/project/next")
+                      )
+                      .subcommand(
+                        Command::new("status").about("Show plan front-matter and derived ids")
+                          .arg(Arg::new("plan").long("plan").required(true).value_name("PATH"))
+                      )
+                      .subcommand(
+                        Command::new("start").about("Start a plan: create+start task, update front-matter, move next→current")
+                          .arg(Arg::new("plan").long("plan").required(false).value_name("PATH"))
+                          .arg(Arg::new("scope").long("scope").required(false).value_name("LABEL"))
+                          .arg(Arg::new("dry-run").long("dry-run").action(ArgAction::SetTrue))
+                      )
+                      .subcommand(
+                        Command::new("finalize").about("Finalize a plan: mark done, end task, bundle, move current→done")
+                          .arg(Arg::new("plan").long("plan").required(false).value_name("PATH"))
+                          .arg(Arg::new("bundle-out").long("bundle-out").required(false).value_name("PATH"))
+                          .arg(Arg::new("implemented-in").long("implemented-in").required(false).value_name("SHA"))
+                      )
                 )
         )
     }
@@ -1142,6 +1246,181 @@ endpoint = ""
                 Ok(2)
             }
 
+            // ---------------- dev plans ----------------
+            Some(("plans", pm)) => {
+                match pm.subcommand() {
+                    Some(("list", m)) => {
+                        let which = m.get_one::<String>("where").cloned().unwrap_or_else(|| "all".to_string());
+                        let root = std::env::current_dir()?;
+                        ensure_project_plan_dirs(&root)?;
+                        let items = list_plans(&root, &which)?;
+                        let out = PlanListResult{ total: items.len(), items };
+                        let exit = ctx.ok("dev","plans.list",&out);
+                        Ok(exit)
+                    }
+                    Some(("next", _m)) => {
+                        let root = std::env::current_dir()?;
+                        ensure_project_plan_dirs(&root)?;
+                        let p = pick_next_plan(&root).ok_or_else(|| anyhow::anyhow!("no plan under docs/project/next"))?;
+                        let meta = read_plan_meta(&p)?;
+                        let (plan_id, slug) = derive_id_slug(&p);
+                        let out = serde_json::json!({
+                            "plan": p.to_string_lossy(),
+                            "plan_id": plan_id,
+                            "slug": slug,
+                            "title": meta.title,
+                            "status": meta.status
+                        });
+                        let exit = ctx.ok("dev","plans.next",&out);
+                        Ok(exit)
+                    }
+                    Some(("status", m)) => {
+                        let plan = PathBuf::from(m.get_one::<String>("plan").unwrap());
+                        let meta = read_plan_meta(&plan)?;
+                        let (plan_id, slug) = derive_id_slug(&plan);
+                        let out = PlanStatusResult {
+                            plan: plan.display().to_string(),
+                            frontmatter: meta.front_json(),
+                            title: meta.title.clone(),
+                            plan_id,
+                            slug,
+                            status: meta.status.clone(),
+                        };
+                        let exit = ctx.ok("dev","plans.status",&out);
+                        Ok(exit)
+                    }
+                    Some(("start", m)) => {
+                        let root = std::env::current_dir()?;
+                        ensure_project_plan_dirs(&root)?;
+                        let plan_opt = m.get_one::<String>("plan").cloned();
+                        let dry = m.get_flag("dry-run");
+                        let plan_path = match plan_opt {
+                            Some(p) => PathBuf::from(p),
+                            None => pick_next_plan(&root).ok_or_else(|| anyhow::anyhow!("no plan under docs/project/next"))?,
+                        };
+                        let (plan_id, slug) = derive_id_slug(&plan_path);
+                        let meta0 = read_plan_meta(&plan_path)?;
+                        if let Some(s) = meta0.status.as_deref() {
+                            if s.eq_ignore_ascii_case("in-progress") || s.eq_ignore_ascii_case("done") {
+                                let exit = ctx.err(
+                                    "dev",
+                                    "plans.start",
+                                    "plan.status.invalid",
+                                    &format!("plan status is '{}', cannot start", s),
+                                    None,
+                                    2
+                                );
+                                return Ok(exit);
+                            }
+                        }
+                        let title = meta0.title.clone().unwrap_or_else(|| slug.clone().unwrap_or_else(|| "plan".into()));
+                        let (c_new, v_new) = run_cli_json(&root, &["task","new","--title", &title])?;
+                        if c_new != 0 {
+                            let exit = ctx.err("dev","plans.start","task.new.failed","task new failed", None, 2);
+                            return Ok(exit);
+                        }
+                        let task_id = v_new["data"]["task_id"].as_str()
+                            .or_else(|| v_new["data"]["id"].as_str())
+                            .or_else(|| v_new["meta"]["context"]["task_id"].as_str())
+                            .unwrap_or("").to_string();
+                        if task_id.is_empty() {
+                            let exit = ctx.err("dev","plans.start","task.id.missing","could not extract task_id", None, 2);
+                            return Ok(exit);
+                        }
+                        let (c_start, _v_start) = run_cli_json(&root, &["task","start","--task",&task_id])?;
+                        if c_start != 0 {
+                            let exit = ctx.err("dev","plans.start","task.start.failed","task start failed", None, 2);
+                            return Ok(exit);
+                        }
+
+                        let now = OffsetDateTime::now_utc().format(&Rfc3339).unwrap();
+                        let mut meta = meta0.clone();
+                        meta.status = Some("in-progress".into());
+                        meta.plan_id = plan_id.clone();
+                        meta.slug = slug.clone();
+                        meta.task_id = Some(task_id.clone());
+                        meta.started_at = Some(now);
+                        meta.source = Some("next".into());
+
+                        if dry {
+                            let out = PlanStartResult {
+                                picked_plan: plan_path.display().to_string(),
+                                moved_from: plan_path.display().to_string(),
+                                moved_to: format!("docs/project/current/{}", plan_path.file_name().unwrap().to_string_lossy()),
+                                task_id, title, plan_id: plan_id.unwrap_or_default(), slug: slug.unwrap_or_default(),
+                                updated_frontmatter: meta.front_json(),
+                            };
+                            let exit = ctx.ok("dev","plans.start.dryrun",&out);
+                            return Ok(exit);
+                        }
+
+                        write_plan_meta(&plan_path, &meta)?;
+                        let dst = root.join("docs").join("project").join("current")
+                            .join(plan_path.file_name().unwrap());
+                        std::fs::rename(&plan_path, &dst)?;
+
+                        let out = PlanStartResult {
+                            picked_plan: dst.display().to_string(),
+                            moved_from: format!("docs/project/next/{}", dst.file_name().unwrap().to_string_lossy()),
+                            moved_to: dst.display().to_string(),
+                            task_id, title, plan_id: plan_id.unwrap_or_default(), slug: slug.unwrap_or_default(),
+                            updated_frontmatter: meta.front_json(),
+                        };
+                        let exit = ctx.ok("dev","plans.start",&out);
+                        Ok(exit)
+                    }
+                    Some(("finalize", m)) => {
+                        let root = std::env::current_dir()?;
+                        ensure_project_plan_dirs(&root)?;
+                        let plan_opt = m.get_one::<String>("plan").cloned();
+                        let plan_path = match plan_opt {
+                            Some(p) => PathBuf::from(p),
+                            None => pick_single_current(&root)?
+                        };
+                        let mut meta = read_plan_meta(&plan_path)?;
+                        let task_id = meta.task_id.clone();
+
+                        let impl_in = if let Some(x) = m.get_one::<String>("implemented-in") {
+                            x.clone()
+                        } else {
+                            git_rev_parse_head().unwrap_or_default()
+                        };
+                        let mut bundle_out = None;
+                        if let Some(tid) = &task_id {
+                            let _ = run_cli_json(&root, &["task","end"]);
+                            let out_path = if let Some(path) = m.get_one::<String>("bundle-out") {
+                                path.clone()
+                            } else {
+                                format!("{}-bundle.tgz", tid)
+                            };
+                            let (_c_b, _v_b) = run_cli_json(&root, &["task","bundle","--task",tid,"--out",&out_path])?;
+                            bundle_out = Some(out_path);
+                        }
+
+                        let now = OffsetDateTime::now_utc().format(&Rfc3339).unwrap();
+                        meta.status = Some("done".into());
+                        if !impl_in.is_empty() { meta.implemented_in = Some(impl_in.clone()); }
+                        meta.completed_at = Some(now);
+                        write_plan_meta(&plan_path, &meta)?;
+                        let dst = root.join("docs").join("project").join("done")
+                            .join(plan_path.file_name().unwrap());
+                        std::fs::rename(&plan_path, &dst)?;
+
+                        let out = PlanFinalizeResult {
+                            plan: dst.display().to_string(),
+                            moved_to: dst.display().to_string(),
+                            task_id,
+                            implemented_in: impl_in,
+                            bundle_out,
+                            frontmatter: meta.front_json(),
+                        };
+                        let exit = ctx.ok("dev","plans.finalize",&out);
+                        Ok(exit)
+                    }
+                    _ => Ok(2)
+                }
+            }
+
             _ => Ok(2),
         }
     }
@@ -1182,6 +1461,41 @@ endpoint = ""
                 about: "Aggregate events.jsonl → counts, p50/p90/avg, error leaderboard".to_string(),
                 args_schema: schema_for!(TelemetryReportArgs),
                 result_schema: schema_for!(TelemetryReport),
+            },
+            // dev.plans.start
+            ToolSpec {
+                name: "dev.plans.start".to_string(),
+                about: "Start a plan: create+start task, update front-matter, move next→current".to_string(),
+                args_schema: schema_for!(PlanStartArgs),
+                result_schema: schema_for!(PlanStartResult),
+            },
+            // dev.plans.finalize
+            ToolSpec {
+                name: "dev.plans.finalize".to_string(),
+                about: "Finalize a plan: mark done, end task, bundle, move current→done".to_string(),
+                args_schema: schema_for!(PlanFinalizeArgs),
+                result_schema: schema_for!(PlanFinalizeResult),
+            },
+            // dev.plans.list
+            ToolSpec {
+                name: "dev.plans.list".to_string(),
+                about: "List plans in docs/project/{next,current,done,archived}".to_string(),
+                args_schema: schema_for!(PlanListArgs),
+                result_schema: schema_for!(PlanListResult),
+            },
+            // dev.plans.status
+            ToolSpec {
+                name: "dev.plans.status".to_string(),
+                about: "Show plan front-matter and derived ids".to_string(),
+                args_schema: schema_for!(PlanStatusArgs),
+                result_schema: schema_for!(PlanStatusResult),
+            },
+            // dev.plans.next
+            ToolSpec {
+                name: "dev.plans.next".to_string(),
+                about: "Show the next plan candidate (docs/project/next)".to_string(),
+                args_schema: schema_for!(serde_json::Value),
+                result_schema: schema_for!(serde_json::Value),
             },
         ]
     }
@@ -1438,6 +1752,200 @@ fn plugin_readme(name: &str, desc: &str) -> String {
 }
 
 // ===== Phase 7 helpers =====
+
+#[derive(Clone)]
+struct PlanMeta {
+    front: serde_yaml::Mapping,
+    title: Option<String>,
+    status: Option<String>,
+    plan_id: Option<String>,
+    slug: Option<String>,
+    task_id: Option<String>,
+    started_at: Option<String>,
+    completed_at: Option<String>,
+    implemented_in: Option<String>,
+    source: Option<String>,
+}
+impl PlanMeta {
+    fn front_json(&self) -> serde_json::Value {
+        serde_json::to_value(&self.front.clone()).unwrap_or(serde_json::json!({}))
+    }
+}
+
+fn ensure_project_plan_dirs(root: &Path) -> anyhow::Result<()> {
+    for d in ["docs/project/next","docs/project/current","docs/project/done","docs/project/archived"] {
+        let p = root.join(d);
+        std::fs::create_dir_all(&p)?;
+    }
+    Ok(())
+}
+
+fn list_plans(root: &Path, which: &str) -> anyhow::Result<Vec<PlanRow>> {
+    use std::fs;
+    let mut out = vec![];
+    let folders: Vec<&str> = match which {
+        "next" => vec!["docs/project/next"],
+        "current" => vec!["docs/project/current"],
+        "done" => vec!["docs/project/done"],
+        "archived" => vec!["docs/project/archived"],
+        _ => vec!["docs/project/next","docs/project/current","docs/project/done","docs/project/archived"],
+    };
+    for f in folders {
+        let dir = root.join(f);
+        if !dir.exists() { continue; }
+        for e in fs::read_dir(&dir)? {
+            let e = e?;
+            if !e.file_type()?.is_file() { continue; }
+            if e.path().extension() != Some(OsStr::new("md")) { continue; }
+            let file = e.file_name().to_string_lossy().to_string();
+            if !file.to_lowercase().starts_with("plan-") { continue; }
+            let meta = read_plan_meta(&e.path()).ok();
+            let (pid, slug) = derive_id_slug(&e.path());
+            out.push(PlanRow{
+                folder: f.to_string(),
+                file,
+                plan_id: pid,
+                slug,
+                title: meta.as_ref().and_then(|m| m.title.clone()),
+                status: meta.and_then(|m| m.status),
+            });
+        }
+    }
+    Ok(out)
+}
+
+fn pick_next_plan(root: &Path) -> Option<PathBuf> {
+    let dir = root.join("docs/project/next");
+    let mut files: Vec<PathBuf> = std::fs::read_dir(&dir).ok()?
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| p.extension()==Some(OsStr::new("md")))
+        .filter(|p| p.file_name().map(|s| s.to_string_lossy().to_lowercase().starts_with("plan-")).unwrap_or(false))
+        .collect();
+    files.sort();
+    files.into_iter().next()
+}
+
+fn pick_single_current(root: &Path) -> anyhow::Result<PathBuf> {
+    let dir = root.join("docs/project/current");
+    let files: Vec<PathBuf> = std::fs::read_dir(&dir)?
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| p.extension()==Some(OsStr::new("md")))
+        .filter(|p| p.file_name().map(|s| s.to_string_lossy().to_lowercase().starts_with("plan-")).unwrap_or(false))
+        .collect();
+    match files.len() {
+        0 => anyhow::bail!("no plan under docs/project/current"),
+        1 => Ok(files[0].clone()),
+        _ => anyhow::bail!("multiple plans under docs/project/current; pass --plan"),
+    }
+}
+
+fn derive_id_slug(p: &Path) -> (Option<String>, Option<String>) {
+    let base = p.file_name().and_then(|s| s.to_str()).unwrap_or("");
+    let s = base.trim_end_matches(".md");
+    let s = if let Some(rest) = s.strip_prefix("PLAN-").or_else(|| s.strip_prefix("plan-")) { rest } else { return (None,None); };
+    let mut id = String::new();
+    let mut slug = String::new();
+    for (i, ch) in s.char_indices() {
+        if ch.is_ascii_digit() {
+            id.push(ch);
+            continue;
+        }
+        let rest = &s[i+1..];
+        slug = rest.trim_start_matches('_').trim_start_matches('-').to_string();
+        break;
+    }
+    if id.is_empty() { return (None,None); }
+    if slug.is_empty() {
+        if let Some(pos) = s.find('_').or_else(|| s.find('-')) {
+            slug = s[pos+1..].to_string();
+        }
+    }
+    (Some(id), Some(slug))
+}
+
+fn read_plan_meta(p: &Path) -> anyhow::Result<PlanMeta> {
+    let txt = std::fs::read_to_string(p)?;
+    let mut front = serde_yaml::Mapping::new();
+    let mut body = txt.as_str();
+    let mut title = None;
+
+    if txt.starts_with("---") {
+        if let Some(idx) = txt[3..].find("\n---") {
+            let head = &txt[3..3+idx];
+            let rest = &txt[3+idx+4..];
+            body = rest;
+            if let Ok(v) = serde_yaml::from_str::<serde_yaml::Mapping>(head) {
+                front = v;
+            }
+        }
+    }
+    for line in body.lines() {
+        let l = line.trim_start();
+        if let Some(t) = l.strip_prefix("# ") {
+            title = Some(t.trim().to_string());
+            break;
+        }
+    }
+    let get = |k: &str| front.get(&serde_yaml::Value::String(k.into()))
+        .and_then(|v| match v {
+            serde_yaml::Value::String(s) => Some(s.clone()),
+            _ => None
+        });
+    Ok(PlanMeta{
+        front: front.clone(),
+        title,
+        status: get("status"),
+        plan_id: get("plan_id"),
+        slug: get("slug"),
+        task_id: get("task_id"),
+        started_at: get("started_at"),
+        completed_at: get("completed_at"),
+        implemented_in: get("implemented_in"),
+        source: get("source"),
+    })
+}
+
+fn write_plan_meta(p: &Path, meta: &PlanMeta) -> anyhow::Result<()> {
+    let txt = std::fs::read_to_string(p)?;
+    let mut front = meta.front.clone();
+    let set = |m: &mut serde_yaml::Mapping, k: &str, v: Option<String>| {
+        if let Some(val) = v {
+            m.insert(serde_yaml::Value::String(k.into()), serde_yaml::Value::String(val));
+        }
+    };
+    set(&mut front, "status", meta.status.clone());
+    set(&mut front, "plan_id", meta.plan_id.clone());
+    set(&mut front, "slug", meta.slug.clone());
+    set(&mut front, "task_id", meta.task_id.clone());
+    set(&mut front, "started_at", meta.started_at.clone());
+    set(&mut front, "completed_at", meta.completed_at.clone());
+    set(&mut front, "implemented_in", meta.implemented_in.clone());
+    set(&mut front, "source", meta.source.clone());
+
+    let body = if txt.starts_with("---") {
+        if let Some(idx) = txt[3..].find("\n---") {
+            &txt[3+idx+4..]
+        } else { &txt }
+    } else { &txt };
+
+    let mut out = String::new();
+    out.push_str("---\n");
+    out.push_str(&serde_yaml::to_string(&front)?);
+    out.push_str("---\n");
+    out.push_str(body.trim_start());
+    std::fs::write(p, out.as_bytes())?;
+    Ok(())
+}
+
+fn git_rev_parse_head() -> Option<String> {
+    use std::process::Command;
+    let out = Command::new("git").args(["rev-parse","--short","HEAD"]).output().ok()?;
+    if !out.status.success() { return None; }
+    let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if s.is_empty() { None } else { Some(s) }
+}
 
 //// ===== rotation helpers =====
 use sha2::{Digest, Sha256};
