@@ -97,3 +97,5 @@ coverage/
 
 # dev/runtime artifacts
 .nexoscli/log/
+
+commit_message.md

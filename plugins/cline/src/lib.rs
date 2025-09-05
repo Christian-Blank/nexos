@@ -6,6 +6,8 @@ use std::{collections::BTreeMap, fs, io::Read, path::{Path, PathBuf}};
 use time::{OffsetDateTime, Duration, format_description::well_known::Rfc3339};
 use walkdir::WalkDir;
 
+mod correlation;
+
 pub struct ClinePlugin;
 impl ClinePlugin { pub fn new() -> Self { Self } }
 
@@ -107,6 +109,14 @@ impl Plugin for ClinePlugin {
                     .arg(Arg::new("limit").long("limit").value_parser(clap::value_parser!(u64)))
                     .arg(Arg::new("dry-run").long("dry-run").action(ArgAction::SetTrue))
             )
+            .subcommand(
+                ClapCommand::new("correlate").about("Correlate Cline tasks to runs")
+                    .arg(Arg::new("run-id").long("run-id").value_name("RUN"))
+                    .arg(Arg::new("since").long("since").value_name("WINDOW"))
+                    .arg(Arg::new("pad").long("pad").value_name("DUR").default_value("5m"))
+                    .arg(Arg::new("write").long("write").action(ArgAction::SetTrue))
+                    .arg(Arg::new("dry-run").long("dry-run").action(ArgAction::SetTrue))
+            )
         )
     }
 
@@ -149,6 +159,22 @@ impl Plugin for ClinePlugin {
                 };
                 Ok(exit)
             }
+            Some(("correlate", m)) => {
+                let dot = std::env::current_dir()?.join(".nexoscli");
+                let pad = crate::correlation::parse_pad(m.get_one::<String>("pad"));
+                if let Some(run) = m.get_one::<String>("run-id") {
+                    let rec = crate::correlation::correlate_run(&dot, run, pad)?;
+                    if m.get_flag("write") { crate::correlation::persist_record(&dot, &rec)?; }
+                    return Ok(ctx.ok("cline","correlate.one",&serde_json::to_value(rec)?));
+                } else {
+                    let since = crate::correlation::parse_since(m.get_one::<String>("since"));
+                    let write = m.get_flag("write");
+                    let (sum, recs) = crate::correlation::correlate_since(&dot, since, pad, write)?;
+                    return Ok(ctx.ok("cline","correlate",&serde_json::json!({
+                        "summary": sum, "count": recs.len(), "examples": recs.iter().take(2).cloned().collect::<Vec<_>>()
+                    })));
+                }
+            }
             _ => Err(anyhow::anyhow!("unknown cline command").into()),
         }
     }
@@ -166,6 +192,12 @@ impl Plugin for ClinePlugin {
                 about: "Import Cline task history with idempotent ingest".to_string(),
                 args_schema: schema_for!(ImportArgs),
                 result_schema: schema_for!(ImportSummary),
+            },
+            ToolSpec {
+                name: "cline.correlate".to_string(),
+                about: "Correlate Cline tasks to runs by time".to_string(),
+                args_schema: schema_for!(serde_json::Value),
+                result_schema: schema_for!(serde_json::Value),
             },
         ]
     }

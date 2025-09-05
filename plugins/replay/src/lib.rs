@@ -628,68 +628,104 @@ impl Plugin for ReplayPlugin {
                 let mut manifest_cline: Vec<serde_json::Value> = vec![];
 
                 if want_cline {
-                    // Resolve time window with pad (±300s) for safety
-                    let pad = time::Duration::seconds(300);
-                    let from_ts = first_ts.as_ref().and_then(|s| time::OffsetDateTime::parse(s, &Rfc3339).ok()).map(|t| t - pad);
-                    let to_ts   = last_ts.as_ref().and_then(|s| time::OffsetDateTime::parse(s, &Rfc3339).ok()).map(|t| t + pad);
+                    // Destination root for cline tasks inside the bag
+                    let dst_root = default_stage.join("cline").join("tasks");
+                    std::fs::create_dir_all(&dst_root)?;
 
-                    let cline_src = std::path::Path::new(".nexoscli").join("cline").join("tasks");
-                    if cline_src.exists() {
-                        let dst_root = default_stage.join("cline").join("tasks");
-                        std::fs::create_dir_all(&dst_root)?;
-
-                        for ent in WalkDir::new(&cline_src).min_depth(1).max_depth(2).into_iter().flatten() {
-                            let p = ent.path();
-                            if p.is_dir() || p.extension().and_then(|x| x.to_str()) != Some("json") { continue; }
-
-                            // Filter by time window (mtime fallback, tolerant)
-                            let mut in_window = true;
-                            if let Ok(meta) = std::fs::metadata(p) {
-                                if let Ok(modified) = meta.modified() {
-                                    let ts = time::OffsetDateTime::from(modified);
-                                    if let Some(f) = from_ts { if ts < f { in_window = false; } }
-                                    if let Some(t) = to_ts   { if ts > t { in_window = false; } }
+                    // Prefer a persisted correlation record if present
+                    let corr_file = std::path::Path::new(".nexoscli").join("cline").join("corr").join(format!("{}.json", run_id));
+                    let mut used_corr = false;
+                    if corr_file.exists() {
+                        if let Ok(txt) = std::fs::read_to_string(&corr_file) {
+                            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&txt) {
+                                if let Some(arr) = v.get("tasks").and_then(|x| x.as_array()) {
+                                    for t in arr {
+                                        let id = t.get("id").and_then(|x| x.as_str()).unwrap_or("task");
+                                        let src = t.get("path").and_then(|x| x.as_str()).map(std::path::PathBuf::from);
+                                        let src = match src { Some(p) => p, None => continue };
+                                        if !src.exists() { continue; }
+                                        let created = t.get("created_at").and_then(|x| x.as_str()).map(|s| s.replace(':', "-"));
+                                        let fname = created.map(|c| format!("{}-{}.json", c, id)).unwrap_or_else(|| format!("{}.json", id));
+                                        let dst = dst_root.join(&fname);
+                                        let raw = std::fs::read(&src).unwrap_or_default();
+                                        std::fs::write(&dst, &raw)?;
+                                        counts.cline += 1;
+                                        manifest_cline.push(serde_json::json!({
+                                            "id": id,
+                                            "dst": format!("cline/tasks/{}", dst.file_name().unwrap().to_string_lossy()),
+                                            "sha256": sha256(&raw),
+                                            "bytes": raw.len(),
+                                            "created_at": t.get("created_at").and_then(|x| x.as_str()),
+                                            "messages": t.get("messages").and_then(|x| x.as_u64()).unwrap_or(0)
+                                        }));
+                                    }
+                                    used_corr = true;
                                 }
                             }
+                        }
+                    }
 
-                            if !in_window { continue; }
+                    if !used_corr {
+                        // Fallback: Resolve time window with pad (±300s) and scan tasks directory
+                        let pad = time::Duration::seconds(300);
+                        let from_ts = first_ts.as_ref().and_then(|s| time::OffsetDateTime::parse(s, &Rfc3339).ok()).map(|t| t - pad);
+                        let to_ts   = last_ts.as_ref().and_then(|s| time::OffsetDateTime::parse(s, &Rfc3339).ok()).map(|t| t + pad);
 
-                            // Parse JSON to extract id/created/messages if available
-                            let raw = std::fs::read(p).unwrap_or_default();
-                            let v   = serde_json::from_slice::<serde_json::Value>(&raw).unwrap_or(serde_json::json!({}));
-                            let id  = v.get("id")
-                                        .or_else(|| v.get("taskId"))
-                                        .or_else(|| v.get("uuid"))
-                                        .and_then(|x| x.as_str())
-                                        .map(|s| s.to_string())
-                                        .unwrap_or_else(|| format!("anon-{}", &sha256(&raw)[7..19]));
-                            let created = v.get("createdAt")
-                                           .or_else(|| v.pointer("/meta/startedAt"))
-                                           .or_else(|| v.get("timestamp"))
-                                           .and_then(|x| x.as_str())
-                                           .map(|s| s.to_string());
-                            let msg_count = v.get("messages").and_then(|x| x.as_array()).map(|a| a.len())
-                                             .or_else(|| v.get("conversation").and_then(|x| x.as_array()).map(|a| a.len()))
-                                             .or_else(|| v.get("steps").and_then(|x| x.as_array()).map(|a| a.len()))
-                                             .unwrap_or(0);
+                        let cline_src = std::path::Path::new(".nexoscli").join("cline").join("tasks");
+                        if cline_src.exists() {
+                            for ent in WalkDir::new(&cline_src).min_depth(1).max_depth(2).into_iter().flatten() {
+                                let p = ent.path();
+                                if p.is_dir() || p.extension().and_then(|x| x.to_str()) != Some("json") { continue; }
 
-                            // Destination file name (stable)
-                            let base = format!("{}-{}.json",
-                                created.as_deref().unwrap_or("unknown"),
-                                id.replace(|c: char| !c.is_ascii_alphanumeric(), "_")
-                            );
-                            let dst = dst_root.join(base);
-                            std::fs::write(&dst, &raw)?;
+                                // Filter by time window (mtime fallback, tolerant)
+                                let mut in_window = true;
+                                if let Ok(meta) = std::fs::metadata(p) {
+                                    if let Ok(modified) = meta.modified() {
+                                        let ts = time::OffsetDateTime::from(modified);
+                                        if let Some(f) = from_ts { if ts < f { in_window = false; } }
+                                        if let Some(t) = to_ts   { if ts > t { in_window = false; } }
+                                    }
+                                }
 
-                            counts.cline += 1;
-                            manifest_cline.push(serde_json::json!({
-                                "id": id,
-                                "dst": format!("cline/tasks/{}", dst.file_name().unwrap().to_string_lossy()),
-                                "sha256": sha256(&raw),
-                                "bytes": raw.len(),
-                                "created_at": created,
-                                "messages": msg_count
-                            }));
+                                if !in_window { continue; }
+
+                                // Parse JSON to extract id/created/messages if available
+                                let raw = std::fs::read(p).unwrap_or_default();
+                                let v   = serde_json::from_slice::<serde_json::Value>(&raw).unwrap_or(serde_json::json!({}));
+                                let id  = v.get("id")
+                                            .or_else(|| v.get("taskId"))
+                                            .or_else(|| v.get("uuid"))
+                                            .and_then(|x| x.as_str())
+                                            .map(|s| s.to_string())
+                                            .unwrap_or_else(|| format!("anon-{}", &sha256(&raw)[7..19]));
+                                let created = v.get("createdAt")
+                                               .or_else(|| v.pointer("/meta/startedAt"))
+                                               .or_else(|| v.get("timestamp"))
+                                               .and_then(|x| x.as_str())
+                                               .map(|s| s.to_string());
+                                let msg_count = v.get("messages").and_then(|x| x.as_array()).map(|a| a.len())
+                                                 .or_else(|| v.get("conversation").and_then(|x| x.as_array()).map(|a| a.len()))
+                                                 .or_else(|| v.get("steps").and_then(|x| x.as_array()).map(|a| a.len()))
+                                                 .unwrap_or(0);
+
+                                // Destination file name (stable)
+                                let base = format!("{}-{}.json",
+                                    created.as_deref().unwrap_or("unknown"),
+                                    id.replace(|c: char| !c.is_ascii_alphanumeric(), "_")
+                                );
+                                let dst = dst_root.join(base);
+                                std::fs::write(&dst, &raw)?;
+
+                                counts.cline += 1;
+                                manifest_cline.push(serde_json::json!({
+                                    "id": id,
+                                    "dst": format!("cline/tasks/{}", dst.file_name().unwrap().to_string_lossy()),
+                                    "sha256": sha256(&raw),
+                                    "bytes": raw.len(),
+                                    "created_at": created,
+                                    "messages": msg_count
+                                }));
+                            }
                         }
                     }
                 }

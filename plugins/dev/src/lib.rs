@@ -929,7 +929,11 @@ endpoint = ""
                                 ok = ok && (c2 == 0);
                                 if ok {
                                     let imp = v2["data"]["imported"].as_u64().unwrap_or(0);
-                                    detail = format!("storage={} imported~{}", storage, imp);
+                                    // correlation coverage for last 24h (dry-run)
+                                    let (_c_cor, v_cor) = run_cli_json(&cwd, &["cline","correlate","--since","24h","--pad","5m","--dry-run"])?;
+                                    let cov = v_cor["data"]["summary"]["coverage"].as_f64().unwrap_or(0.0);
+                                    let total = v_cor["data"]["summary"]["runs_total"].as_u64().unwrap_or(0);
+                                    detail = format!("storage={} imported~{} coverage={:.0}% over {} runs", storage, imp, cov*100.0, total);
                                 } else {
                                     detail = format!("import dry-run failed for {}", storage);
                                     fix = Some("Inspect storage path; ensure readable JSON files under tasks/".into());

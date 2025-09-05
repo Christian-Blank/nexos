@@ -389,6 +389,51 @@ For very large TracePacks:
 - Consider time-based filtering (future feature)
 - Compress with higher compression ratios
 
+### Cline correlation (v0)
+
+NEXOS correlates imported Cline tasks to CLI runs by time‑window intersection with a configurable pad (default ±5 minutes). Correlation records can be persisted per run and later used by the extractor to ensure deterministic inclusion.
+
+Build correlation
+```bash
+# For a single run (persist to .nexoscli/cline/corr/RUN.json)
+nexoscli cline correlate --run-id RUN-... --pad 5m --write
+
+# For recent runs (dry-run summary of coverage)
+nexoscli cline correlate --since 24h --pad 5m --dry-run
+```
+
+Extraction behavior
+- replay extract --include cline first looks for a persisted record at .nexoscli/cline/corr/<run_id>.json and uses it if present.
+- If no record exists, it computes correlation on the fly with the same deterministic rule (±pad) and includes matching tasks.
+
+Correlation record (example)
+```json
+{
+  "run_id": "RUN-...",
+  "window": { "start": "2025-09-05T12:00:00Z", "end": "2025-09-05T12:05:00Z", "pad_sec": 300 },
+  "event": { "ts": "2025-09-05T12:00:00Z", "dur_ms": 4300, "plugin": "term", "command": "run", "exit_code": 0 },
+  "tasks": [
+    {
+      "id": "task_1",
+      "path": ".nexoscli/cline/tasks/task_1.json",
+      "sha256": "sha256:...",
+      "bytes": 1234,
+      "created_at": "2025-09-05T11:59:40Z",
+      "updated_at": "2025-09-05T12:02:00Z",
+      "messages": 12,
+      "overlap_sec": 42,
+      "pct_task_in_window": 0.67
+    }
+  ],
+  "created_at": "2025-09-05T12:06:00Z"
+}
+```
+
+Notes
+- Deterministic rule: overlap of [task.created_at..task.updated_at] with [run.ts..run.ts+dur_ms] expanded by pad.
+- Durable artifacts: correlation JSON per run lives under .nexoscli/cline/corr/ and is bundle‑friendly.
+- On-the-fly compute uses the same rule when no persisted record is present.
+
 ## Cline Tasks (optional)
 
 If you pass `--include cline` (or `--include all`), the extractor selects normalized Cline tasks
