@@ -1,3 +1,8 @@
+---
+status: done
+completed_at: 2025-09-05T07:16:55.516749Z
+implemented_in: 2cec834
+---
 You’re absolutely right: anything that requires inline Python or complex shell heredocs inside Cline prompts is brittle. The right fix is to move those steps into nexoscli so Cline (or any human) can just run one or two robust CLI commands. Below I give you a compact, production‑ready slice that:
 	•	Adds plan lifecycle commands to the dev plugin (dev plans …) to find the next plan, start it (create & start a task, update plan front‑matter, move next → current), and finalize it (write implemented commit, end task, bundle, move current → done).
 	•	Keeps all logic in Rust (no Python scripts), with stable JSON envelopes and testable behavior.
