@@ -1,0 +1,20 @@
+{
+  "cline_tasks": [],
+  "counts": {
+    "cline": 0,
+    "events_lines": 4,
+    "patches": 0,
+    "status": 0
+  },
+  "created_at": "2025-09-05T05:16:04.699424Z",
+  "kind": "tracepack.task",
+  "patches": [],
+  "session_id": "SES-eaa4a9f23c06",
+  "status_files": [],
+  "task_id": "TASK-20250905-plan-34-schemas-bundle-validators-v0",
+  "time_range": {
+    "from": "2025-09-05T05:10:49.646862Z",
+    "to": "2025-09-05T05:16:03.941397Z"
+  },
+  "version": "0.1"
+}

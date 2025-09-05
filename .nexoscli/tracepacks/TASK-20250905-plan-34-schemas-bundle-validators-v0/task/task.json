@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20250905-plan-34-schemas-bundle-validators-v0",
+  "title": "Plan-34: Schemas bundle & validators (v0)",
+  "stage": "done",
+  "status": "ended",
+  "created_at": "2025-09-05T05:08:45.020675Z",
+  "started_at": "2025-09-05T05:10:49.645677Z",
+  "ended_at": "2025-09-05T05:16:03.940953Z",
+  "sessions": [
+    {
+      "id": "SES-eaa4a9f23c06",
+      "start": "2025-09-05T05:10:49.646053Z",
+      "end": "2025-09-05T05:16:03.94079Z"
+    }
+  ],
+  "notes": []
+}

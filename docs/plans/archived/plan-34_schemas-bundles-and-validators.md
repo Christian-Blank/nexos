@@ -1,3 +1,7 @@
+---
+Implemented in: commit dac3d4614a7c2ba12217e0e256d471858422365 feat(replay): Schemas bundle & validators (v0) (TASK-20250905-plan-34-schemas-bundle-validators-v0)
+---
+
 Below is Implementation Plan #34 — “Schemas bundle & validators (v0)”.
 It adds a schemas API and a validator to the replay plugin, so every bag (TracePack) can be checked against canonical, versioned JSON Schemas. This is a P0 step toward a usable, analyzable v0.
 

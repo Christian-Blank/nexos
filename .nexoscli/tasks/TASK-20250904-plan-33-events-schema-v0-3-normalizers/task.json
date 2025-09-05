@@ -1,16 +1,16 @@
 {
   "id": "TASK-20250904-plan-33-events-schema-v0-3-normalizers",
   "title": "PLAN-33: Events Schema v0.3 + Normalizers",
-  "stage": "planning",
-  "status": "active",
+  "stage": "done",
+  "status": "ended",
   "created_at": "2025-09-04T20:15:04.963594Z",
   "started_at": "2025-09-04T20:15:52.266309Z",
-  "ended_at": null,
+  "ended_at": "2025-09-05T05:10:02.993141Z",
   "sessions": [
     {
       "id": "SES-afaf660c9eb6",
       "start": "2025-09-04T20:15:52.266638Z",
-      "end": null
+      "end": "2025-09-05T05:10:02.993051Z"
     }
   ],
   "notes": []

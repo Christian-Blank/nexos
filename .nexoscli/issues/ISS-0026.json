@@ -1,0 +1,12 @@
+{
+  "id": "ISS-0026",
+  "title": "Plan-35 prep: tighten events schema and validation policy",
+  "body": "Post Plan-34: validator is tolerant and events schema required fields were relaxed. After ISS-0024 promotes ok/source/context to top-level in normalized lines, tighten JSON Schema (ok/exit_code required, consider ts format), set ArtifactReport.ok based on invalid==0, and consider making summary_ok fail when invalid&gt;0. Document changes and update tests accordingly.",
+  "labels": [
+    "[\"followup\"",
+    "\"replay\"]"
+  ],
+  "state": "open",
+  "created_at": "2025-09-05T05:16:02.487223Z",
+  "updated_at": "2025-09-05T05:16:02.487223Z"
+}

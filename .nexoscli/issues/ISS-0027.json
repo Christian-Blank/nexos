@@ -1,0 +1,12 @@
+{
+  "id": "ISS-0027",
+  "title": "Replay validate: support .tgz bag inputs (v0.1)",
+  "body": "Plan-34 limits validation to directory bags. Add support for .tgz/.tar.gz bag inputs by reading tar entries (reusing read_bag_topic_bytes-like helpers) while keeping CLI stable. Ensure deterministic behavior and extend E2E to cover .tgz.",
+  "labels": [
+    "[\"enhancement\"",
+    "\"replay\"]"
+  ],
+  "state": "open",
+  "created_at": "2025-09-05T05:16:03.236248Z",
+  "updated_at": "2025-09-05T05:16:03.236248Z"
+}
