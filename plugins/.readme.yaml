@@ -1,0 +1,5 @@
+title: "Plugins/"
+auto:
+  children_glob: ["*/README.md"]
+  dir_tree_depth: 1
+tags: ["plugins", "rust"]

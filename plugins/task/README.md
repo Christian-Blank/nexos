@@ -1,3 +1,28 @@
+---
+schema: readme.v0
+title: "task plugin"
+summary: "Task lifecycle: new/start/pause/resume/stage/status/list/end/bundle."
+kind: leaf
+owner: "@plugins/dri"
+status: live
+version: "0.1.0"
+last_reviewed: "2025-09-06T22:06:30Z"
+parents: ["../README.md","../../README.md"]
+children: []
+source_of_truth:
+  - "./src/lib.rs"
+  - "./README.md"
+in_scope:
+  - "User-facing behavior and CLI surface of task plugin"
+out_of_scope:
+  - "Workflow engine internals (see plugins/workflow)"
+inputs:
+  - "Events log"
+outputs:
+  - ".nexoscli/tasks/*, envelopes"
+tags: ["plugin","tasks"]
+auto: { }
+---
 # Task Plugin
 
 Task lifecycle management with automatic context injection.

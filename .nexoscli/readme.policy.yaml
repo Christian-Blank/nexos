@@ -1,0 +1,30 @@
+version: v0.1
+default_kind: domain
+default_auto:
+  children_glob: ["*/README.md"]
+  dir_tree_depth: 1
+  badges: true
+
+# Which folders must have READMEs (enforced)
+required_folders:
+  - "docs"
+  - "plugins"
+  - "nexoscli-core"
+  - "nexoscli-bin"
+  - "rules"
+  - "examples"
+  - "contracts"
+  - "adapters"
+  - "scripts"
+  - "testdata"
+
+# Staleness SLOs (days)
+slo:
+  domain_last_reviewed_days: 45
+  leaf_last_reviewed_days: 90
+
+# Lint rules (simple booleans)
+lint:
+  require_frontmatter: true
+  require_scope_sections: true         # Purpose/In/Out/Interfaces
+  require_graph_links: true

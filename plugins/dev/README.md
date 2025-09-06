@@ -1,3 +1,31 @@
+---
+schema: readme.v0
+title: "dev plugin"
+summary: "Repo health checks, docs build, telemetry, and CLI-native plan lifecycle."
+kind: leaf
+owner: "@plugins/dri"
+status: live
+version: "0.1.0"
+last_reviewed: "2025-09-06T22:06:30Z"
+parents: ["../README.md","../../README.md"]
+children: []
+source_of_truth:
+  - "./src/lib.rs"
+  - "./README.md"
+in_scope:
+  - "Repository health checks and enforcement"
+  - "Docs build and machine tool spec exports"
+  - "Telemetry aggregation"
+  - "Plan lifecycle: start/finalize via CLI"
+out_of_scope:
+  - "Business/domain plugin functionality (see other plugins)"
+inputs:
+  - "Workspace configuration and event logs"
+outputs:
+  - "Docs, reports, and ctx.ok/ctx.err envelopes"
+tags: ["plugin","dev"]
+auto: { }
+---
 # dev plugin — Developer ergonomics and Plan Lifecycle
 
 The dev plugin provides repository health tools, documentation generators, telemetry reports, and a first‑class Plan Lifecycle CLI. All commands emit ctx.ok/ctx.err JSON envelopes when `--output json` is used.

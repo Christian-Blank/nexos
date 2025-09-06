@@ -1,4 +1,35 @@
+---
+schema: readme.v0
+title: "contracts/"
+summary: "Frozen JSON Schemas for NexOS public contracts; generated deterministically from Rust types."
+kind: domain
+owner: "@contracts/dri"
+status: live
+version: "0.1.0"
+last_reviewed: "2025-09-06T22:06:30Z"
+parents: ["../README.md"]
+children: ["./schemas/README.md"]
+source_of_truth:
+  - "./schemas/"
+in_scope:
+  - "Contract schema snapshots and provenance"
+  - "Regeneration and drift verification guidance"
+out_of_scope:
+  - "Hand-editing schemas (use code + export tooling)"
+inputs:
+  - "Rust contract types, CLI export command"
+outputs:
+  - "Versioned JSON Schemas under contracts/schemas/"
+tags: ["contracts","schemas"]
+auto:
+  children_glob: ["*/README.md"]
+  dir_tree_depth: 1
+---
 # Contracts (Schemas) Provenance
+
+<!-- BEGIN: AUTO (id=children) -->
+_Auto-generated: list of contract subfolders (e.g., schemas/)._
+<!-- END: AUTO -->
 
 This directory contains frozen JSON Schemas for Nexos public contracts. These files are generated from real Rust types (via schemars) and exported by the CLI. Do not hand-edit any of these files.
 

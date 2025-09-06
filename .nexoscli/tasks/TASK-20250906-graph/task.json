@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20250906-graph",
+  "title": "Graph",
+  "stage": "planning",
+  "status": "active",
+  "created_at": "2025-09-06T22:04:06.164406Z",
+  "started_at": "2025-09-06T22:04:06.172236Z",
+  "ended_at": null,
+  "sessions": [
+    {
+      "id": "SES-d15a63811f44",
+      "start": "2025-09-06T22:04:06.172269Z",
+      "end": null
+    }
+  ],
+  "notes": []
+}

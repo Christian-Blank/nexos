@@ -1,4 +1,51 @@
+---
+schema: readme.v0
+title: "nexoscli-core/"
+summary: "Core library providing deterministic providers, events, and plugin contracts."
+kind: domain
+owner: "@core/dri"
+status: live
+version: "0.1.0"
+last_reviewed: "2025-09-06T22:06:30Z"
+parents: ["../README.md"]
+children: []
+source_of_truth:
+  - "./src/"
+in_scope:
+  - "Providers, contracts, event logging, registry"
+out_of_scope:
+  - "Binary composition (see nexoscli-bin)"
+inputs:
+  - "Workspace configuration and plugin registrations"
+outputs:
+  - "Library APIs, schemas, and traits for plugins"
+tags: ["core","rust"]
+auto:
+  children_glob: ["*/README.md"]
+  dir_tree_depth: 0
+---
 # nexoscli-core — Foundation Library
+
+<!-- BEGIN: AUTO (id=children) -->
+_Auto-generated children list from front‑matter or glob._
+<!-- END: AUTO -->
+
+## Purpose
+Foundational library for deterministic execution, structured observability, and plugin contracts used by the CLI and plugins.
+
+## In-scope
+- Providers (Clock, Entropy, IO) and deterministic execution
+- Event logging APIs and JSON contracts
+- Plugin trait definitions and registry
+- Error types and testing utilities
+
+## Out-of-scope
+- CLI binary composition and command wiring (see ../nexoscli-bin)
+- Domain-specific plugin implementations (see ../plugins)
+
+## Interfaces
+- Inputs: workspace configuration, plugin registrations
+- Outputs: library APIs, JSON schemas, traits and helpers
 
 Core library providing deterministic, observable infrastructure for nexoscli.
 Implements contracts, providers, and plugin architecture.

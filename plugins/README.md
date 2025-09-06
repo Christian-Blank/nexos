@@ -1,4 +1,35 @@
+---
+schema: readme.v0
+title: "Plugins/"
+summary: "Extensible CLI functionality grouped by plugin crates."
+kind: domain
+owner: "@cli/dri"
+status: live
+version: "0.1.0"
+last_reviewed: "2025-09-06T22:06:30Z"
+parents: ["../README.md"]
+children: []
+source_of_truth:
+  - "../nexoscli-bin/Cargo.toml"
+  - "./*/Cargo.toml"
+in_scope:
+  - "Plugin crates and their READMEs"
+out_of_scope:
+  - "Core contract types (see nexoscli-core)"
+inputs:
+  - "Workspace Cargo configuration"
+outputs:
+  - "Registered commands in nexoscli-bin"
+tags: ["plugins","rust"]
+auto:
+  children_glob: ["*/README.md"]
+  dir_tree_depth: 1
+---
 # Plugins — Domain Modules
+
+<!-- BEGIN: AUTO (id=children) -->
+_Auto-generated: list of plugin READMEs with short descriptions._
+<!-- END: AUTO -->
 
 Static plugin architecture for nexoscli domains.
 Each plugin extends the CLI with domain-specific commands while maintaining strict contracts.
