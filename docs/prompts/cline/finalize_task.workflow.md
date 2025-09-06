@@ -7,8 +7,11 @@ Input: the single plan in docs/project/current/PLAN-*.md.
 
 ## 0) Pre‑flight
 
-cargo run -p nexoscli dev init --yes
-cargo run -p nexoscli dev doctor --ci --checks="graph,plugins,config,events,tools" --require="plugins,graph"
+Read the implementation plan and context, and review the implementation. Note or point out without judging or qualifying:
+
+* Any drift between plan and implementation and possible reasons if any
+* Possible corner cases or risks if any
+* Any observations, frictions, suggestions, ... useful for continuous improvement in code, methodology, process, or documentation.
 
 ---
 
@@ -92,8 +95,15 @@ cargo run -p nexoscli dev plans finalize --output json
 # Commit moved plan file (mark as done with divider sha)
 git add --all
 git commit -m "chore(plans): mark PLAN-<ID> <slug> as done (divider=${PLAN_SHA})" || true
+git push
 
 ---
+
+## 8) Create Pull Request
+
+* Create pull request against main with descriptive PR and result of verification including checklist
+* Merge pull request with rebase preserving the original commit history - IMPORTANT: Do not squash commits!
+* Switch back to main branch 
 
 ## Success checklist
 

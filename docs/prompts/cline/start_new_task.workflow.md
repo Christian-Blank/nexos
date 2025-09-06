@@ -8,6 +8,20 @@ Output: one implementation commit (divider happens in the Finalize workflow).
 
 ## 0) Pre‑flight (required)
 
+- First read this workflow and all referenced workflow, and create a checklist for all required steps in sequence of the full workflow. As you execute each step make sure to check off each step in the checklist after you sucessfully executed it. If helpful add clear triggers or information to your checklist for each step when they are finished and should be checked off, to not forget to check off each step one by one. 
+
+- Prepare worktree (This enables parallel work in the same git repository on the same machine. [Official documentation for trouble shooting or deeper understanding of worktrees if required](https://git-scm.com/docs/git-worktree))
+  * Check that repo is on main and is up to date 'git checkout main && git pull'
+  * Set `git config --global push.autoSetupRemote true`
+  * Check if branch for task exists `git branch`
+    If no branch exists yet:
+      - Create a new worktree directory with a new branch `git worktree add ../nexos_task-<TASK_NO> -b task/<TASK_NO>-<TASK_NAME>`, where "nexos_task-<TASK_NO>" is the folder name, and "task/<TASK_NO>-<TASK_NAME>" is the branch name.
+    If branch exists:
+      - Check if worktree dir already exists: `git worktree list`
+      If worktree dir exists, switch to worktreedir, otherwise create worktree directory with existing branch: `git worktree add ../nexos_task-<TASK_NO> task/<TASK_NO>-<TASK_NAME>`
+  * Finally push new branch to remote `git push -u origin task/<TASK_NO>-<TASK_NAME>`
+  Worktree preparation done.
+
 - Read:
   - @/.clinerules/compiled.md
   - @/docs/PLAYBOOK.md
@@ -60,6 +74,7 @@ git commit -m "feat(<scope>): implement PLAN-<ID> <slug> (<TASK_ID>)
 - Summary of what/why (plan link)
 - Evidence (E2E tests / envelopes)
 - Notes (if ADR or CP)
+git push
 "
 
 Stop here. The divider & plan finalization happens in the Finalize workflow.
@@ -72,7 +87,7 @@ Stop and ask the human for review and feedback, point out any specifics that nee
 
 ## 5) Finalize Task
 
-Once the human approved the review, run the finalizing workflow: [Finalize Task Workflow](./finalize_task.workflow.md)
+Once the human approved the review, run the finalizing workflow and continue the steps in the [Finalize Task Workflow](./finalize_task.workflow.md).
 
 ## Troubleshooting
 

@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20250906-one-shot-policy-idempotent",
+  "title": "one-shot policy (idempotent)",
+  "stage": "done",
+  "status": "ended",
+  "created_at": "2025-09-06T10:47:34.787011Z",
+  "started_at": "2025-09-06T10:47:34.792479Z",
+  "ended_at": "2025-09-06T20:13:02.084423Z",
+  "sessions": [
+    {
+      "id": "SES-32d46562e543",
+      "start": "2025-09-06T10:47:34.792502Z",
+      "end": "2025-09-06T20:13:02.08433Z"
+    }
+  ],
+  "notes": []
+}
