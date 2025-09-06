@@ -1,0 +1,20 @@
+{
+  "cline_tasks": [],
+  "counts": {
+    "cline": 0,
+    "events_lines": 6,
+    "patches": 0,
+    "status": 0
+  },
+  "created_at": "2025-09-06T08:14:10.935835Z",
+  "kind": "tracepack.task",
+  "patches": [],
+  "session_id": "SES-5efdd1931a67",
+  "status_files": [],
+  "task_id": "TASK-20250906-snapshots-are-automatic-on-extract-no-new-flags",
+  "time_range": {
+    "from": "2025-09-06T08:08:59.379125Z",
+    "to": "2025-09-06T08:14:10.800833Z"
+  },
+  "version": "0.1"
+}

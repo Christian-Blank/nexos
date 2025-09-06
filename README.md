@@ -1,261 +1,176 @@
-NEXOS — System CLI Foundation
+# NEXOS: The System That Builds The System
 
-One CLI to build systems the same way, every time.
-Rust core, pluginized domains, deterministic by default, observable end-to-end.
-Designed for humans & AI to co-build with low cognitive overhead, tight contracts, and fast, incremental learning.
+*An open research experiment in human-assisted AI development*
 
-⸻
+---
 
-Why this exists
-	•	You juggle many projects. Context switching and drift kill momentum.
-	•	We want one opinionated spine that encodes best practices once, then reuses them everywhere.
-	•	The system should be strict (to prevent accidental complexity) and data-driven (to learn quickly by evidence).
+## What if we inverted the paradigm?
 
-North Star (principles & budgets): see docs/01-north-star.md
+Instead of AI assisting humans in writing code, what if humans assisted AI in building systems? Not as a copilot, but through **servant leadership** — where humans lead by serving, guiding, and empowering AI to take the general lead in development.
 
-⸻
+This is NEXOS: a living experiment in building software where every decision, every event, and every pattern becomes data that drives continuous improvement through **signal intelligence** and **emergence**.
 
-What this is (in one page)
-	•	A Rust CLI (nexoscli) with a static plugin architecture (one binary; domains = plugins).
-	•	Contracts > conventions: stable JSON I/O (--output json) and event logs for replay/analytics.
-	•	Determinism & Observability: providers for time/entropy/IO; structured spans (OTel optional).
-	•	Recursive graph: root project and any subproject are nodes in the same knowledge graph.
-	•	Built to be extended (later adapters/services: Python 3.13/Temporal, Next.js frontends) without changing the core mental model.
+## The Experiment
 
-CLI contracts (non-negotiables): see ADR-0001 → docs/ADRs/0001-cli-contracts.md
+NEXOS is both a CLI framework and a research platform exploring:
 
-⸻
+- **Human-Assisted AI Development**: The human oversees, assists, and interacts, but the AI takes the operational lead
+- **Data-Driven Developer Experience**: Every command, every event, every trace becomes signal for improvement
+- **Emergent Intelligence**: Patterns and strategies emerge from comprehensive observability and deterministic replay
+- **Recursive Self-Improvement**: The system that builds systems, understanding and evolving itself
 
-Architecture at a glance
+## Core Philosophy: Servant Leadership in Code
 
-flowchart LR
-  A[nexoscli-bin] --> B[Command tree (clap)]
-  A --> C[Event log writer]
-  A --> D[Tracing spans]
+Traditional development: Human writes → AI suggests → Human decides
 
-  subgraph Core
-    E[nexoscli-core]
-    E --> F[Providers: Clock / Entropy / Io]
-    E --> G[Plugin Registry]
-  end
+NEXOS paradigm: AI proposes → Human guides → System learns → Patterns emerge
 
-  subgraph Plugins (Domains)
-    P1[issue (local)]
-    P2[dev (generators)]
-    P3[agents (future)]
-    P4[connectors (future)]
-  end
+This isn't about replacing human judgment — it's about amplifying it through:
 
-  G --> P1
-  G -. feature flags .-> P2
-  G -. adapters .-> P3
+1. **Deterministic Execution**: Every operation can be replayed exactly (`Clock`, `Entropy`, `FilesystemAdapter` providers)
+2. **Event Sourcing Everything**: Append-only logs capture complete system history (`.nexoscli/log/events.jsonl`)
+3. **Machine-First Interfaces**: JSON contracts are primary, human interfaces are overlays (`--output json` everywhere)
+4. **Observable by Default**: Structured spans, correlation IDs, and TracePacks for complete visibility
 
-	•	Static plugins (feature-flagged) → strictness & reproducibility.
-	•	Single parse of the composed command tree → correct help/completions/docs.
-	•	Event log → .nexoscli/log/events.jsonl (append-only, one JSON per line).
+## Signal Intelligence & Emergence
 
-⸻
-
-Process model (how we work)
-	•	Atomic features: 1–3 days, ≤ 8 binary acceptance criteria.
-	•	Double learning loop after each milestone:
-	•	L1 (Feature loop): What value shipped? Evidence? Top 3 frictions → issues.
-	•	L2 (Meta loop, evidence-triggered only): Change Proposal → ADR if a contract truly needs to change.
-	•	Rule of 3: automate on the 3rd repeat (generators/scaffolds).
-	•	Tighten-only: child contexts can narrow budgets; widening requires a Change Proposal → ADR.
-
-Playbook: docs/PLAYBOOK.md
-
-⸻
-
-The knowledge graph (entry points)
-
-Everything is a node with machine-readable front-matter (YAML) + optional prose.
-Agents and tools should start here:
-	1.	Root North Star → docs/01-north-star.md
-	2.	Root Project Brief → docs/00-project-brief.md
-	3.	Execution Graph (DAG) → docs/exec_graph.yaml
-	4.	Process Artifact Model (human) → docs/meta-model.md
-	5.	Process Artifact Model (machine) → meta/MODEL/meta-model.yaml
-
-Domain entry example
-	•	Component brief (core CLI): docs/components/nexoscli/brief.md
-	•	Atomic issues: issues/atomic/*.md (front-matter includes kind, id, component, acceptance)
-
-Traversal hints (for AI):
-	•	Parse files with --- front-matter; treat front-matter as the record and the markdown body as human context.
-	•	Build the DAG from docs/exec_graph.yaml. Nodes present there are the authoritative work items.
-	•	Follow parent_id and derives_from to walk up; follow depends_on and DAG edges to walk down.
-	•	Prefer contracts & acceptance over prose when making decisions.
-
-⸻
-
-Contracts & I/O (for humans and AI)
-	•	CLI output: --output json returns one object
-
-{ "data": { /* result */ }, "errors": [], "meta": { "run_id": "…" } }
-
-Text/YAML are renderings only.
-
-	•	Event log: .nexoscli/log/events.jsonl (one JSON per line)
-Minimal v0 shape:
-
-{
-  "ts": "2025-09-01T12:34:56Z",
-  "run_id": "uuid",
-  "plugin": "issue",
-  "command": "new",
-  "args_hash": "sha256:…",
-  "content_hash": "sha256:…",
-  "exit_code": 0,
-  "attrs": { "id": "ISS-0001" }
-}
-
-
-	•	Determinism providers: Clock/Entropy/Io injected; no direct SystemTime::now() or thread_rng() in production paths.
-
-See ADR-0001 for full contract details: docs/ADRs/0001-cli-contracts.md
-
-⸻
-
-Recursive & composable by design
-
-Every bounded context (root project or subfolder app/lib) can be treated like a mini-repo:
-	•	Put a one-page README.md with project_brief front-matter in the folder.
-	•	Optionally add a child North Star (tighten-only budgets).
-	•	If the folder has multiple work items, include a local exec_graph.yaml.
-	•	IDs include path prefixes (e.g., apps-nex-cli-…) to avoid collisions.
-
-The global graph is composed from these locals; changes bubble up via evidence and propagate down via impact analysis.
-
-⸻
-
-Current status
-	•	**Phase 15 Complete**: Session Correlation & Health Monitoring - complete observability with session tracking and system health validation
-	•	✅ Session correlation: unique session IDs (SES-*) for granular work tracking within task lifecycles
-	•	✅ Enhanced context injection: all commands now tagged with both {task_id, session_id} in events and JSON envelopes
-	•	✅ Doctor health checks: comprehensive system validation (redaction config, event integrity, task coverage) with CI integration
-	•	✅ Complete documentation: new OBSERVABILITY.md guide and enhanced PLAYBOOK.md with health monitoring
-	•	✅ TracePack enhancement: task bundles include session IDs in manifests for complete work correlation
-	•	✅ Comprehensive test coverage: 49 tests passing including new session correlation and doctor check validation
-	•	✅ Drop-in compatibility: all Phase 15 enhancements preserve existing behavior while adding new safety layers
-
-Check the Execution Graph for the active feature/issue: docs/exec_graph.yaml
-
-⸻
-
-Roadmap (short)
-	1.	Milestone A — Foundation (walking skeleton)
-Core providers, event log writer, composed Clap, issue new|list|show|close, E2E tests.
-	2.	Milestone B — Dev ergonomics
-dev init, scaffold plugin <name> (idempotent generators; Plan/Apply).
-	3.	Milestone C — First adapter (read-only)
-issue import --from github … to validate schemas and mapping.
-
-(Each milestone ends with the double learning loop; meta changes happen only with evidence.)
-
-⸻
-
-Repo layout (high-level)
-
-docs/
-  00-project-brief.md        # root brief (front-matter + short prose)
-  01-north-star.md           # principles & budgets (singleton)
-  exec_graph.yaml            # authoritative DAG of work
-  ADRs/0001-cli-contracts.md # CLI I/O, determinism, event log
-  PLAYBOOK.md                # working agreements + double loop
-  meta-model.md              # human view of process model
-  components/nexoscli/brief.md # component contract for core CLI
-
-meta/
-  MODEL/meta-model.yaml      # machine view (schemas & invariants)
-
-issues/
-  atomic/AI-*.md             # atomic issues (front-matter only is machine-readable)
-
-.nexoscli/
-  log/events.jsonl           # append-only event log (created at runtime)
-
-
-⸻
-
-Quick starts
-
-For humans
-	1.	Read the North Star → docs/01-north-star.md
-	2.	Skim the Project Brief → docs/00-project-brief.md
-	3.	Look at the Execution Graph for what’s active now → docs/exec_graph.yaml
-
-For AI agents
-	1.	Parse front-matter of the same three files (above).
-	2.	Build an in-memory DAG from exec_graph.yaml.
-	3.	Use ADR-0001 to constrain I/O; prefer JSON outputs and event logs as ground truth.
-
-⸻
-
-Glossary (short)
-	•	Plugin: a domain module statically linked into the CLI.
-	•	Contract: the explicit inputs/outputs/acceptance for a component or command.
-	•	Execution Graph: the DAG of features/issues (authoritative plan of record).
-	•	Event Log: append-only, machine-readable history for replay/analytics.
-	•	Tighten-only: child contexts may narrow budgets/constraints; widening needs a decision (ADR).
-
-⸻
-
-This README is the narrative index. For precise rules and invariants, follow the links to the origin documents and the machine-readable model.
-
-## Plan Lifecycle (CLI-native)
-
-Manage plans deterministically via the dev plugin (no manual YAML edits):
+Every interaction generates signals. Signals become patterns. Patterns drive evolution.
 
 ```
-nexoscli dev init --yes
-nexoscli dev plans start --output json
-# implement work…
-nexoscli dev plans finalize --output json
+Command → Event → Trace → Bundle → Analysis → Pattern → Improvement
+         ↑                                                      ↓
+         └──────────────── Continuous Loop ────────────────────┘
 ```
 
-- Folders: docs/project/{next,current,done,archived}
-- Start: creates+starts task, writes front‑matter (status=in-progress, plan_id, slug, task_id, started_at, source=next), moves next → current
-- Finalize: writes implemented_in (HEAD), completes front‑matter (status=done, completed_at), ends task + bundle, moves current → done
+### What We're Learning
 
-Troubleshooting:
-- If an active task blocks start: `nexoscli task pause` (or `nexoscli task end --task <ID> || true`) then retry start.
+- **Task Context Injection**: Active tasks automatically tag all operations, creating rich correlation data
+- **Session Correlation**: Granular work tracking within task lifecycles (SES-* IDs)
+- **Health Monitoring**: System validates its own invariants continuously (`nexoscli dev doctor`)
+- **TracePacks & NEXBags**: Portable bundles of execution artifacts for analysis and replay
 
-See also:
-- docs/project/README.md — directory structure and commands
-- docs/prompts/cline/start_new_task.workflow.md
-- docs/prompts/cline/finalize_task.workflow.md
+### How Patterns Emerge
 
-## TracePack & NEXBags (TracePack v0.2)
+1. **Event Logs**: Every command appends to an immutable ledger
+2. **Content Hashing**: SHA256 ensures integrity and enables deduplication
+3. **Correlation Analysis**: Task and session IDs reveal workflow patterns
+4. **Replay & Simulation**: Deterministic providers enable perfect reproduction
+5. **Graph Traversal**: Knowledge graphs connect issues, plans, and implementations
 
-Portable run artifacts for analysis, sharing, and replay.
+## Architecture as Philosophy
 
-- TracePack (legacy extractor): directory/tgz with manifest, events, patches, status.
-- NEXBags (v0.2): topicized bag with a bag-level manifest and inline integrity verification (event.v0.3 hash chain). See docs/TRACEPACK.md.
+The technical choices reflect the experiment:
 
-Common flows:
+```
+Static Plugins → Determinism → Event Sourcing → Observability → Learning
+      ↓              ↓              ↓                ↓              ↓
+  One Binary    Reproducible    Complete      Structured      Continuous
+               Anywhere         History        Insights      Improvement
+```
+
+### Key Architectural Patterns
+
+- **Plugin-Based**: Domain-specific functionality in `/plugins/`, composed into single binary
+- **Contracts Over Conventions**: Stable JSON schemas, versioned events, explicit interfaces
+- **Tighten-Only Contexts**: Child contexts can narrow but not widen constraints
+- **Content-Addressed Storage**: Files referenced by SHA256 hash in events
+- **Recursive Knowledge Graphs**: Every folder can be a mini-repo with its own context
+
+## Current State: v0 Approaching
+
+The experiment is yielding results:
+
+- ✅ **Phase 15 Complete**: Full observability with session tracking and health validation
+- ✅ **49 Tests Passing**: Including session correlation and doctor check validation
+- ✅ **Event Integrity**: Hash chains, content verification, rotation support
+- ✅ **Task Management**: Complete lifecycle with automatic context injection
+- ✅ **Plan Lifecycle**: CLI-native plan management with deterministic transitions
+- ✅ **Rules Engine**: Pattern matching and validation across the codebase
+
+Active experiments:
+- Cline integration for AI pair programming correlation
+- Temporal workflow engine bridge for distributed execution
+- Annotation system for enriching historical events
+
+## Let's Move Fast Together: First Principles + Data + System Thinking = Enable -> Accelerate -> Multiply
+
+This is open research. Every commit, every event, every pattern is part of the experiment. Every piece of data is viable to learn the patterns and anti patterns of Syntropy.
+
+Great systems are like bones and tissues: They grow and adapt to the continous needs thriving in the face of an ever changing environment. When they break, they communicate, self organize, and self heal.
+
+### The Experimental Chain
+
+Signal Intelligence & Simulation -> Defy Entropy at Scale -> Make Speed Safe -> Autonomously Heal, Adapt, Improve -> Deterministic Evolution and Emergence
+
+### For Humans
+
+1. Read the [North Star](docs/01-north-star.md) — principles and constraints
+2. Explore the [Playbook](docs/PLAYBOOK.md) — how we work and learn
+3. Check the [Execution Graph](docs/exec_graph.yaml) — what's active now
+
+### For AI Agents
+
+1. Parse YAML front-matter in markdown files for machine-readable contracts
+2. Build DAGs from `exec_graph.yaml` for work item traversal
+3. Use `--output json` for all commands to get structured `{ data, errors, meta }` envelopes
+4. Analyze `.nexoscli/log/events.jsonl` for patterns and correlations
+
+### Quick Start
+
 ```bash
-# Build legacy TracePack for a run
-./target/debug/nexoscli replay extract --run-id RUN-... --out .nexoscli/tracepacks/pack-1
+# Build the system
+cargo build --workspace
 
-# Build a NEXBag (dir or .tgz)
-./target/debug/nexoscli replay bag build --run-id RUN-... --out ./tracebag
-./target/debug/nexoscli replay bag build --run-id RUN-... --out ./tracebag.tgz
+# Initialize a project
+./target/debug/nexoscli dev init --yes
 
-# Verify event ledger integrity inside the bag (event.v0.3)
-./target/debug/nexoscli replay bag verify --bag ./tracebag
-./target/debug/nexoscli replay bag verify --bag ./tracebag.tgz
+# Start a task (automatic context injection)
+./target/debug/nexoscli task new --title "Explore emergence"
+./target/debug/nexoscli task start --task TASK-*
 
-# Show bag summary (counts, topics, versions, time_range)
-./target/debug/nexoscli replay bag info --bag ./tracebag
+# Every command now carries context
+./target/debug/nexoscli --output json issue new --title "Pattern discovered"
 
-# Stream a topic from the bag (bounded)
-./target/debug/nexoscli replay bag cat --bag ./tracebag --topic events --lines 10
+# Check system health
+./target/debug/nexoscli dev doctor --ci --profile v0
+
+# Build a TracePack for analysis
+./target/debug/nexoscli task bundle --task TASK-* --out ./bundle.tgz
 ```
 
-Notes:
-- Integrity: bag.build and bag.verify recompute content_hash over the canonical subset {plugin, command, exit_code, dur_ms, data} and chain_hash(prev+content_hash).
-- Cline tasks: bag.build may include normalized tasks by time window (±5m) if present under .nexoscli/cline/tasks/.
-- Schemas: bag manifest v0.2 (docs/SPECS/bag_manifest_v0.2.schema.json), terminal record v0.1 (reserved), file-watch event v0.1 (optional).
-- Reference: docs/TRACEPACK.md.
+## The Vision: Emergence Through Observation
+
+We're not building another CLI tool. We're exploring what happens when:
+
+- Every action becomes data
+- Every pattern becomes knowledge
+- Every system understands itself
+- Every evolution is deterministic
+
+This is software development as a data science problem. This is human-AI collaboration as servant leadership. This is building the system that builds the system.
+
+---
+
+### Technical Documentation
+
+For implementation details and contribution guidelines:
+
+- [CLAUDE.md](CLAUDE.md) — AI agent instructions and patterns
+- [CLI Contracts](docs/ADRs/0001-cli-contracts.md) — Core technical contracts
+- [Observability Guide](docs/OBSERVABILITY.md) — Tracing and monitoring
+- [Plugin Development](plugins/README.md) — Extending the system
+- [Event Schemas](docs/EVENTS_SCHEMA.md) — Event structure and versioning
+
+### Repository Structure
+
+```
+nexoscli-core/        # Core library with providers and plugin system
+nexoscli-bin/         # Main binary composing plugins
+plugins/              # Domain-specific functionality
+docs/                 # Documentation and specifications
+.nexoscli/            # Runtime data (events, tasks, workflows)
+```
+
+---
+
+*NEXOS is an experiment in progress. We're learning what emerges when humans and AI build together with complete observability and deterministic execution. Join us in exploring the future of software development.*

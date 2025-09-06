@@ -1,10 +1,12 @@
 ---
-status: in-progress
+status: done
 plan_id: '44'
 slug: finalize-v0
 task_id: TASK-20250906-snapshots-are-automatic-on-extract-no-new-flags
 started_at: 2025-09-06T08:08:59.380258Z
 source: next
+completed_at: 2025-09-06T08:14:10.943004Z
+implemented_in: 898105f
 ---
 PR‑v0 — Finalization Plan for Working v0
 
