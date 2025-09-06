@@ -13,17 +13,17 @@ Commands:
   tools        Tools & schemas
   completions  Generate shell completions
   man          Print man page to stdout
-  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
-  issue        Issue management
+  rules        Rules management (init/lint/export)
+  bundle       TracePack bundles
   term         Run commands with provenance (non-interactive)
+  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
   replay       Replay/extract TracePacks from logged runs
+  demo         Demo plugin
   graph        Graph tools
   cline        Cline task history (locate/import) with idempotent ingest
-  bundle       TracePack bundles
-  dev          Developer utilities
-  rules        Rules management (init/lint/export)
   task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
-  demo         Demo plugin
+  issue        Issue management
+  dev          Developer utilities
   help         Print this message or the help of the given subcommand(s)
 
 Options:
@@ -35,101 +35,21 @@ Options:
 
 ## Tool Specs (for agents)
 
-### `replay.bag.verify`
+### `graph.check`
 
-Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
+Validate docs/exec_graph.yaml (acyclic, unique ids)
 
-### `replay.verify`
+### `graph.impact`
 
-Verify a TracePack (dir or .tgz) and explain findings
+List nodes impacted (downstream) by the given id
 
-### `replay.normalize`
+### `rules.lint`
 
-Normalize events to v0.3 (from bag or events file)
+Validate rules front-matter
 
-### `replay.schema.events`
+### `rules.export`
 
-JSON Schema for events v0.3
-
-### `replay.schema.list`
-
-List available schemas
-
-### `replay.schema.get`
-
-Get schema JSON
-
-### `replay.validate`
-
-Validate bag artifacts (events/fileops) against schemas
-
-### `replay.fileops.derive`
-
-Derive fileops.ndjson from a bag's patches
-
-### `replay.export`
-
-Export bag artifacts to CSV
-
-### `issue.new`
-
-Create a new local issue
-
-### `issue.list`
-
-List issues (optionally by state)
-
-### `issue.show`
-
-Show a single issue by ID
-
-### `issue.close`
-
-Close an issue by ID
-
-### `demo.hello`
-
-Say hello
-
-### `dev.init`
-
-Initialize .nexoscli/ (Plan/Apply, idempotent)
-
-### `dev.plugin.new`
-
-Scaffold a new plugin and optionally register it
-
-### `dev.plugins.check`
-
-Verify plugin folder structure and registration
-
-### `dev.doctor`
-
-Verify local setup (dotdir, event log write, config, OTEL envs); --ci aggregates checks
-
-### `dev.telemetry.report`
-
-Aggregate events.jsonl → counts, p50/p90/avg, error leaderboard
-
-### `dev.plans.start`
-
-Start a plan: create+start task, update front-matter, move next→current
-
-### `dev.plans.finalize`
-
-Finalize a plan: mark done, end task, bundle, move current→done
-
-### `dev.plans.list`
-
-List plans in docs/project/{next,current,done,archived}
-
-### `dev.plans.status`
-
-Show plan front-matter and derived ids
-
-### `dev.plans.next`
-
-Show the next plan candidate (docs/project/next)
+Export rules bundle
 
 ### `workflow.init`
 
@@ -187,19 +107,99 @@ Import Cline task history with idempotent ingest
 
 Correlate Cline tasks to runs by time
 
-### `rules.lint`
+### `issue.new`
 
-Validate rules front-matter
+Create a new local issue
 
-### `rules.export`
+### `issue.list`
 
-Export rules bundle
+List issues (optionally by state)
 
-### `graph.check`
+### `issue.show`
 
-Validate docs/exec_graph.yaml (acyclic, unique ids)
+Show a single issue by ID
 
-### `graph.impact`
+### `issue.close`
 
-List nodes impacted (downstream) by the given id
+Close an issue by ID
+
+### `demo.hello`
+
+Say hello
+
+### `replay.bag.verify`
+
+Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
+
+### `replay.verify`
+
+Verify a TracePack (dir or .tgz) and explain findings
+
+### `replay.normalize`
+
+Normalize events to v0.3 (from bag or events file)
+
+### `replay.schema.events`
+
+JSON Schema for events v0.3
+
+### `replay.schema.list`
+
+List available schemas
+
+### `replay.schema.get`
+
+Get schema JSON
+
+### `replay.validate`
+
+Validate bag artifacts (events/fileops) against schemas
+
+### `replay.fileops.derive`
+
+Derive fileops.ndjson from a bag's patches
+
+### `replay.export`
+
+Export bag artifacts to CSV
+
+### `dev.init`
+
+Initialize .nexoscli/ (Plan/Apply, idempotent)
+
+### `dev.plugin.new`
+
+Scaffold a new plugin and optionally register it
+
+### `dev.plugins.check`
+
+Verify plugin folder structure and registration
+
+### `dev.doctor`
+
+Verify local setup (dotdir, event log write, config, OTEL envs); --ci aggregates checks
+
+### `dev.telemetry.report`
+
+Aggregate events.jsonl → counts, p50/p90/avg, error leaderboard
+
+### `dev.plans.start`
+
+Start a plan: create+start task, update front-matter, move next→current
+
+### `dev.plans.finalize`
+
+Finalize a plan: mark done, end task, bundle, move current→done
+
+### `dev.plans.list`
+
+List plans in docs/project/{next,current,done,archived}
+
+### `dev.plans.status`
+
+Show plan front-matter and derived ids
+
+### `dev.plans.next`
+
+Show the next plan candidate (docs/project/next)
 

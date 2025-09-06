@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20250906-snapshots-are-automatic-on-extract-no-new-flags",
+  "title": "Snapshots are automatic on extract (no new flags)",
+  "stage": "planning",
+  "status": "active",
+  "created_at": "2025-09-06T08:08:59.371081Z",
+  "started_at": "2025-09-06T08:08:59.378556Z",
+  "ended_at": null,
+  "sessions": [
+    {
+      "id": "SES-5efdd1931a67",
+      "start": "2025-09-06T08:08:59.378591Z",
+      "end": null
+    }
+  ],
+  "notes": []
+}

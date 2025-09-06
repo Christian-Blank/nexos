@@ -44,6 +44,60 @@ fn v0_e2e_extract_verify_doctor_profile_v0() {
     assert!(data.get("patches_check").is_some(), "verify.patches_check missing");
     assert!(data.get("cline_coverage").is_some(), "verify.cline_coverage missing");
 
+    // 3.5) Annotate labels and export CSV
+    let ann = run_json(
+        t.path(),
+        &[
+            "replay",
+            "annotate",
+            "--bag",
+            bag_dir.to_str().unwrap(),
+            "--labels",
+            "exp_id=EXP-001",
+            "--labels",
+            "treatment=A",
+        ],
+    );
+    assert_eq!(
+        ann["errors"].as_array().map(|a| a.len()).unwrap_or(0),
+        0,
+        "annotate labels should succeed: {:?}",
+        ann
+    );
+    assert!(
+        ann["data"]["updated_manifest"].as_bool().unwrap_or(false),
+        "updated_manifest should be true"
+    );
+    assert!(
+        ann["data"]["updated_events"].as_bool().unwrap_or(false),
+        "updated_events should be true"
+    );
+    assert_eq!(
+        ann["data"]["skipped_lines"].as_u64().unwrap_or(0),
+        0,
+        "skipped_lines should be 0 for normal bags"
+    );
+
+    let exp = run_status_json(
+        t.path(),
+        &[
+            "replay",
+            "export",
+            "--bag",
+            bag_dir.to_str().unwrap(),
+            "--what",
+            "events",
+            "--as",
+            "csv",
+        ],
+    );
+    assert_eq!(exp.status, 0, "export csv should pass: {:?}", exp.json);
+    let exp_counts = &exp.json["data"]["counts"];
+    assert!(
+        exp_counts["events"].as_u64().unwrap_or(0) > 0,
+        "exported events rows should be > 0"
+    );
+
     // 4) Doctor CI with profile v0 (preselected checks/gates)
     let doc = run_status_json(t.path(), &["dev","doctor","--ci","--profile","v0"]);
     assert_eq!(doc.status, 0, "doctor --ci --profile v0 should pass: {:?}", doc.json);

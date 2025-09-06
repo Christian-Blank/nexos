@@ -34,7 +34,7 @@ pub fn init_tracing(
 }
 
 #[cfg(feature = "otel")]
-fn build_otel_layer<S>(service_name: &str, version: &str) -> Option<OpenTelemetryLayer<S>>
+fn build_otel_layer<S>(service_name: &str, version: &str) -> Option<OpenTelemetryLayer<S, sdktrace::Tracer>>
 where
     S: tracing::Subscriber + for<'a> tracing_subscriber::registry::LookupSpan<'a>,
 {
