@@ -101,4 +101,5 @@ Preserve finalized plans with their recorded metadata (implemented_in, completed
 - [PLAN-45_rules_v0.md](./PLAN-45_rules_v0.md)
 - [PLAN-47_refactor-and-stabilize.md](./PLAN-47_refactor-and-stabilize.md)
 - [PLAN-48_repo-check.md](./PLAN-48_repo-check.md)
+- [PLAN-49_readme-restructure.md](./PLAN-49_readme-restructure.md)
 <!-- END: AUTO -->

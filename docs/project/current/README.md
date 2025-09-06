@@ -82,5 +82,5 @@ Provide a single source of truth for the plan that is currently being implemente
 ## Plans Index
 
 <!-- BEGIN: AUTO (id=plans-index) -->
-- [PLAN-49_readme-restructure.md](./PLAN-49_readme-restructure.md)
+- None
 <!-- END: AUTO -->
