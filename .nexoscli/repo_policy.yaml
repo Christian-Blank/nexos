@@ -1,0 +1,43 @@
+version: v0.1
+required_readmes:
+- docs
+- plugins
+- nexoscli-core
+- nexoscli-bin
+- rules
+- examples
+- contracts
+- adapters
+- scripts
+- testdata
+docs_forbid_ext:
+- rs
+- py
+- sh
+- bash
+- js
+- jsx
+- ts
+- tsx
+- go
+- java
+- kt
+- rb
+- pl
+- ps1
+- c
+- cc
+- cpp
+- h
+- hpp
+- toml
+- yml
+- yaml
+docs_allow_yaml:
+- docs/exec_graph.yaml
+forbid_paths:
+- docs/workflows
+- docs/temporal_worker
+- docs/SPECS
+warn_root_bundles_over: 10
+warn_large_binary_mb: 25

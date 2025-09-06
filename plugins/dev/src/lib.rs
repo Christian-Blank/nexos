@@ -15,6 +15,7 @@ use nexoscli_core::plugin::{CommandContext, Plugin, ToolSpec};
 use nexoscli_core::Result;
 
 mod checks;
+mod repo;
 
 // ---------- Existing structs for dev init ----------
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -282,6 +283,28 @@ impl Plugin for DevPlugin {
                                 .about("Verify structure and registration for all plugins/*")
                                 .arg(Arg::new("fix-readmes").long("fix-readmes").action(ArgAction::SetTrue).help("Create missing README.md with template"))
                         )
+                )
+                // dev repo
+                .subcommand(
+                    Command::new("repo").about("Repository entropy & structure safeguards")
+                      .subcommand(
+                         Command::new("check").about("Validate structure against policy")
+                           .arg(Arg::new("policy").long("policy").required(false).value_name("PATH"))
+                           .arg(Arg::new("fix-readmes").long("fix-readmes").action(ArgAction::SetTrue)
+                                .help("Auto-create missing READMEs according to policy"))
+                      )
+                      .subcommand(
+                         Command::new("policy").about("Manage repo policy")
+                           .subcommand(
+                             Command::new("init").about("Write default .nexoscli/repo_policy.yaml")
+                               .arg(Arg::new("force").long("force").action(ArgAction::SetTrue))
+                           )
+                      )
+                      .subcommand(
+                         Command::new("readmes").about("Scaffold missing folder READMEs")
+                           .arg(Arg::new("policy").long("policy").required(false).value_name("PATH"))
+                           .arg(Arg::new("apply").long("apply").action(ArgAction::SetTrue))
+                      )
                 )
                 // dev log
                 .subcommand(
@@ -626,6 +649,44 @@ endpoint = ""
                 Ok(2)
             }
 
+            // ---------------- dev repo ----------------
+            Some(("repo", rm)) => {
+                match rm.subcommand() {
+                    Some(("policy", pm)) => {
+                        if let Some(("init", im)) = pm.subcommand() {
+                            let root = std::env::current_dir()?;
+                            let force = im.get_flag("force");
+                            let path = crate::repo::write_default_policy(&root, force)?;
+                            let exit = ctx.ok("dev","repo.policy.init", &serde_json::json!({ "written": path.display().to_string(), "force": force }));
+                            return Ok(exit);
+                        }
+                        Ok(2)
+                    }
+                    Some(("check", cm)) => {
+                        let root = std::env::current_dir()?;
+                        let pol = cm.get_one::<String>("policy").map(|s| PathBuf::from(s));
+                        let fix = cm.get_flag("fix-readmes");
+                        let res = crate::repo::check_repo(&root, pol.as_deref(), fix)?;
+                        if res.ok {
+                            let exit = ctx.ok("dev","repo.check",&res);
+                            return Ok(exit);
+                        } else {
+                            let exit = ctx.err("dev","repo.check","repo.structure.invalid","Repo violations found", Some("Run with --fix-readmes; or update policy via dev repo policy init"), 2);
+                            return Ok(exit);
+                        }
+                    }
+                    Some(("readmes", rm2)) => {
+                        let root = std::env::current_dir()?;
+                        let pol = rm2.get_one::<String>("policy").map(|s| PathBuf::from(s));
+                        let apply = rm2.get_flag("apply");
+                        let res = crate::repo::check_repo(&root, pol.as_deref(), apply)?;
+                        let exit = ctx.ok("dev","repo.readmes",&res);
+                        return Ok(exit);
+                    }
+                    _ => Ok(2),
+                }
+            }
+
             // ---------------- dev log ----------------
             Some(("log", lm)) => {
                 if let Some(("rotate", m)) = lm.subcommand() {
@@ -933,6 +994,31 @@ endpoint = ""
                             detail: format!("tools={}", n),
                             severity: if ok { "info".into() } else { "error".into() },
                             fix: None,
+                        });
+                    }
+
+                    // repo (optional)
+                    if want.contains("repo") {
+                        let res = crate::repo::check_repo(&cwd, None, false)?;
+                        let ok = res.ok;
+                        let mut detail = res.summary.clone();
+                        if !ok {
+                            let mut viols = Vec::new();
+                            for it in &res.items {
+                                if !it.ok {
+                                    viols.push(format!("{}: {}", it.name, it.errors.get(0).cloned().unwrap_or_default()));
+                                }
+                            }
+                            if !viols.is_empty() {
+                                detail = format!("violations → {}", viols.join(" | "));
+                            }
+                        }
+                        checks.push(DoctorCiCheck {
+                            name: "repo".into(),
+                            ok,
+                            detail,
+                            severity: if ok { "info".into() } else { "error".into() },
+                            fix: Some("Run `nexoscli dev repo check --fix-readmes` and/or `nexoscli dev repo policy init`".into()),
                         });
                     }
 
@@ -1601,6 +1687,25 @@ endpoint = ""
             ToolSpec {
                 name: "dev.plans.next".to_string(),
                 about: "Show the next plan candidate (docs/project/next)".to_string(),
+                args_schema: schema_for!(serde_json::Value),
+                result_schema: schema_for!(serde_json::Value),
+            },
+            // repo checks
+            ToolSpec {
+                name: "dev.repo.check".to_string(),
+                about: "Validate repo structure/entropy against policy".to_string(),
+                args_schema: schema_for!(serde_json::Value),
+                result_schema: schema_for!(serde_json::Value),
+            },
+            ToolSpec {
+                name: "dev.repo.policy.init".to_string(),
+                about: "Write default .nexoscli/repo_policy.yaml".to_string(),
+                args_schema: schema_for!(serde_json::Value),
+                result_schema: schema_for!(serde_json::Value),
+            },
+            ToolSpec {
+                name: "dev.repo.readmes".to_string(),
+                about: "Scaffold missing folder READMEs".to_string(),
                 args_schema: schema_for!(serde_json::Value),
                 result_schema: schema_for!(serde_json::Value),
             },

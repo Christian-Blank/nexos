@@ -66,6 +66,14 @@ Stop here. The divider & plan finalization happens in the Finalize workflow.
 
 ---
 
+## 4) Human Review
+
+Stop and ask the human for review and feedback, point out any specifics that need attention, corner cases, and information that helps the human for an effective review.
+
+## 5) Finalize Task
+
+Once the human approved the review, run the finalizing workflow: [Finalize Task Workflow](./finalize_task.workflow.md)
+
 ## Troubleshooting
 
 - Error starting a new task due to an already active one:

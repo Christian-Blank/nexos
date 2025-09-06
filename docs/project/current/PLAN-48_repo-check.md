@@ -1,3 +1,11 @@
+---
+status: in-progress
+plan_id: '48'
+slug: repo-check
+task_id: TASK-20250906-one-shot-policy-idempotent
+started_at: 2025-09-06T10:47:34.793389Z
+source: next
+---
 Awesome idea. Let’s turn “entropy control” into first‑class, policy‑driven repo safeguards you can run locally or in CI with the same CLI you already use.
 
 Below is a drop‑in extension to your existing dev plugin that adds:
