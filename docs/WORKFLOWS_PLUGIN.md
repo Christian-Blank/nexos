@@ -138,10 +138,10 @@ Runner behavior:
 - History/effects: Completion (or timeout/cancel) writes a history entry and an EffectRecord just like activities.
 
 Try the demo:
-- See docs/workflows/WF-timer-demo.yaml
+- See examples/workflows/WF-timer-demo.yaml
 - Run:
-  ./target/debug/nexoscli workflow plan --spec docs/workflows/WF-timer-demo.yaml --output json
-  time ./target/debug/nexoscli workflow run  --spec docs/workflows/WF-timer-demo.yaml --output json
+  ./target/debug/nexoscli workflow plan --spec examples/workflows/WF-timer-demo.yaml --output json
+  time ./target/debug/nexoscli workflow run  --spec examples/workflows/WF-timer-demo.yaml --output json
 
 ## Resource Locks (Phase 20)
 
@@ -187,7 +187,7 @@ Example:
 steps:
   - id: call-child
     child_workflow:
-      spec: docs/workflows/WF-child.yaml
+      spec: examples/workflows/WF-child.yaml
       wait: true
       inherit_search_attributes: true
 
@@ -224,16 +224,16 @@ This phase adds determinism guardrails so specs can evolve safely without breaki
 
 Examples:
 - Validate a spec
-  ./target/debug/nexoscli workflow validate --spec docs/workflows/WF-timer-demo.yaml --output json
+  ./target/debug/nexoscli workflow validate --spec examples/workflows/WF-timer-demo.yaml --output json
 
 - First run (pins determinism)
-  ./target/debug/nexoscli workflow run --spec docs/workflows/WF-timer-demo.yaml --build-id build-A --output json
+  ./target/debug/nexoscli workflow run --spec examples/workflows/WF-timer-demo.yaml --build-id build-A --output json
 
 - Change change_ids in the spec → run fails with workflow.change_ids_drift
-  ./target/debug/nexoscli workflow run --spec docs/workflows/WF-timer-demo.yaml --output json
+  ./target/debug/nexoscli workflow run --spec examples/workflows/WF-timer-demo.yaml --output json
 
 - Override drift intentionally
-  ./target/debug/nexoscli workflow run --spec docs/workflows/WF-timer-demo.yaml --allow-change-ids-drift --output json
+  ./target/debug/nexoscli workflow run --spec examples/workflows/WF-timer-demo.yaml --allow-change-ids-drift --output json
 
 ## Temporal Outbox (Phase 22 — T‑1)
 
@@ -328,7 +328,7 @@ Examples
 - Child start:
   {
     "op": "child.start",
-    "body": { "step_id": "c1", "spec": "docs/workflows/WF-child.yaml", "wait": true, "inherit_search_attributes": true },
+    "body": { "step_id": "c1", "spec": "examples/workflows/WF-child.yaml", "wait": true, "inherit_search_attributes": true },
     ...common fields...
   }
 

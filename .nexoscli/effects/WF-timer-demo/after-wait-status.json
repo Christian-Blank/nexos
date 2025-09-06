@@ -1,0 +1,59 @@
+{
+  "spec_id": "WF-timer-demo",
+  "step_id": "after-wait-status",
+  "input_sha": "sha256:7e18f0aea6dbcaa6736238a2c5d9e1591035ace8536fddd6921fd129ebe26e26",
+  "status": "ok",
+  "started_at": "2025-09-06T10:17:39.397619Z",
+  "finished_at": "2025-09-06T10:17:39.511455Z",
+  "exit_code": 0,
+  "result_digest": "sha256:0cd1c8a27c95af23fed51c22f285abf896b683af5b7d80984e3c35aa171dfe46",
+  "last_envelope": {
+    "data": {
+      "effects": [
+        {
+          "exit_code": 0,
+          "finished_at": "2025-09-06T10:17:39.394671Z",
+          "input_sha": "sha256:ca66144f5003ea22126914cc3214f3d12b2e991c4bc931695226abcbf4cc44e9",
+          "last_envelope": {
+            "at": "2025-09-06T10:17:39.394563Z",
+            "timer": "done"
+          },
+          "result_digest": "sha256:9b9b5d10e13b47368db26721e12ab541cdc92678b47484eaea5ebe90e59817f2",
+          "spec_id": "WF-timer-demo",
+          "started_at": "2025-09-06T10:17:38.887993Z",
+          "status": "ok",
+          "step_id": "wait-500ms"
+        }
+      ],
+      "history": "{\"activity\":\"timer\",\"attempt\":1,\"exit_code\":0,\"status\":\"ok\",\"step\":\"wait-500ms\",\"ts\":\"2025-09-06T10:17:39.394671Z\"}\n",
+      "id": "WF-timer-demo",
+      "visibility": {
+        "attempts": 2,
+        "build_id": null,
+        "failed": 0,
+        "id": "WF-timer-demo",
+        "last_step": "after-wait-status",
+        "memo": {},
+        "ran": 1,
+        "search_attributes": {},
+        "skipped": 0,
+        "started_at": "2025-09-06T10:17:38.887111Z",
+        "state": "Running",
+        "updated_at": "2025-09-06T10:17:39.396673Z",
+        "used_change_ids": []
+      }
+    },
+    "errors": [],
+    "meta": {
+      "command": "status",
+      "context": {
+        "session_id": "SES-6acbbd73d6b7",
+        "stage": "planning",
+        "task_id": "TASK-20250906-gnu-sed-linux-on-macos-use-gsed-or-sed-i"
+      },
+      "duration_ms": 0,
+      "plugin": "workflow",
+      "run_id": "bdf70b85-bd11-4e85-a6ee-fbf94869521c"
+    }
+  }
+}

@@ -6,12 +6,12 @@ use std::fs;
 fn dev_schemas_export_writes_all_files() {
     let t = tmp();
 
-    // export schemas into docs/SPECS inside the temp project dir
-    let v = run_json(t.path(), &["dev","schemas","export","--out","docs/SPECS"]);
-    assert_eq!(v["data"]["out"], "docs/SPECS");
+    // export schemas into contracts/schemas inside the temp project dir
+    let v = run_json(t.path(), &["dev","schemas","export","--out","contracts/schemas"]);
+    assert_eq!(v["data"]["out"], "contracts/schemas");
 
     // files exist
-    let out = t.path().join("docs/SPECS");
+    let out = t.path().join("contracts/schemas");
     assert!(out.join("event_v0.3.schema.json").exists(), "missing event_v0.3.schema.json");
     assert!(out.join("term_record_v0.1.schema.json").exists(), "missing term_record_v0.1.schema.json");
     assert!(out.join("file_watch_event_v0.1.schema.json").exists(), "missing file_watch_event_v0.1.schema.json");

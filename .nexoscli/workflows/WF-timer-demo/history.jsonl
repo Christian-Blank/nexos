@@ -1,0 +1,2 @@
+{"activity":"timer","attempt":1,"exit_code":0,"status":"ok","step":"wait-500ms","ts":"2025-09-06T10:17:39.394671Z"}
+{"activity":"workflow.status","attempt":1,"exit_code":0,"status":"ok","step":"after-wait-status","ts":"2025-09-06T10:17:39.511455Z"}

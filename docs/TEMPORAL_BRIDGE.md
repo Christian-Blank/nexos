@@ -5,8 +5,8 @@ This document describes how to run the minimal Python-based bridge that consumes
 Scope and goals:
 - Keep changes within docs/** and tests/** (workflow-plugin scope).
 - Worker and drainer are small Python processes:
-  - docs/temporal_worker/worker.py — Temporal worker hosting a NexosRunner workflow and a run_cli_activity
-  - docs/temporal_worker/drain_outbox.py — Outbox drainer (Temporal client)
+  - adapters/temporal-worker/worker.py — Temporal worker hosting a NexosRunner workflow and a run_cli_activity
+  - adapters/temporal-worker/drain_outbox.py — Outbox drainer (Temporal client)
 - When the CLI is invoked with --engine temporal, envelopes are written to .nexoscli/engine/outbox/. The drainer turns them into a StartWorkflow and Signals for the Temporal worker.
 
 References
@@ -29,18 +29,18 @@ Requirements:
 - Temporal server reachable (local dev: 127.0.0.1:7233; namespace “default”)
 - nexoscli built and available (so activities can shell out)
 
-Two ways to run the Python project under docs/temporal_worker:
+Two ways to run the Python project under adapters/temporal-worker:
 
 Option A: uv (recommended for isolated runs)
 - Using uv without a global install:
-  uv run --project docs/temporal_worker --help
+  uv run --project adapters/temporal-worker --help
 
 - Or create a virtual env and install:
-  uv pip install -e docs/temporal_worker
+  uv pip install -e adapters/temporal-worker
 
 Option B: pip (system/python venv)
 - python -m venv .venv && source .venv/bin/activate
-- pip install -e docs/temporal_worker
+- pip install -e adapters/temporal-worker
 
 
 ## Environment
@@ -65,7 +65,7 @@ export TEMPORAL_USE_SA=1
 Start the Temporal worker that hosts the NexosRunner workflow and run_cli_activity.
 
 - With uv:
-  uv run --project docs/temporal_worker nexos-temporal-worker
+  uv run --project adapters/temporal-worker nexos-temporal-worker
 
 - With pip/venv:
   python -m docs.temporal_worker.worker
@@ -122,7 +122,7 @@ YAML
 In another terminal:
 
 - With uv:
-  uv run --project docs/temporal_worker nexos-temporal-drain
+  uv run --project adapters/temporal-worker nexos-temporal-drain
 
 - With pip/venv:
   python -m docs.temporal_worker.drain_outbox
@@ -197,13 +197,13 @@ From nexoscli:
    ./target/debug/nexoscli dev doctor --ci --checks graph,plugins,config,events,tools --require plugins,graph
 
 2) Worker:
-   uv run --project docs/temporal_worker nexos-temporal-worker
+   uv run --project adapters/temporal-worker nexos-temporal-worker
 
 3) Outbox:
    ./target/debug/nexoscli workflow run --spec .nexoscli/workflows/WF-demo/spec.yaml --engine temporal --output json
 
 4) Drain:
-   uv run --project docs/temporal_worker nexos-temporal-drain
+   uv run --project adapters/temporal-worker nexos-temporal-drain
 
 5) Signal:
    ./target/debug/nexoscli workflow signal --id WF-demo --name pause --engine temporal --output json

@@ -1,0 +1,18 @@
+# CODEOWNERS
+# Assign clear ownership for critical areas. Update handles to real GitHub users/teams.
+
+# Contracts: frozen JSON Schemas (do not hand-edit)
+# See contracts/README.md for provenance and drift policy.
+contracts/schemas/*     @contracts-dri
+
+# Architecture Decisions
+docs/ADRs/*             @arch-dri
+
+# Workflow plugin
+plugins/workflow/**     @workflow-dri
+
+# Temporal adapter
+adapters/temporal-worker/**  @temporal-dri
+
+# Default owner (optional): uncomment and set a repo-wide owner
+# *                        @repo-dri

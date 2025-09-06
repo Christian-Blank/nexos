@@ -1,0 +1,15 @@
+{
+  "id": "WF-timer-demo",
+  "state": "Completed",
+  "memo": {},
+  "search_attributes": {},
+  "build_id": null,
+  "used_change_ids": [],
+  "started_at": "2025-09-06T10:17:38.887111Z",
+  "updated_at": "2025-09-06T10:17:39.514278Z",
+  "last_step": "after-wait-status",
+  "attempts": 2,
+  "ran": 2,
+  "skipped": 0,
+  "failed": 0
+}

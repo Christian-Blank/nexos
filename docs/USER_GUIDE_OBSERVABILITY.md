@@ -132,10 +132,10 @@ tracepack/
 Schemas
 
 For exact fields, see:
-	•	docs/SPECS/event_v0.3.schema.json
-	•	docs/SPECS/term_record_v0.1.schema.json
-	•	docs/SPECS/file_watch_event_v0.1.schema.json
-	•	docs/SPECS/bag_manifest_v0.2.schema.json
+	•	contracts/schemas/event_v0.3.schema.json
+	•	contracts/schemas/term_record_v0.1.schema.json
+	•	contracts/schemas/file_watch_event_v0.1.schema.json
+	•	contracts/schemas/bag_manifest_v0.2.schema.json
 
 Each JSON line in topics includes a "schema": "..." field. If the schema is bumped in the future, branch your logic on that field.
 

@@ -150,7 +150,7 @@ Defaults and notes:
 - Off by default; only active when `--fs-topic` is passed.
 - Default excludes: `.git/**`, `.nexoscli/**`, `target/**`, `node_modules/**` (override with `--fs-exclude`).
 - `--fs-hash` computes sha256 for create/modify; otherwise `sha256` is null.
-- Spec: docs/SPECS/file_watch_event_v0.1.schema.json.
+- Spec: contracts/schemas/file_watch_event_v0.1.schema.json.
 - Replay integration: `replay extract` copies the topic to `fileops/fileops.ndjson` and augments the manifest with `counts.fileops_lines` and a `fileops` object (dst/sha256/bytes/lines/from/to).
 
 ## NEXBags (TracePack v0.2)
@@ -238,15 +238,15 @@ All emitted records carry a stable "schema" tag (e.g., "event.v0.3", "bag_manife
 
 Export contract schemas:
 ```bash
-./target/debug/nexoscli dev schemas export --out docs/SPECS
+./target/debug/nexoscli dev schemas export --out contracts/schemas
 ```
 
 CI drift check (fail if schemas changed):
 ```bash
-git diff --exit-code -- docs/SPECS
+git diff --exit-code -- contracts/schemas
 ```
 
-See docs/SPECS/README.md for details and do-not-hand-edit guidance.
+See contracts/schemas/README.md for details and do-not-hand-edit guidance.
 
 ### Chain-of-custody (events)
 

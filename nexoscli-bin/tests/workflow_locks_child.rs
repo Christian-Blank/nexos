@@ -83,8 +83,8 @@ steps:
   - id: wait
     timer: { duration_ms: 50 }
 "#;
-    std::fs::create_dir_all(tmp_path.join("docs/workflows")).unwrap();
-    std::fs::write(tmp_path.join("docs/workflows/WF-child.yaml"), child).unwrap();
+    std::fs::create_dir_all(tmp_path.join("examples/workflows")).unwrap();
+    std::fs::write(tmp_path.join("examples/workflows/WF-child.yaml"), child).unwrap();
 
     // parent
     let parent = r#"version: "0.1"
@@ -94,16 +94,16 @@ run:
 steps:
   - id: call-child
     child_workflow:
-      spec: docs/workflows/WF-child.yaml
+      spec: examples/workflows/WF-child.yaml
       wait: true
       inherit_search_attributes: true
 "#;
-    std::fs::write(tmp_path.join("docs/workflows/WF-parent.yaml"), parent).unwrap();
+    std::fs::write(tmp_path.join("examples/workflows/WF-parent.yaml"), parent).unwrap();
 
     // parent should succeed; failed == 0
     let parent_out = helpers::run_json(
         tmp_path,
-        &["workflow","run","--spec","docs/workflows/WF-parent.yaml"],
+        &["workflow","run","--spec","examples/workflows/WF-parent.yaml"],
     );
     assert_eq!(parent_out["data"]["failed"].as_u64().unwrap_or(1), 0);
 

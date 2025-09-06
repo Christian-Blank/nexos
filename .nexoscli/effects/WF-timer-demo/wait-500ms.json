@@ -1,0 +1,14 @@
+{
+  "spec_id": "WF-timer-demo",
+  "step_id": "wait-500ms",
+  "input_sha": "sha256:ca66144f5003ea22126914cc3214f3d12b2e991c4bc931695226abcbf4cc44e9",
+  "status": "ok",
+  "started_at": "2025-09-06T10:17:38.887993Z",
+  "finished_at": "2025-09-06T10:17:39.394671Z",
+  "exit_code": 0,
+  "result_digest": "sha256:9b9b5d10e13b47368db26721e12ab541cdc92678b47484eaea5ebe90e59817f2",
+  "last_envelope": {
+    "at": "2025-09-06T10:17:39.394563Z",
+    "timer": "done"
+  }
+}

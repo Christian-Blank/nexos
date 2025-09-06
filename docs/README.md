@@ -31,8 +31,8 @@ Core documentation and decision records for the NEXOS CLI project.
 - [`ADRs/`](ADRs/) - Architecture Decision Records (contract changes)
 
 **Contracts & Schemas:**
-- [`SPECS/README.md`](SPECS/README.md) - Generated JSON Schemas from real types (do not hand-edit)
-- Regenerate: `nexoscli dev schemas export --out docs/SPECS`
+- [contracts/schemas/README.md](../contracts/schemas/README.md) - Generated JSON Schemas from real types (do not hand-edit)
+- Regenerate: `nexoscli dev schemas export --out contracts/schemas`
 
 **Planning & Plans:**
 - [`project/README.md`](project/README.md) — Plan lifecycle directories and CLI usage

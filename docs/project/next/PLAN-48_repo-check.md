@@ -45,7 +45,7 @@ pub struct RepoPolicy {
     #[serde(default)] pub docs_forbid_ext: Vec<String>,
     // YAML files that are allowed under docs/ (relative paths)
     #[serde(default)] pub docs_allow_yaml: Vec<String>,
-    // Path substrings that are forbidden to exist (e.g., "docs/workflows")
+    // Path substrings that are forbidden to exist (e.g., "examples/workflows")
     #[serde(default)] pub forbid_paths: Vec<String>,
     // Soft-entropy checks (warnings)
     #[serde(default)] pub warn_root_bundles_over: usize,   // count of *.tgz/zip/tar at repo root
@@ -78,9 +78,9 @@ impl Default for RepoPolicy {
                 "docs/exec_graph.yaml".into(),     // explicitly allowed
             ],
             forbid_paths: vec![
-                "docs/workflows",                   // specs must live under examples/
-                "docs/temporal_worker",            // adapters/** instead
-                "docs/SPECS",                      // schemas live under contracts/schemas
+                "examples/workflows",                   // specs must live under examples/
+                "adapters/temporal-worker",            // adapters/** instead
+                "contracts/schemas",                      // schemas live under contracts/schemas
             ],
             warn_root_bundles_over: 10,
             warn_large_binary_mb: 25,
@@ -199,7 +199,7 @@ pub fn check_repo(root: &Path, policy_path: Option<&Path>, fix_readmes: bool) ->
     items.push(check_adapters_temporal_worker(root));
     items.push(check_contracts_schemas(root));
 
-    // E) tests must not refer to docs/workflows
+    // E) tests must not refer to examples/workflows
     items.push(check_tests_for_old_paths(root));
 
     // F) soft entropy: bundles & large binaries at root
@@ -300,10 +300,10 @@ fn check_tests_for_old_paths(root: &Path) -> RepoCheckItem {
         let mut buf = String::new();
         if let Ok(mut f) = fs::File::open(p) {
             let _ = f.read_to_string(&mut buf);
-            if buf.contains("docs/workflows") {
+            if buf.contains("examples/workflows") {
                 hits += 1;
                 item.ok = false;
-                item.errors.push(format!("{} references docs/workflows (use examples/workflows)", rel_str(root, p)));
+                item.errors.push(format!("{} references examples/workflows (use examples/workflows)", rel_str(root, p)));
             }
         }
     }
@@ -555,9 +555,9 @@ docs_allow_yaml:
 
 # Paths that must not exist
 forbid_paths:
-  - docs/workflows
-  - docs/temporal_worker
-  - docs/SPECS
+  - examples/workflows
+  - adapters/temporal-worker
+  - contracts/schemas
 
 # Soft entropy warnings
 warn_root_bundles_over: 10
@@ -598,9 +598,9 @@ jobs:
 6) What it catches (and how it helps)
 	•	Missing folder READMEs → quick context for every major area; templates are auto‑scaffolded.
 	•	Code leaked into docs/ → prevents the slow drift you saw earlier; YAML exceptions are explicit.
-	•	Bad layout (docs/workflows, docs/temporal_worker, docs/SPECS) → flags moves you want to enforce.
+	•	Bad layout (examples/workflows, adapters/temporal-worker, contracts/schemas) → flags moves you want to enforce.
 	•	Examples, adapters, contracts → make sure the canonical locations exist and contain minimal required files.
-	•	Test debt (docs/workflows references) → fail fast until tests are migrated to examples/workflows.
+	•	Test debt (examples/workflows references) → fail fast until tests are migrated to examples/workflows.
 	•	Entropy warnings (too many bundles, large binaries at root, missing protected patterns) → nudges cleanup without blocking.
 
 Everything is policy‑driven and easily tuned per repo.

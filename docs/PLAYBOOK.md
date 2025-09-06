@@ -285,7 +285,7 @@ Common flows:
 Notes:
 - Integrity: bag.build and bag.verify recompute content_hash over the canonical subset {plugin, command, exit_code, dur_ms, data} and chain_hash(prev+content_hash).
 - Cline tasks: bag.build may include normalized tasks by time window (±5m) if present under .nexoscli/cline/tasks/.
-- Schemas: bag manifest v0.2 (docs/SPECS/bag_manifest_v0.2.schema.json), terminal record v0.1 (reserved), file-watch event v0.1 (optional).
+- Schemas: bag manifest v0.2 (contracts/schemas/bag_manifest_v0.2.schema.json), terminal record v0.1 (reserved), file-watch event v0.1 (optional).
 - Reference: docs/TRACEPACK.md.
 
 ## OTEL Development
@@ -324,10 +324,10 @@ RUST_LOG=info \
 Schema registry (contracts) export and drift check:
 ```bash
 # Export contract schemas from real types (schemars)
-./target/debug/nexoscli dev schemas export --out docs/SPECS
+./target/debug/nexoscli dev schemas export --out contracts/schemas
 
 # CI drift check (fail if schemas changed)
-git diff --exit-code -- docs/SPECS
+git diff --exit-code -- contracts/schemas
 ```
 
 **Event Log Structure:** `.nexoscli/log/events.jsonl` with content hashing for integrity.
@@ -366,11 +366,11 @@ Use a durable timer step that persists its due time and honors pause/resume/stop
 
 ```bash
 # Demo spec
-./target/debug/nexoscli workflow plan --spec docs/workflows/WF-timer-demo.yaml --output json
-time ./target/debug/nexoscli workflow run  --spec docs/workflows/WF-timer-demo.yaml --output json
+./target/debug/nexoscli workflow plan --spec examples/workflows/WF-timer-demo.yaml --output json
+time ./target/debug/nexoscli workflow run  --spec examples/workflows/WF-timer-demo.yaml --output json
 
 # Re-run (idempotent timer step may skip if prior effect ok)
-./target/debug/nexoscli workflow run --spec docs/workflows/WF-timer-demo.yaml --output json
+./target/debug/nexoscli workflow run --spec examples/workflows/WF-timer-demo.yaml --output json
 
 # Pause/resume a longer timer
 ./target/debug/nexoscli workflow init --id WF-slow

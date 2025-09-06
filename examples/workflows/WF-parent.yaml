@@ -5,6 +5,6 @@ run:
 steps:
   - id: call-child
     child_workflow:
-      spec: docs/workflows/WF-child.yaml
+      spec: examples/workflows/WF-child.yaml
       wait: true
       inherit_search_attributes: true

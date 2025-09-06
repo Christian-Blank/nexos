@@ -661,7 +661,7 @@ Defaults and notes:
 - Off by default; only active when `--fs-topic` is passed.
 - Default excludes: `.git/**`, `.nexoscli/**`, `target/**`, `node_modules/**` (override with `--fs-exclude`).
 - `--fs-hash` computes sha256 for `create`/`modify`; otherwise `sha256` is omitted (null).
-- Line schema uses lower-case ops and conforms to `docs/SPECS/file_watch_event_v0.1.schema.json`.
+- Line schema uses lower-case ops and conforms to `contracts/schemas/file_watch_event_v0.1.schema.json`.
 
 ## NEXBags (TracePack v0.2)
 
@@ -724,9 +724,9 @@ tracebag/
 ```
 
 Schemas:
-- docs/SPECS/bag_manifest_v0.2.schema.json
-- docs/SPECS/term_record_v0.1.schema.json (reserved for terminal capture in Phase B)
-- docs/SPECS/file_watch_event_v0.1.schema.json (optional topic)
+- contracts/schemas/bag_manifest_v0.2.schema.json
+- contracts/schemas/term_record_v0.1.schema.json (reserved for terminal capture in Phase B)
+- contracts/schemas/file_watch_event_v0.1.schema.json (optional topic)
 
 Notes:
 - chain_ok is emitted by build and can be re-checked by verify.

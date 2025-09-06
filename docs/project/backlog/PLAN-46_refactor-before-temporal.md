@@ -53,29 +53,29 @@ Why: docs/ is your knowledge graph and narrative index. Keeping executable asset
 Actions
 	•	Move workflow specs:
 
-git mv docs/workflows examples/workflows
+git mv examples/workflows examples/workflows
 
 
 	•	Move Temporal bridge:
 
 mkdir -p adapters
-git mv docs/temporal_worker adapters/temporal-worker
+git mv adapters/temporal-worker adapters/temporal-worker
 
 
 	•	Move JSON schemas:
 
 mkdir -p contracts/schemas
-git mv docs/SPECS/* contracts/schemas/
-rmdir docs/SPECS || true
+git mv contracts/schemas/* contracts/schemas/
+rmdir contracts/schemas || true
 
 
 
 Update references (README, PLAYBOOK, tests):
 
 # GNU sed (Linux); on macOS use gsed or 'sed -i ""'
-rg -l 'docs/workflows' | xargs sed -i 's#docs/workflows#examples/workflows#g'
-rg -l 'docs/temporal_worker' | xargs sed -i 's#docs/temporal_worker#adapters/temporal-worker#g'
-rg -l 'docs/SPECS' | xargs sed -i 's#docs/SPECS#contracts/schemas#g'
+rg -l 'examples/workflows' | xargs sed -i 's#examples/workflows#examples/workflows#g'
+rg -l 'adapters/temporal-worker' | xargs sed -i 's#adapters/temporal-worker#adapters/temporal-worker#g'
+rg -l 'contracts/schemas' | xargs sed -i 's#contracts/schemas#contracts/schemas#g'
 
 Acceptance
 	•	cargo test stays green after path updates.
@@ -298,18 +298,18 @@ set -euo pipefail
 mkdir -p examples/workflows contracts/schemas adapters
 
 # 1) Moves
-git mv docs/workflows examples/workflows
-git mv docs/temporal_worker adapters/temporal-worker
+git mv examples/workflows examples/workflows
+git mv adapters/temporal-worker adapters/temporal-worker
 mkdir -p contracts/schemas
-if [ -d docs/SPECS ]; then git mv docs/SPECS/* contracts/schemas/ || true; rmdir docs/SPECS || true; fi
+if [ -d contracts/schemas ]; then git mv contracts/schemas/* contracts/schemas/ || true; rmdir contracts/schemas || true; fi
 
 # 2) Rewrite references
 for pat in \
-  's#docs/workflows#examples/workflows#g' \
-  's#docs/temporal_worker#adapters/temporal-worker#g' \
-  's#docs/SPECS#contracts/schemas#g'
+  's#examples/workflows#examples/workflows#g' \
+  's#adapters/temporal-worker#adapters/temporal-worker#g' \
+  's#contracts/schemas#contracts/schemas#g'
 do
-  rg -l 'docs/workflows|docs/temporal_worker|docs/SPECS' | xargs -r sed -i "$pat"
+  rg -l 'examples/workflows|adapters/temporal-worker|contracts/schemas' | xargs -r sed -i "$pat"
 done
 
 # 3) Touch README stubs
@@ -326,7 +326,7 @@ echo "Migration complete. Review changes, run tests, fix any missed paths."
 
 Acceptance suite (run after the cleanup)
 	•	Structure
-	•	rg -n 'docs/workflows|docs/temporal_worker|docs/SPECS' → no matches.
+	•	rg -n 'examples/workflows|adapters/temporal-worker|contracts/schemas' → no matches.
 	•	find docs -type f \( -name '*.rs' -o -name '*.py' -o -name '*.yaml' -o -name '*.yml' \) → empty.
 	•	Examples
 	•	nexoscli workflow run --spec examples/workflows/WF-timer-demo.yaml succeeds.

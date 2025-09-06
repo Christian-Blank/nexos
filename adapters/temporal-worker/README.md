@@ -8,9 +8,9 @@ Components:
 
 Install/Run (uv recommended):
 - Run worker:
-  uv run --project docs/temporal_worker nexos-temporal-worker
+  uv run --project adapters/temporal-worker nexos-temporal-worker
 - Drain outbox:
-  uv run --project docs/temporal_worker nexos-temporal-drain [--dry-run]
+  uv run --project adapters/temporal-worker nexos-temporal-drain [--dry-run]
 
 Environment:
 - TEMPORAL_ADDRESS (default 127.0.0.1:7233)

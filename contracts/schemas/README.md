@@ -3,7 +3,7 @@
 These files are generated from real Rust types using schemars. Do not hand-edit. Regenerate via the CLI and commit any drift.
 
 How to regenerate:
-- cargo run -p nexoscli -- dev schemas export --out docs/SPECS
+- cargo run -p nexoscli -- dev schemas export --out contracts/schemas
 
 Generated files:
 - event_v0.3.schema.json — event lines in .nexoscli/log/events.jsonl (hash-chained; schema const: "event.v0.3")
@@ -16,5 +16,5 @@ Notes:
 - All emitted JSON records include a "schema" field as a stable tag per ADR-20250903.
 
 Clarification:
-- Core event schema tag is "event.v0.3" (see docs/SPECS/event_v0.3.schema.json) and applies to lines emitted by the core event writer.
+- Core event schema tag is "event.v0.3" (see contracts/schemas/event_v0.3.schema.json) and applies to lines emitted by the core event writer.
 - The replay normalizer produces an analysis-ready canonical format with schema "nexos/events@0.3" written by `nexoscli replay normalize`. This lives entirely in the replay plugin and does not alter protected core contracts. See docs/EVENTS_SCHEMA.md for the normalization model and mapping rules.

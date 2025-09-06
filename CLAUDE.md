@@ -78,7 +78,7 @@ When creating or modifying plugins:
 
 ## Critical Design Principles
 
-1. **Contracts Over Conventions**: Everything has stable JSON schemas (see `docs/SPECS/`)
+1. **Contracts Over Conventions**: Everything has stable JSON schemas (see `contracts/schemas/`)
 2. **Tighten-Only Contexts**: Child contexts can narrow constraints but not widen them
 3. **Observable by Default**: All operations emit structured traces and events
 4. **Machine-First Interfaces**: JSON output is the primary contract, human output is secondary
@@ -96,7 +96,7 @@ When creating or modifying plugins:
 ### Modifying Event Schema
 1. Update schema version in `nexoscli-core/src/events/`
 2. Add migration logic if needed
-3. Update `docs/SPECS/` documentation
+3. Update `contracts/schemas/` documentation
 4. Run `nexoscli tools export` to regenerate schemas
 
 ### Working with Tasks

@@ -42,7 +42,7 @@ Introduce Event Ledger v0.3 and wire it into the core event writer:
 - Ensures safe rollout and quick fallback.
 
 5) Documentation and Schemas
-- Add `docs/SPECS/event_v0.3.schema.json` and `docs/SPECS/run_manifest_v0.2.schema.json`.
+- Add `contracts/schemas/event_v0.3.schema.json` and `contracts/schemas/run_manifest_v0.2.schema.json`.
 - Update `docs/OBSERVABILITY.md` with Event v0.3 section.
 - Update `docs/TRACEPACK.md` to v0.2 (manifest and `chain_ok`).
 

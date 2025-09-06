@@ -70,7 +70,7 @@ These commands operate on the NEXBag (TracePack v0.2) format (directory or .tgz)
 
 ## Bag Manifest (v0.2)
 
-A new schema is introduced at docs/SPECS/bag_manifest_v0.2.schema.json. Minimal fields:
+A new schema is introduced at contracts/schemas/bag_manifest_v0.2.schema.json. Minimal fields:
 
 - version: "0.2"
 - created_at (RFC3339), format: "dir"|"tgz"
@@ -81,8 +81,8 @@ A new schema is introduced at docs/SPECS/bag_manifest_v0.2.schema.json. Minimal 
 - run_manifest_path?: "run_manifest.json"
 
 Additionally, groundwork schemas are added for future topics:
-- docs/SPECS/term_record_v0.1.schema.json (reserved for terminal capture in a future scope)
-- docs/SPECS/file_watch_event_v0.1.schema.json (optional topic)
+- contracts/schemas/term_record_v0.1.schema.json (reserved for terminal capture in a future scope)
+- contracts/schemas/file_watch_event_v0.1.schema.json (optional topic)
 
 ## Determinism and Integrity
 
