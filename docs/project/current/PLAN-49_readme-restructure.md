@@ -1,3 +1,11 @@
+---
+status: in-progress
+plan_id: '49'
+slug: readme-restructure
+task_id: TASK-20250906-graph
+started_at: 2025-09-06T22:04:06.173895Z
+source: next
+---
 Below is a self‑contained, top‑down README system v0 you can hand to a human DRI or run with Cline. It’s deliberately simple, deterministic, and enforceable. It defines rules, front‑matter schema, file conventions, templates, and workflows (human + LLM). It also sketches how per‑folder configs inherit from a repo policy while staying easy to reason about.
 
 ⸻

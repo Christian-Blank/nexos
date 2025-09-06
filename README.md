@@ -1,4 +1,41 @@
+---
+schema: readme.v0
+title: "NexOS"
+summary: "Contracts-first CLI with deterministic envelopes, events, and replay."
+kind: root
+owner: "@core/dri"
+status: live
+version: "0.1.0"
+last_reviewed: "2025-09-06T22:06:30Z"
+parents: []
+children:
+  - "./docs/README.md"
+  - "./plugins/README.md"
+  - "./nexoscli-core/README.md"
+  - "./nexoscli-bin/README.md"
+  - "./rules/README.md"
+  - "./examples/README.md"
+  - "./contracts/README.md"
+  - "./adapters/README.md"
+  - "./scripts/README.md"
+source_of_truth:
+  - "docs/ADRs/"
+  - "contracts/schemas/"
+in_scope:
+  - "Repo overview and navigation"
+out_of_scope:
+  - "Per-folder specifics (see children)"
+inputs: []
+outputs: []
+tags: ["root"]
+auto:
+  dir_tree_depth: 0
+---
 # NEXOS: The System That Builds The System
+
+<!-- BEGIN: AUTO (id=children) -->
+_Auto-generated children list from front‑matter or glob._
+<!-- END: AUTO -->
 
 *An open research experiment in human-assisted AI development*
 

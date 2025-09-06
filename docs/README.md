@@ -1,20 +1,36 @@
 ---
-kind: project_brief
-version: 0.1
-id: PB-NEXOS-DOCS
-parent_link: ../README.md
-context:
-  problem: >
-    Documentation needs clear navigation and context for both humans and AI agents
-    to understand project structure, decisions, and processes efficiently.
-  constraints:
-    - Follow knowledge graph pattern with machine-readable front-matter
-    - Link to parent context and maintain document hierarchy
-    - Keep focused on essential navigation and context
+schema: readme.v0
+title: "docs/"
+summary: "Core documentation and decision records for the NexOS CLI project."
+kind: domain
+owner: "@docs/dri"
+status: live
+version: "0.1.0"
+last_reviewed: "2025-09-06T22:06:30Z"
+parents: ["../README.md"]
+children: []
+source_of_truth:
+  - "../docs/ADRs/"
+in_scope:
+  - "Repository documentation, ADRs, playbooks, and workflows"
+  - "Execution graph and plan lifecycle docs"
+out_of_scope:
+  - "Executable code (docs contains no code per policy)"
+inputs:
+  - "Plan files and ADRs"
+outputs:
+  - "Rendered docs and navigation structure"
+tags: ["docs"]
+auto:
+  children_glob: ["*/README.md"]
+  dir_tree_depth: 1
 ---
 
 # NEXOS Documentation
 
+<!-- BEGIN: AUTO (id=children) -->
+_Auto-generated children list from front‑matter or glob._
+<!-- END: AUTO -->
 Core documentation and decision records for the NEXOS CLI project.
 
 ## Navigation

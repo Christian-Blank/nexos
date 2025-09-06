@@ -1,4 +1,34 @@
+---
+schema: readme.v0
+title: "nexoscli-bin/"
+summary: "Main CLI binary composing core, plugins, and telemetry into nexoscli."
+kind: domain
+owner: "@cli/dri"
+status: live
+version: "0.1.0"
+last_reviewed: "2025-09-06T22:06:30Z"
+parents: ["../README.md"]
+children: []
+source_of_truth:
+  - "./src/"
+in_scope:
+  - "Binary composition, telemetry, and command wiring"
+out_of_scope:
+  - "Core providers/contracts (see nexoscli-core)"
+inputs:
+  - "Core library and plugin crates"
+outputs:
+  - "nexoscli binary with composed command tree"
+tags: ["cli","rust"]
+auto:
+  children_glob: ["*/README.md"]
+  dir_tree_depth: 0
+---
 # nexoscli-bin — CLI Binary
+
+<!-- BEGIN: AUTO (id=children) -->
+_Auto-generated children list from front‑matter or glob._
+<!-- END: AUTO -->
 
 Main CLI binary that composes core library, plugins, and telemetry into the nexoscli command.
 Implements the walking skeleton with structured observability.
