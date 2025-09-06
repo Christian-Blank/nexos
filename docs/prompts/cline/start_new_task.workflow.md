@@ -52,8 +52,8 @@ What happens:
 
 - Read the plan fully (context + acceptance criteria).
 - Prefer generators over hand‑rolled; keep diffs ≤ ~300 LOC or ≤ 6 files.
-- For shell commands with observability:
-  ./target/debug/nexoscli term run -- <your command>
+- For shell commands always prefer to use the nexoscli as pass through to have full observability unless otherwise required or for good reasons or encountered frictions and blockers: `./target/debug/nexoscli term run -- <your command>`
+- When not using the nexoscli term command but the raw command, create an issue with the reason to track the friction for future improvement. Nexoscli is meant to make the life easier, faster, safer, not to introduce slow downs and overhead.
 
 - Validate frequently:
   cargo build --workspace

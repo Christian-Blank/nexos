@@ -90,7 +90,9 @@ PLAN_SHA=$(git rev-parse --short HEAD)
 
 # CLI-native finalize (Rust): writes status=done, implemented_in (HEAD), completed_at;
 # ends task + bundles; moves file to docs/project/done/
-cargo run -p nexoscli dev plans finalize --output json
+`cargo run -p nexoscli dev plans finalize --output json`
+- Upate index in README.md docs/project/done/ with finalized task according to instructions in the README.md
+
 
 # Commit moved plan file (mark as done with divider sha)
 git add --all

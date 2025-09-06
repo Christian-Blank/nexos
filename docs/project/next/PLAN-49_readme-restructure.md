@@ -122,6 +122,7 @@ children:
   - "./examples/README.md"
   - "./contracts/README.md"
   - "./adapters/README.md"
+  - "./scripts/README.md"
 source_of_truth:
   - "docs/ADRs/"
   - "contracts/schemas/"
@@ -267,6 +268,8 @@ required_folders:
   - "examples"
   - "contracts"
   - "adapters"
+  - "scripts"
+  - "testdata"
 
 # Staleness SLOs (days)
 slo:
@@ -289,6 +292,8 @@ auto:
 tags: ["plugins", "rust"]
 
 Resolution order: For any README, values come from: front‑matter > .readme.yaml > repo policy defaults.
+
+Caution: Do not place .readme.yaml under docs/. The docs tree must not contain code or config files; the only allowed exception is the YAML allowlist defined in .nexoscli/repo_policy.yaml (default allows only docs/exec_graph.yaml).
 
 Radical candor: keep overrides sparse. If every folder is special, nothing is standard. Prefer policy → small overrides → explicit front‑matter only when it truly differs.
 
@@ -386,6 +391,7 @@ Rubric (self‑check before saving):
 
 Today (already in tree):
 	•	nexoscli dev repo check
+	•	CI: nexoscli dev doctor --ci --checks repo
 Ensures required READMEs exist; complements it to also validate:
 	•	required front‑matter keys present (schema,title,kind,owner,status,last_reviewed)
 	•	graph links resolve (optional: add in a follow‑up)
