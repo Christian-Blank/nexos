@@ -1,14 +1,78 @@
+---
+schema: readme.v0
+title: "project/backlog"
+summary: "Unnumbered ideas and candidate plans awaiting prioritization; move to next/ once numbered."
+kind: domain
+owner: "@docs/dri"
+status: live
+version: "0.1.0"
+last_reviewed: "2025-09-07T00:00:00Z"
+parents: ["../README.md"]
+children: []
+source_of_truth:
+  - "./"
+in_scope:
+  - "Collect and refine ideas/tasks before numbering"
+  - "Curation and pruning to keep backlog actionable"
+out_of_scope:
+  - "Numbered plans (those belong in next/)"
+  - "Manual plan movements without review"
+inputs:
+  - "Unnumbered markdown documents capturing plan intent"
+outputs:
+  - "Prioritized and numbered plans moved to next/"
+tags: ["plans","backlog"]
+auto:
+  children_glob: []
+  dir_tree_depth: 0
+---
+
 # Backlog
 
-Plans and tasks yet to be either prioritized and numbered, or when already numbered to be moved to next in ascending order. Any plan in backlog should not have a number yet, since the number indicates the build order. If there are too many tasks in the backlog, check if tasks or plans are still relevant or should be pruned. The more tasks or plans are in the backlog, the more radical they should be analyzed for impact and pruned. Dump often, you can always dig and resurect if required. And thanks to using git no data is ever really lost, so default to dump.
+Ideas and candidate plans not yet numbered. When ready, assign a plan_id and move to `next/` in the correct build order.
 
-## Index
+## Purpose
 
-### Instructions:
+Provide a staging area for ideation and refinement before formalizing into numbered plans.
 
-- Whenever a task is created or moved in the backlog folder, update the index in this README.
-- Whenever a task is moved out, copy the entry for this task and paste it into the respective index of the README where you move the task to. This prevents playing telephone and reduces overhead instead of recreating and reinterpreting the context or summary.
+## In‑scope
 
-### Table
+- Capturing problems, contexts, and acceptance criteria
+- Pruning or merging items to reduce overhead
 
-<TBD Add index>
+## Out‑of‑scope
+
+- Numbered plans (PLAN-<id>_<slug>.md); those belong in `next/`
+- Manual moves without review or rationale
+
+## Workflows
+
+- Review backlog:
+  - Curate, merge duplicates, prune outdated items.
+- Promote to numbered plan and move to next/:
+  - Assign a plan_id and slug.
+  - Move file to `docs/project/next/` following naming rules.
+
+## Rules
+
+- Backlog files should not use `PLAN-<id>_<slug>.md` names.
+- Keep items concise and decision-ready (≤ 1 screen ideal).
+- Prefer pruning; you can always resurrect from git history.
+
+## Checks & Gates
+
+- Policy/readmes sanity (informational here):
+  ```
+  nexoscli dev repo check --fix-readmes --output json
+  ```
+
+## Interfaces
+
+- Inputs: unnumbered backlog entries
+- Outputs: numbered plans promoted to `next/`
+
+## Backlog Index
+
+<!-- BEGIN: AUTO (id=plans-index) -->
+- [v0_replay_assesment.md](./v0_replay_assesment.md)
+<!-- END: AUTO -->
