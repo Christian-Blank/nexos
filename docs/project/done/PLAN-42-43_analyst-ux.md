@@ -1,3 +1,13 @@
+---
+status: done
+plan_id: '42'
+slug: 43_analyst-ux
+task_id: TASK-20250905-add-or-update-bag-level-labels-and-inject-them-into-each-events-row
+started_at: 2025-09-05T23:11:13.30928Z
+source: next
+completed_at: 2025-09-06T05:43:04.550448Z
+implemented_in: 9ae1620
+---
 PR‑C (parallel to PR‑A): Plan #42 + #43 — Analyst UX v0
 
 Status: proposal (v0)

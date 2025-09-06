@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20250905-add-or-update-bag-level-labels-and-inject-them-into-each-events-row",
+  "title": "Add or update bag-level labels and inject them into each events row",
+  "stage": "done",
+  "status": "ended",
+  "created_at": "2025-09-05T23:11:13.298361Z",
+  "started_at": "2025-09-05T23:11:13.308149Z",
+  "ended_at": "2025-09-06T05:43:04.394085Z",
+  "sessions": [
+    {
+      "id": "SES-b58f89182700",
+      "start": "2025-09-05T23:11:13.308176Z",
+      "end": "2025-09-06T05:43:04.394012Z"
+    }
+  ],
+  "notes": []
+}

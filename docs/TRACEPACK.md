@@ -781,6 +781,58 @@ Notes
 - All snapshot fields are best-effort: extractor never fails if tools or git are unavailable.
 - counts.fileops_lines can appear for legacy consumers; counts.fileops is the canonical boolean-matching target in verify++.
 
+## Labels & Dataset Card (Plan-42/43)
+
+Plan-42: Bag-level labels and events row injection
+
+- Purpose: Ensure labels consistency for downstream analysis tools.
+- Write path:
+  - Upsert manifest.labels (flat object) inside bag/manifest.json.
+  - Inject the same labels into every valid events row under attrs.labels (merge; CLI pairs win).
+- CLI:
+  - From CLI pairs:
+    nexoscli replay annotate --bag ./bag --labels exp_id=EXP-001 --labels treatment=A --labels env=dev
+  - From a JSON file (flat object), then override with CLI:
+    nexoscli replay annotate --bag ./bag --from-file labels.json --labels author=qa
+- Behavior:
+  - Idempotent merge.
+  - Invalid or blank lines are skipped during events rewrite; the command returns ok with a skipped_lines count.
+  - Atomic file rewrite is used to avoid partial updates.
+
+Plan-43: Dataset card (README.md)
+
+- Purpose: Provide a self-describing, analyst-friendly card in each bag.
+- Auto-generation:
+  - On extract: README.md is written (replacing if it exists) with sections in deterministic order.
+  - On verify: pass --fix-readme to re-generate the card from current bag state.
+- Contents:
+  - Contents & Schemas: lists present artifacts and their schema IDs (events/fileops).
+  - Counts: manifest.counts pretty-printed.
+  - Labels: manifest.labels pretty-printed.
+  - Tooling: snapshots from manifest.tools, manifest.env, and manifest.git.
+  - Quick loads: Pandas and DuckDB snippets.
+- CLI:
+  - Re-generate:
+    nexoscli replay verify --path ./bag --fix-readme
+
+Example (labels → manifest + events)
+
+```bash
+# Create a bag
+nexoscli replay extract --run-id RUN-... --out ./bag
+
+# Add labels and inject into events rows
+nexoscli replay annotate --bag ./bag --labels exp_id=EXP-001 --labels treatment=A --labels env=dev
+
+# Rebuild dataset card if needed
+nexoscli replay verify --path ./bag --fix-readme
+
+# Inspect
+jq '.labels' bag/manifest.json
+head -n 1 bag/events.ndjson  # attrs.labels merged into rows
+sed -n '1,80p' bag/README.md
+```
+
 ## Verify++ (Plan-41)
 
 The top-level verifier now performs richer validation and emits structured info suitable for CI gating:

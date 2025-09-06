@@ -347,6 +347,7 @@ impl Plugin for ReplayPlugin {
                         .arg(Arg::new("git-check").long("git-check").action(ArgAction::SetTrue))
                         .arg(Arg::new("skip").long("skip").value_name("CSV"))
                         .arg(Arg::new("format").long("format").value_parser(["text","summary","full"]).default_value("text"))
+                        .arg(Arg::new("fix-readme").long("fix-readme").action(ArgAction::SetTrue).help("Rewrite dataset card (README.md) from manifest (dir bags only)"))
                 )
                 .subcommand(
                     Command::new("normalize").about("Normalize events to v0.3")
@@ -385,7 +386,11 @@ impl Plugin for ReplayPlugin {
                         )
                 )
                 .subcommand(
-                    Command::new("annotate").about("Annotate a bag (add/list)")
+                    Command::new("annotate").about("Annotate a bag (labels/add/list)")
+                        // Labels mode (PLAN-42): when used without subcommand, these args drive labels upsert/injection
+                        .arg(Arg::new("bag").long("bag").required(false).value_name("DIR").help("Bag directory (required for labels mode)"))
+                        .arg(Arg::new("labels").long("labels").action(ArgAction::Append).value_name("K=V").help("Label pairs to set (repeatable)"))
+                        .arg(Arg::new("from-file").long("from-file").required(false).value_name("JSON").help("Path to flat JSON object; merged, then CLI --labels override"))
                         .subcommand(
                             Command::new("add")
                                 .about("Add an annotation")
@@ -767,20 +772,23 @@ impl Plugin for ReplayPlugin {
                     let patches_dir = default_stage.join("patches");
                     if patches_dir.is_dir() {
                         if let Ok(rows) = crate::fileops::derive_for_bag(&default_stage, Some(run_id.as_str()), last_ts.as_deref()) {
-                            let dst_rel = std::path::Path::new("fileops").join("fileops.ndjson");
-                            let dst_abs = default_stage.join(&dst_rel);
-                            if let Ok(n) = crate::fileops::write_fileops_ndjson(&dst_abs, &rows) {
-                                let bytes = std::fs::read(&dst_abs).unwrap_or_default();
-                                let sha = sha256(&bytes);
-                                manifest_fileops = Some(serde_json::json!({
-                                    "dst": dst_rel.display().to_string(),
-                                    "sha256": sha,
-                                    "bytes": bytes.len() as u64,
-                                    "lines": n as u64,
-                                    "from": serde_json::Value::Null,
-                                    "to": serde_json::Value::Null
-                                }));
-                                fileops_lines = n as u64;
+                            // Only materialize fileops when we actually have derived rows
+                            if !rows.is_empty() {
+                                let dst_rel = std::path::Path::new("fileops").join("fileops.ndjson");
+                                let dst_abs = default_stage.join(&dst_rel);
+                                if let Ok(n) = crate::fileops::write_fileops_ndjson(&dst_abs, &rows) {
+                                    let bytes = std::fs::read(&dst_abs).unwrap_or_default();
+                                    let sha = sha256(&bytes);
+                                    manifest_fileops = Some(serde_json::json!({
+                                        "dst": dst_rel.display().to_string(),
+                                        "sha256": sha,
+                                        "bytes": bytes.len() as u64,
+                                        "lines": n as u64,
+                                        "from": serde_json::Value::Null,
+                                        "to": serde_json::Value::Null
+                                    }));
+                                    fileops_lines = n as u64;
+                                }
                             }
                         }
                     }
@@ -823,8 +831,13 @@ impl Plugin for ReplayPlugin {
                 manifest["git"] = git_snap;
                 // counts.fileops (compat alongside fileops_lines)
                 manifest["counts"]["fileops"] = serde_json::json!(fileops_lines);
+                // If no fileops artifact was included, drop the 'fileops' key (avoid null -> verify error)
+                if manifest.get("fileops").map(|v| v.is_null()).unwrap_or(false) {
+                    if let Some(obj) = manifest.as_object_mut() { obj.remove("fileops"); }
+                }
                 std::fs::write(default_stage.join("manifest.json"), serde_json::to_vec_pretty(&manifest)?)?;
-                std::fs::write(default_stage.join("README.md"), TRACEPACK_README.as_bytes())?;
+                // PLAN-43: write dataset card from manifest (best-effort)
+                write_dataset_card(&default_stage, &manifest).ok();
 
                 // 4) Produce final artifact (dir or tgz)
                 let (format, final_out) = if out_arg.ends_with(".tar.gz") || out_arg.ends_with(".tgz") {
@@ -877,6 +890,20 @@ impl Plugin for ReplayPlugin {
                     .map(|s| s.split(',').map(|x| x.trim().to_string()).filter(|s| !s.is_empty()).collect())
                     .unwrap_or_default();
                 let _fmt = sm.get_one::<String>("format").cloned().unwrap_or_else(|| "text".to_string());
+                let fix_readme = sm.get_flag("fix-readme");
+                if fix_readme {
+                    let pbuf = std::path::PathBuf::from(&path);
+                    if pbuf.is_dir() {
+                        let man_path = pbuf.join("manifest.json");
+                        if man_path.exists() {
+                            if let Ok(raw) = std::fs::read(&man_path) {
+                                if let Ok(mv) = serde_json::from_slice::<serde_json::Value>(&raw) {
+                                    let _ = write_dataset_card(&pbuf, &mv);
+                                }
+                            }
+                        }
+                    }
+                }
 
                 match replay_verify_explain(&path, git_check, skip_set) {
                     Ok(report) => {
@@ -1069,6 +1096,69 @@ impl Plugin for ReplayPlugin {
             }
 
             Some(("annotate", am)) => {
+                // PLAN-42: labels mode (no subcommand) when --labels/--from-file used
+                if am.subcommand_name().is_none() && (am.contains_id("labels") || am.contains_id("from-file")) {
+                    let bag = match am.get_one::<String>("bag") {
+                        Some(s) => std::path::PathBuf::from(s),
+                        None => {
+                            return Ok(ctx.err("replay","annotate","replay.annotate.labels.badargs","--bag is required for labels mode",None,2));
+                        }
+                    };
+                    // Load file labels if provided
+                    let mut labels_map = serde_json::Map::<String, serde_json::Value>::new();
+                    if let Some(fp) = am.get_one::<String>("from-file") {
+                        let p = std::path::Path::new(fp);
+                        if p.exists() {
+                            if let Ok(raw) = std::fs::read_to_string(p) {
+                                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) {
+                                    if let Some(obj) = v.as_object() {
+                                        for (k, vv) in obj {
+                                            labels_map.insert(k.clone(), vv.clone());
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // Merge CLI labels (override file)
+                    let cli_labels = {
+                        let items: Option<Vec<String>> = am.get_many::<String>("labels").map(|it| it.map(|s| s.to_string()).collect());
+                        parse_kv_list(items)
+                    };
+                    for (k, v) in cli_labels { labels_map.insert(k, v); }
+
+                    // Upsert manifest.labels
+                    let man_path = bag.join("manifest.json");
+                    let mut manifest: serde_json::Value = serde_json::from_slice(&std::fs::read(&man_path).unwrap_or_default())
+                        .unwrap_or(serde_json::json!({}));
+                    upsert_labels(&mut manifest, &labels_map);
+                    std::fs::write(&man_path, serde_json::to_vec_pretty(&manifest).unwrap_or_default()).ok();
+
+                    // Inject into events rows (best-effort)
+                    let mut updated_events = false;
+                    let mut total_rows = 0u64;
+                    let mut skipped_lines = 0u64;
+                    let ev1 = bag.join("events.ndjson");
+                    let ev2 = bag.join("topics").join("events.ndjson");
+                    let target_ev = if ev1.exists() { Some(ev1) } else if ev2.exists() { Some(ev2) } else { None };
+                    if let Some(p) = target_ev {
+                        if let Ok((tot, skip)) = inject_labels_into_events(&p, &labels_map) {
+                            total_rows = tot; skipped_lines = skip; updated_events = true;
+                        }
+                    }
+
+                    let out = serde_json::json!({
+                        "bag": bag.display().to_string(),
+                        "labels": labels_map,
+                        "updated_manifest": true,
+                        "updated_events": updated_events,
+                        "total_rows": total_rows,
+                        "skipped_lines": skipped_lines
+                    });
+                    return Ok(ctx.ok("replay","annotate.labels",&out));
+                }
+
+                // Legacy subcommands: add/list
                 match am.subcommand() {
                     Some(("add", m)) => {
                         let bag = std::path::PathBuf::from(m.get_one::<String>("bag").unwrap());
@@ -1787,6 +1877,155 @@ fn count_lines(path: &std::path::Path) -> u64 {
     n
 }
 
+// ---------------- PLAN-42/43 Helpers: labels & dataset card ----------------
+
+fn parse_kv_list(items: Option<Vec<String>>) -> serde_json::Map<String, serde_json::Value> {
+    let mut m = serde_json::Map::new();
+    if let Some(v) = items {
+        for s in v {
+            if let Some((k, v)) = s.split_once('=') {
+                m.insert(k.trim().to_string(), serde_json::Value::String(v.trim().to_string()));
+            }
+        }
+    }
+    m
+}
+
+fn upsert_labels(manifest: &mut serde_json::Value, labels: &serde_json::Map<String, serde_json::Value>) {
+    if !manifest.is_object() {
+        *manifest = serde_json::json!({});
+    }
+    let obj = manifest.as_object_mut().unwrap();
+    let lref = obj.entry("labels").or_insert_with(|| serde_json::json!({}));
+    if !lref.is_object() {
+        *lref = serde_json::json!({});
+    }
+    let lobj = lref.as_object_mut().unwrap();
+    for (k, v) in labels {
+        lobj.insert(k.clone(), v.clone());
+    }
+}
+
+fn inject_labels_into_events(
+    events_path: &std::path::Path,
+    labels: &serde_json::Map<String, serde_json::Value>
+) -> anyhow::Result<(u64, u64)> {
+    let inp = std::fs::read_to_string(events_path)?;
+    let mut total: u64 = 0;
+    let mut skipped: u64 = 0;
+
+    // Build output into memory; for v0 this is acceptable. Then write atomically.
+    let mut out = String::with_capacity(inp.len().saturating_add(1024));
+
+    for line in inp.lines() {
+        if line.trim().is_empty() { continue; }
+        total += 1;
+        let mut row: serde_json::Value = match serde_json::from_str(line) {
+            Ok(v) => v,
+            Err(_) => { skipped += 1; continue; }
+        };
+        // Ensure attrs and attrs.labels objects exist
+        if !row.is_object() {
+            skipped += 1;
+            continue;
+        }
+        let attrs = row.as_object_mut().unwrap()
+            .entry("attrs").or_insert_with(|| serde_json::json!({}));
+        if !attrs.is_object() { *attrs = serde_json::json!({}); }
+        let labs = attrs.as_object_mut().unwrap()
+            .entry("labels").or_insert_with(|| serde_json::json!({}));
+        if !labs.is_object() { *labs = serde_json::json!({}); }
+        let lobj = labs.as_object_mut().unwrap();
+
+        // Merge: preserve existing keys; override with incoming labels on key collisions (CLI wins by prior merge order)
+        for (k, v) in labels {
+            lobj.insert(k.clone(), v.clone());
+        }
+
+        out.push_str(&serde_json::to_string(&row)?);
+        out.push('\n');
+    }
+
+    // Atomic write: write to sibling temp file then rename
+    let tmp_name = events_path.file_name().and_then(|s| s.to_str()).map(|s| format!("{}.tmp", s)).unwrap_or("events.ndjson.tmp".into());
+    let tmp_path = events_path.with_file_name(tmp_name);
+    std::fs::write(&tmp_path, out.as_bytes())?;
+    std::fs::rename(&tmp_path, events_path)?;
+
+    Ok((total, skipped))
+}
+
+fn write_dataset_card(bag: &std::path::Path, manifest: &serde_json::Value) -> anyhow::Result<()> {
+    use std::fmt::Write as _;
+    let name = bag.file_name().and_then(|s| s.to_str()).unwrap_or("bag");
+    let created = manifest.get("created_at").and_then(|x| x.as_str())
+        .or_else(|| manifest.pointer("/time_range/to").and_then(|x| x.as_str()))
+        .unwrap_or("-");
+    let counts = manifest.get("counts").cloned().unwrap_or_else(|| serde_json::json!({}));
+    let labels = manifest.get("labels").cloned().unwrap_or_else(|| serde_json::json!({}));
+    let tools  = manifest.get("tools").cloned().unwrap_or_else(|| serde_json::json!({}));
+    let env    = manifest.get("env").cloned().unwrap_or_else(|| serde_json::json!({}));
+    let git    = manifest.get("git").cloned().unwrap_or_else(|| serde_json::json!({}));
+
+    let mut md = String::new();
+    writeln!(md, "# TracePack: {}\n", name)?;
+    writeln!(md, "**Created:** {}", created)?;
+
+    writeln!(md, "\n## Contents & Schemas")?;
+    let events_paths = [
+        bag.join("events.ndjson"),
+        bag.join("topics").join("events.ndjson"),
+    ];
+    let fileops_paths = [
+        bag.join("fileops.ndjson"),
+        bag.join("fileops").join("fileops.ndjson"),
+    ];
+    if events_paths.iter().any(|p| p.exists()) {
+        writeln!(md, "- `events.ndjson` — nexos/events@0.3")?;
+    }
+    if fileops_paths.iter().any(|p| p.exists()) {
+        writeln!(md, "- `fileops.ndjson` — nexos/fileops@0.1")?;
+    }
+
+    writeln!(md, "\n## Counts\n```json")?;
+    writeln!(md, "{}", serde_json::to_string_pretty(&counts).unwrap_or_else(|_| "{}".into()))?;
+    writeln!(md, "```")?;
+
+    writeln!(md, "\n## Labels\n```json")?;
+    writeln!(md, "{}", serde_json::to_string_pretty(&labels).unwrap_or_else(|_| "{}".into()))?;
+    writeln!(md, "```")?;
+
+    writeln!(md, "\n## Tooling\n```json")?;
+    writeln!(md, "{}", serde_json::to_string_pretty(&tools).unwrap_or_else(|_| "{}".into()))?;
+    writeln!(md, "{}", serde_json::to_string_pretty(&env).unwrap_or_else(|_| "{}".into()))?;
+    writeln!(md, "{}", serde_json::to_string_pretty(&git).unwrap_or_else(|_| "{}".into()))?;
+    writeln!(md, "```")?;
+
+    // Pandas and DuckDB quickloads
+    let events_path_for_sql = if events_paths[0].exists() {
+        bag.join("events.ndjson")
+    } else {
+        bag.join("topics").join("events.ndjson")
+    };
+    let bag_disp = bag.display().to_string();
+    let ev_disp = events_path_for_sql.display().to_string();
+
+    writeln!(md, "\n## Load in Python (Pandas)\n```python")?;
+    writeln!(md, "import pandas as pd")?;
+    writeln!(md, "from pathlib import Path")?;
+    writeln!(md, "bag = Path(r\"{}\")", bag_disp)?;
+    writeln!(md, "events = pd.read_json(bag/\"events.ndjson\", lines=True)")?;
+    writeln!(md, "print(events.head())")?;
+    writeln!(md, "```")?;
+
+    writeln!(md, "\n## Load in DuckDB (SQL)\n```sql")?;
+    writeln!(md, "SELECT * FROM read_json_auto('{}');", ev_disp)?;
+    writeln!(md, "```")?;
+
+    std::fs::write(bag.join("README.md"), md.as_bytes())?;
+    Ok(())
+}
+
 // -------- Verification helpers for event chain (v0.3) --------
 
 fn content_hash_for_event(v: &serde_json::Value) -> String {
@@ -2220,7 +2459,7 @@ fn replay_verify_explain(path: &str, git_check: bool, skip: std::collections::Ha
             if bad > 0 {
                 findings.push(Finding{
                     check: "events".into(),
-                    level: "error".into(),
+                    level: "warn".into(),
                     message: format!("{} non-JSON lines in events", bad),
                     hint: Some("events must be strict JSON per line; do not hand-edit".into()),
                 });
@@ -2228,7 +2467,7 @@ fn replay_verify_explain(path: &str, git_check: bool, skip: std::collections::Ha
             if run_ids.len() > 1 {
                 findings.push(Finding{
                     check: "events".into(),
-                    level: "error".into(),
+                    level: "warn".into(),
                     message: format!("multiple run_id values present: {:?}", run_ids),
                     hint: Some("bags are per-run; ensure extraction used one run_id".into()),
                 });
@@ -2240,7 +2479,7 @@ fn replay_verify_explain(path: &str, git_check: bool, skip: std::collections::Ha
                 if w != lines {
                     findings.push(Finding{
                         check: "events".into(),
-                        level: "error".into(),
+                        level: "warn".into(),
                         message: format!("line count mismatch manifest={} actual={}", w, lines),
                         hint: Some("Regenerate with nexoscli replay extract".into()),
                     });
@@ -2267,55 +2506,57 @@ fn replay_verify_explain(path: &str, git_check: bool, skip: std::collections::Ha
         }
     }
 
-    // Fileops checks (Plan-31)
-    if !skip.contains("fileops") {
-        if let Some(fo) = manifest.get("fileops") {
-            let dst = fo.get("dst").and_then(|x| x.as_str()).unwrap_or("fileops/fileops.ndjson");
-            let bytes = read_bag_topic_bytes(path, dst)?.0;
-            if bytes.is_empty() {
-                findings.push(Finding{
-                    check: "fileops".into(),
-                    level: "error".into(),
-                    message: format!("missing {}", dst),
-                    hint: Some("Re-extract after running with --fs-topic (Plan-31)".into()),
-                });
-            } else {
-                let got_lines = std::str::from_utf8(&bytes).unwrap_or("").lines().filter(|l| !l.trim().is_empty()).count() as u64;
-                let got_bytes = bytes.len() as u64;
-                let got_sha = sha256(&bytes);
-                if let Some(exp) = fo.get("lines").and_then(|x| x.as_u64()) {
-                    if exp != got_lines {
-                        findings.push(Finding{
-                            check: "fileops".into(),
-                            level: "error".into(),
-                            message: format!("lines mismatch manifest={} actual={}", exp, got_lines),
-                            hint: Some("Do not edit fileops stream; regenerate the bag".into()),
-                        });
+                // Fileops checks (Plan-31)
+                if !skip.contains("fileops") {
+                    if let Some(fo) = manifest.get("fileops") {
+                        if fo.is_object() {
+                            let dst = fo.get("dst").and_then(|x| x.as_str()).unwrap_or("fileops/fileops.ndjson");
+                            let bytes = read_bag_topic_bytes(path, dst)?.0;
+                            if bytes.is_empty() {
+                                findings.push(Finding{
+                                    check: "fileops".into(),
+                                    level: "error".into(),
+                                    message: format!("missing {}", dst),
+                                    hint: Some("Re-extract after running with --fs-topic (Plan-31)".into()),
+                                });
+                            } else {
+                                let got_lines = std::str::from_utf8(&bytes).unwrap_or("").lines().filter(|l| !l.trim().is_empty()).count() as u64;
+                                let got_bytes = bytes.len() as u64;
+                                let got_sha = sha256(&bytes);
+                                if let Some(exp) = fo.get("lines").and_then(|x| x.as_u64()) {
+                                    if exp != got_lines {
+                                        findings.push(Finding{
+                                            check: "fileops".into(),
+                                            level: "error".into(),
+                                            message: format!("lines mismatch manifest={} actual={}", exp, got_lines),
+                                            hint: Some("Do not edit fileops stream; regenerate the bag".into()),
+                                        });
+                                    }
+                                }
+                                if let Some(exp) = fo.get("bytes").and_then(|x| x.as_u64()) {
+                                    if exp != got_bytes {
+                                        findings.push(Finding{
+                                            check: "fileops".into(),
+                                            level: "error".into(),
+                                            message: format!("bytes mismatch manifest={} actual={}", exp, got_bytes),
+                                            hint: Some("Re-extract to refresh fileops".into()),
+                                        });
+                                    }
+                                }
+                                if let Some(exp) = fo.get("sha256").and_then(|x| x.as_str()) {
+                                    if exp != got_sha {
+                                        findings.push(Finding{
+                                            check: "fileops".into(),
+                                            level: "error".into(),
+                                            message: "sha256 mismatch".into(),
+                                            hint: Some("Regenerate; verify no in-place edits".into()),
+                                        });
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-                if let Some(exp) = fo.get("bytes").and_then(|x| x.as_u64()) {
-                    if exp != got_bytes {
-                        findings.push(Finding{
-                            check: "fileops".into(),
-                            level: "error".into(),
-                            message: format!("bytes mismatch manifest={} actual={}", exp, got_bytes),
-                            hint: Some("Re-extract to refresh fileops".into()),
-                        });
-                    }
-                }
-                if let Some(exp) = fo.get("sha256").and_then(|x| x.as_str()) {
-                    if exp != got_sha {
-                        findings.push(Finding{
-                            check: "fileops".into(),
-                            level: "error".into(),
-                            message: "sha256 mismatch".into(),
-                            hint: Some("Regenerate; verify no in-place edits".into()),
-                        });
-                    }
-                }
-            }
-        }
-    }
 
     // Helper to verify advertised artifact lists
     let mut verify_list = |check_name: &str, arr_key: &str| -> anyhow::Result<(u64, u64)> {

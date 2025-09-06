@@ -13,17 +13,17 @@ Commands:
   tools        Tools & schemas
   completions  Generate shell completions
   man          Print man page to stdout
-  graph        Graph tools
-  bundle       TracePack bundles
-  cline        Cline task history (locate/import) with idempotent ingest
-  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
   workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
-  dev          Developer utilities
   issue        Issue management
-  demo         Demo plugin
-  rules        Rules management (init/lint/export)
-  replay       Replay/extract TracePacks from logged runs
   term         Run commands with provenance (non-interactive)
+  replay       Replay/extract TracePacks from logged runs
+  graph        Graph tools
+  cline        Cline task history (locate/import) with idempotent ingest
+  bundle       TracePack bundles
+  dev          Developer utilities
+  rules        Rules management (init/lint/export)
+  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
+  demo         Demo plugin
   help         Print this message or the help of the given subcommand(s)
 
 Options:
@@ -35,65 +35,61 @@ Options:
 
 ## Tool Specs (for agents)
 
-### `workflow.init`
+### `replay.bag.verify`
 
-Create a workflow spec template
+Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
 
-### `workflow.plan`
+### `replay.verify`
 
-Plan (idempotency-aware)
+Verify a TracePack (dir or .tgz) and explain findings
 
-### `workflow.validate`
+### `replay.normalize`
 
-Validate a workflow spec (schema + invariants)
+Normalize events to v0.3 (from bag or events file)
 
-### `workflow.run`
+### `replay.schema.events`
 
-Run a workflow spec sequentially
+JSON Schema for events v0.3
 
-### `workflow.status`
+### `replay.schema.list`
 
-Show effects, history, visibility
+List available schemas
 
-### `workflow.signal`
+### `replay.schema.get`
 
-Send a signal to a running workflow
+Get schema JSON
 
-### `workflow.query`
+### `replay.validate`
 
-Query workflow runtime state
+Validate bag artifacts (events/fileops) against schemas
 
-### `workflow.list`
+### `replay.fileops.derive`
 
-List workflows (visibility index)
+Derive fileops.ndjson from a bag's patches
 
-### `workflow.upsert-sa`
+### `replay.export`
 
-Upsert search attributes for a workflow
+Export bag artifacts to CSV
+
+### `issue.new`
+
+Create a new local issue
+
+### `issue.list`
+
+List issues (optionally by state)
+
+### `issue.show`
+
+Show a single issue by ID
+
+### `issue.close`
+
+Close an issue by ID
 
 ### `demo.hello`
 
 Say hello
-
-### `rules.lint`
-
-Validate rules front-matter
-
-### `rules.export`
-
-Export rules bundle
-
-### `cline.locate`
-
-Find Cline storage locations
-
-### `cline.import`
-
-Import Cline task history with idempotent ingest
-
-### `cline.correlate`
-
-Correlate Cline tasks to runs by time
 
 ### `dev.init`
 
@@ -135,41 +131,41 @@ Show plan front-matter and derived ids
 
 Show the next plan candidate (docs/project/next)
 
-### `replay.bag.verify`
+### `workflow.init`
 
-Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
+Create a workflow spec template
 
-### `replay.verify`
+### `workflow.plan`
 
-Verify a TracePack (dir or .tgz) and explain findings
+Plan (idempotency-aware)
 
-### `replay.normalize`
+### `workflow.validate`
 
-Normalize events to v0.3 (from bag or events file)
+Validate a workflow spec (schema + invariants)
 
-### `replay.schema.events`
+### `workflow.run`
 
-JSON Schema for events v0.3
+Run a workflow spec sequentially
 
-### `replay.schema.list`
+### `workflow.status`
 
-List available schemas
+Show effects, history, visibility
 
-### `replay.schema.get`
+### `workflow.signal`
 
-Get schema JSON
+Send a signal to a running workflow
 
-### `replay.validate`
+### `workflow.query`
 
-Validate bag artifacts (events/fileops) against schemas
+Query workflow runtime state
 
-### `replay.fileops.derive`
+### `workflow.list`
 
-Derive fileops.ndjson from a bag's patches
+List workflows (visibility index)
 
-### `replay.export`
+### `workflow.upsert-sa`
 
-Export bag artifacts to CSV
+Upsert search attributes for a workflow
 
 ### `bundle.build`
 
@@ -179,21 +175,25 @@ Build a TracePack bundle
 
 Verify a TracePack bundle
 
-### `issue.new`
+### `cline.locate`
 
-Create a new local issue
+Find Cline storage locations
 
-### `issue.list`
+### `cline.import`
 
-List issues (optionally by state)
+Import Cline task history with idempotent ingest
 
-### `issue.show`
+### `cline.correlate`
 
-Show a single issue by ID
+Correlate Cline tasks to runs by time
 
-### `issue.close`
+### `rules.lint`
 
-Close an issue by ID
+Validate rules front-matter
+
+### `rules.export`
+
+Export rules bundle
 
 ### `graph.check`
 
