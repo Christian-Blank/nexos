@@ -84,17 +84,7 @@ Preserve finalized plans with their recorded metadata (implemented_in, completed
 ## Plans Index
 
 <!-- BEGIN: AUTO (id=plans-index) -->
-- [plan-26_contract_freeze.md](./plan-26_contract_freeze.md)
-- [plan-27_doctor_checks.md](./plan-27_doctor_checks.md)
-- [plan-28_doctor-events-schema.md](./plan-28_doctor-events-schema.md)
-- [plan-29_event-log-rotation.md](./plan-29_event-log-rotation.md)
-- [plan-30_bag-verify.md](./plan-30_bag-verify.md)
-- [plan-31_file-change-topic.md](./plan-31_file-change-topic.md)
-- [plan-32_bag-explain.md](./plan-32_bag-explain.md)
-- [plan-33_events-schema-and-normalizer.md](./plan-33_events-schema-and-normalizer.md)
-- [plan-33-2_schemas-bundles-and-validators.md](./plan-33-2_schemas-bundles-and-validators.md)
 - [PLAN-34_plan-and-dev-cli.md](./PLAN-34_plan-and-dev-cli.md)
-- [plan-34_schemas-bundles-and-validators.md](./plan-34_schemas-bundles-and-validators.md)
 - [PLAN-35_fileops-normalizer.md](./PLAN-35_fileops-normalizer.md)
 - [PLAN-36_export-helpers-csv.md](./PLAN-36_export-helpers-csv.md)
 - [PLAN-37_annotate-and-export.md](./PLAN-37_annotate-and-export.md)
@@ -108,4 +98,15 @@ Preserve finalized plans with their recorded metadata (implemented_in, completed
 - [PLAN-47_refactor-and-stabilize.md](./PLAN-47_refactor-and-stabilize.md)
 - [PLAN-48_repo-check.md](./PLAN-48_repo-check.md)
 - [PLAN-49_readme-restructure.md](./PLAN-49_readme-restructure.md)
+- [PLAN-50_plan-lifecycle-cli.md](./PLAN-50_plan-lifecycle-cli.md)
+- [plan-26_contract_freeze.md](./plan-26_contract_freeze.md)
+- [plan-27_doctor_checks.md](./plan-27_doctor_checks.md)
+- [plan-28_doctor-events-schema.md](./plan-28_doctor-events-schema.md)
+- [plan-29_event-log-rotation.md](./plan-29_event-log-rotation.md)
+- [plan-30_bag-verify.md](./plan-30_bag-verify.md)
+- [plan-31_file-change-topic.md](./plan-31_file-change-topic.md)
+- [plan-32_bag-explain.md](./plan-32_bag-explain.md)
+- [plan-33-2_schemas-bundles-and-validators.md](./plan-33-2_schemas-bundles-and-validators.md)
+- [plan-33_events-schema-and-normalizer.md](./plan-33_events-schema-and-normalizer.md)
+- [plan-34_schemas-bundles-and-validators.md](./plan-34_schemas-bundles-and-validators.md)
 <!-- END: AUTO -->

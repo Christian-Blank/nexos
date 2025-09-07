@@ -88,5 +88,5 @@ Provide a single source of truth for the plan that is currently being implemente
 ## Plans Index
 
 <!-- BEGIN: AUTO (id=plans-index) -->
-- None
+- [PLAN-51_plan-lifecycle-ops.md](./PLAN-51_plan-lifecycle-ops.md)
 <!-- END: AUTO -->

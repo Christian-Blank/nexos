@@ -13,16 +13,16 @@ Commands:
   tools        Tools & schemas
   completions  Generate shell completions
   man          Print man page to stdout
-  graph        Graph tools
-  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
-  rules        Rules management (init/lint/export)
-  bundle       TracePack bundles
-  dev          Developer utilities
-  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
-  replay       Replay/extract TracePacks from logged runs
-  cline        Cline task history (locate/import) with idempotent ingest
-  issue        Issue management
   demo         Demo plugin
+  replay       Replay/extract TracePacks from logged runs
+  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
+  cline        Cline task history (locate/import) with idempotent ingest
+  rules        Rules management (init/lint/export)
+  dev          Developer utilities
+  issue        Issue management
+  graph        Graph tools
+  bundle       TracePack bundles
+  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
   term         Run commands with provenance (non-interactive)
   help         Print this message or the help of the given subcommand(s)
 
@@ -35,25 +35,17 @@ Options:
 
 ## Tool Specs (for agents)
 
-### `issue.new`
+### `cline.locate`
 
-Create a new local issue
+Find Cline storage locations
 
-### `issue.list`
+### `cline.import`
 
-List issues (optionally by state)
+Import Cline task history with idempotent ingest
 
-### `issue.show`
+### `cline.correlate`
 
-Show a single issue by ID
-
-### `issue.close`
-
-Close an issue by ID
-
-### `demo.hello`
-
-Say hello
+Correlate Cline tasks to runs by time
 
 ### `replay.bag.verify`
 
@@ -91,25 +83,21 @@ Derive fileops.ndjson from a bag's patches
 
 Export bag artifacts to CSV
 
-### `bundle.build`
+### `issue.new`
 
-Build a TracePack bundle
+Create a new local issue
 
-### `bundle.verify`
+### `issue.list`
 
-Verify a TracePack bundle
+List issues (optionally by state)
 
-### `cline.locate`
+### `issue.show`
 
-Find Cline storage locations
+Show a single issue by ID
 
-### `cline.import`
+### `issue.close`
 
-Import Cline task history with idempotent ingest
-
-### `cline.correlate`
-
-Correlate Cline tasks to runs by time
+Close an issue by ID
 
 ### `rules.lint`
 
@@ -118,6 +106,106 @@ Validate rules front-matter
 ### `rules.export`
 
 Export rules bundle
+
+### `bundle.build`
+
+Build a TracePack bundle
+
+### `bundle.verify`
+
+Verify a TracePack bundle
+
+### `dev.init`
+
+Initialize .nexoscli/ (Plan/Apply, idempotent)
+
+### `dev.plugin.new`
+
+Scaffold a new plugin and optionally register it
+
+### `dev.plugins.check`
+
+Verify plugin folder structure and registration
+
+### `dev.doctor`
+
+Verify local setup (dotdir, event log write, config, OTEL envs); --ci aggregates checks
+
+### `dev.telemetry.report`
+
+Aggregate events.jsonl → counts, p50/p90/avg, error leaderboard
+
+### `dev.plans.start`
+
+Start a plan: create+start task, update front-matter, move next→current
+
+### `dev.plans.finalize`
+
+Finalize a plan: mark done, end task, bundle, move current→done
+
+### `dev.plans.pause`
+
+Pause current plan: move current→paused
+
+### `dev.plans.resume`
+
+Resume a paused plan: move paused→current
+
+### `dev.plans.archive`
+
+Archive a plan: move to archived/
+
+### `dev.plans.dump`
+
+Dump a plan: move to dumped/
+
+### `dev.plans.requeue`
+
+Requeue a paused plan to backlog/
+
+### `dev.plans.list`
+
+List plans in docs/project/{next,current,done,archived}
+
+### `dev.plans.status`
+
+Show plan front-matter and derived ids
+
+### `dev.plans.next`
+
+Show the next plan candidate (docs/project/next)
+
+### `dev.plans.verify`
+
+Validate plan lifecycle folder rules
+
+### `dev.plans.index.build`
+
+Refresh AUTO (id=plans-index) blocks in docs/project/* READMEs
+
+### `dev.repo.check`
+
+Validate repo structure/entropy against policy
+
+### `dev.repo.policy.init`
+
+Write default .nexoscli/repo_policy.yaml
+
+### `dev.repo.readmes`
+
+Scaffold missing folder READMEs
+
+### `graph.check`
+
+Validate docs/exec_graph.yaml (acyclic, unique ids)
+
+### `graph.impact`
+
+List nodes impacted (downstream) by the given id
+
+### `demo.hello`
+
+Say hello
 
 ### `workflow.init`
 
@@ -154,64 +242,4 @@ List workflows (visibility index)
 ### `workflow.upsert-sa`
 
 Upsert search attributes for a workflow
-
-### `dev.init`
-
-Initialize .nexoscli/ (Plan/Apply, idempotent)
-
-### `dev.plugin.new`
-
-Scaffold a new plugin and optionally register it
-
-### `dev.plugins.check`
-
-Verify plugin folder structure and registration
-
-### `dev.doctor`
-
-Verify local setup (dotdir, event log write, config, OTEL envs); --ci aggregates checks
-
-### `dev.telemetry.report`
-
-Aggregate events.jsonl → counts, p50/p90/avg, error leaderboard
-
-### `dev.plans.start`
-
-Start a plan: create+start task, update front-matter, move next→current
-
-### `dev.plans.finalize`
-
-Finalize a plan: mark done, end task, bundle, move current→done
-
-### `dev.plans.list`
-
-List plans in docs/project/{next,current,done,archived}
-
-### `dev.plans.status`
-
-Show plan front-matter and derived ids
-
-### `dev.plans.next`
-
-Show the next plan candidate (docs/project/next)
-
-### `dev.repo.check`
-
-Validate repo structure/entropy against policy
-
-### `dev.repo.policy.init`
-
-Write default .nexoscli/repo_policy.yaml
-
-### `dev.repo.readmes`
-
-Scaffold missing folder READMEs
-
-### `graph.check`
-
-Validate docs/exec_graph.yaml (acyclic, unique ids)
-
-### `graph.impact`
-
-List nodes impacted (downstream) by the given id
 

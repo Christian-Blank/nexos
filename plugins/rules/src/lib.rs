@@ -274,10 +274,27 @@ fn parse_frontmatter(p: &Path) -> anyhow::Result<(Option<RuleFront>, String)> {
     if !txt.starts_with("---") {
         return Ok((None, txt));
     }
-    let end = txt[3..].find("\n---").map(|i| i+3).ok_or_else(|| anyhow::anyhow!("unterminated front-matter in {}", p.display()))?;
+    let end = txt[3..].find("\n---").map(|i| i + 3).ok_or_else(|| anyhow::anyhow!("unterminated front-matter in {}", p.display()))?;
     let fm = &txt[3..end];
-    let body = &txt[end+4..];
-    let front: RuleFront = serde_yaml::from_str(fm)?;
+    let body = &txt[end + 4..];
+
+    // First parse as generic YAML to allow filtering non-rule docs (e.g., readme.v0)
+    let yaml: serde_yaml::Value = serde_yaml::from_str(fm)?;
+
+    // Skip files that declare a different schema (like readme.v0) or that don't declare an id
+    if let serde_yaml::Value::Mapping(map) = &yaml {
+        if let Some(schema_val) = map.get(&serde_yaml::Value::String("schema".into())) {
+            if schema_val.as_str() == Some("readme.v0") {
+                return Ok((None, body.to_string()));
+            }
+        }
+        if !map.contains_key(&serde_yaml::Value::String("id".into())) {
+            return Ok((None, body.to_string()));
+        }
+    }
+
+    // Deserialize into our RuleFront schema
+    let front: RuleFront = serde_yaml::from_value(yaml)?;
     Ok((Some(front), body.to_string()))
 }
 

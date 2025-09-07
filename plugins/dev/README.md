@@ -147,6 +147,78 @@ Finalize a plan: record `implemented_in` (HEAD by default), end task + bundle, w
 - Override commit/BUNDLE:
   nexoscli dev plans finalize --implemented-in <SHA> --bundle-out ./my-bundle.tgz --output json
 
+### dev plans pause
+Pause the current plan (moves docs/project/current → docs/project/paused). Optionally record a rationale note in front‑matter.
+
+- Pause singleton in current/:
+  ```
+  nexoscli dev plans pause --output json
+  ```
+- Pause explicit path with rationale:
+  ```
+  nexoscli dev plans pause --plan docs/project/current/PLAN-610_example.md --reason "blocked by upstream" --output json
+  ```
+- Dry‑run (no writes/moves):
+  ```
+  nexoscli dev plans pause --dry-run --output json
+  ```
+
+### dev plans resume
+Resume a paused plan (moves docs/project/paused → docs/project/current). Enforces that current/ is empty, and runs a reconciliation summary using repo and plans checks.
+
+- Resume singleton in paused/:
+  ```
+  nexoscli dev plans resume --output json
+  ```
+- Resume explicit path:
+  ```
+  nexoscli dev plans resume --plan docs/project/paused/PLAN-611_example.md --output json
+  ```
+- Dry‑run:
+  ```
+  nexoscli dev plans resume --dry-run --output json
+  ```
+
+### dev plans archive
+Archive a plan to docs/project/archived (no other mutations except optional rationale note).
+
+- Archive with reason:
+  ```
+  nexoscli dev plans archive --plan docs/project/next/PLAN-620_example.md --reason "obsolete" --output json
+  ```
+- Dry‑run:
+  ```
+  nexoscli dev plans archive --plan docs/project/next/PLAN-620_example.md --dry-run --output json
+  ```
+
+### dev plans dump
+Dump a plan to docs/project/dumped (no other mutations except optional rationale note).
+
+- Dump with reason:
+  ```
+  nexoscli dev plans dump --plan docs/project/next/PLAN-621_example.md --reason "invalid" --output json
+  ```
+- Dry‑run:
+  ```
+  nexoscli dev plans dump --plan docs/project/next/PLAN-621_example.md --dry-run --output json
+  ```
+
+### dev plans requeue
+Requeue a paused plan to docs/project/backlog for reprioritization. Warns on numbered filenames.
+
+- Requeue singleton in paused/:
+  ```
+  nexoscli dev plans requeue --output json
+  ```
+- Requeue explicit path:
+  ```
+  nexoscli dev plans requeue --plan docs/project/paused/PLAN-622_example.md --output json
+  ```
+- Dry‑run:
+  ```
+  nexoscli dev plans requeue --dry-run --output json
+  ```
+
 ### Troubleshooting
 - Active task prevents starting/resuming:
   Error: task 'TASK-…' is active; pause it before starting/resuming another task

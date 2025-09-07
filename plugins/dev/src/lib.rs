@@ -207,6 +207,88 @@ struct PlanFinalizeResult {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanPauseArgs {
+    #[serde(default)]
+    plan: Option<String>,
+    #[serde(default)]
+    reason: Option<String>,
+    #[serde(default)]
+    dry_run: bool,
+}
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanPauseResult {
+    plan: String,
+    moved_to: String,
+    #[serde(default)]
+    rationale: Option<String>,
+    frontmatter: serde_json::Value,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanResumeArgs {
+    #[serde(default)]
+    plan: Option<String>,
+    #[serde(default)]
+    dry_run: bool,
+}
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanResumeResult {
+    plan: String,
+    moved_to: String,
+    current_was_empty: bool,
+    reconciliation: serde_json::Value,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanArchiveArgs {
+    plan: String,
+    #[serde(default)]
+    reason: Option<String>,
+    #[serde(default)]
+    dry_run: bool,
+}
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanArchiveResult {
+    plan: String,
+    moved_to: String,
+    #[serde(default)]
+    rationale: Option<String>,
+    frontmatter: serde_json::Value,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanDumpArgs {
+    plan: String,
+    #[serde(default)]
+    reason: Option<String>,
+    #[serde(default)]
+    dry_run: bool,
+}
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanDumpResult {
+    plan: String,
+    moved_to: String,
+    #[serde(default)]
+    rationale: Option<String>,
+    frontmatter: serde_json::Value,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanRequeueArgs {
+    #[serde(default)]
+    plan: Option<String>,
+    #[serde(default)]
+    dry_run: bool,
+}
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlanRequeueResult {
+    plan: String,
+    moved_to: String,
+    #[serde(default)]
+    warnings: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 struct PlanListArgs {
     #[serde(default)]
     r#where: Option<String>,
@@ -443,6 +525,35 @@ impl Plugin for DevPlugin {
                           .arg(Arg::new("plan").long("plan").required(false).value_name("PATH"))
                           .arg(Arg::new("bundle-out").long("bundle-out").required(false).value_name("PATH"))
                           .arg(Arg::new("implemented-in").long("implemented-in").required(false).value_name("SHA"))
+                          .arg(Arg::new("dry-run").long("dry-run").action(ArgAction::SetTrue))
+                      )
+                      .subcommand(
+                        Command::new("pause").about("Pause current plan: move current→paused")
+                          .arg(Arg::new("plan").long("plan").required(false).value_name("PATH"))
+                          .arg(Arg::new("reason").long("reason").required(false).value_name("TEXT"))
+                          .arg(Arg::new("dry-run").long("dry-run").action(ArgAction::SetTrue))
+                      )
+                      .subcommand(
+                        Command::new("resume").about("Resume a paused plan: move paused→current")
+                          .arg(Arg::new("plan").long("plan").required(false).value_name("PATH"))
+                          .arg(Arg::new("dry-run").long("dry-run").action(ArgAction::SetTrue))
+                      )
+                      .subcommand(
+                        Command::new("archive").about("Archive a plan: move to archived/")
+                          .arg(Arg::new("plan").long("plan").required(true).value_name("PATH"))
+                          .arg(Arg::new("reason").long("reason").required(false).value_name("TEXT"))
+                          .arg(Arg::new("dry-run").long("dry-run").action(ArgAction::SetTrue))
+                      )
+                      .subcommand(
+                        Command::new("dump").about("Dump a plan: move to dumped/")
+                          .arg(Arg::new("plan").long("plan").required(true).value_name("PATH"))
+                          .arg(Arg::new("reason").long("reason").required(false).value_name("TEXT"))
+                          .arg(Arg::new("dry-run").long("dry-run").action(ArgAction::SetTrue))
+                      )
+                      .subcommand(
+                        Command::new("requeue").about("Requeue a paused plan to backlog/")
+                          .arg(Arg::new("plan").long("plan").required(false).value_name("PATH"))
+                          .arg(Arg::new("dry-run").long("dry-run").action(ArgAction::SetTrue))
                       )
                       .subcommand(
                         Command::new("verify").about("Validate plan lifecycle folder rules")
@@ -1689,6 +1800,26 @@ endpoint = ""
                         meta.status = Some("done".into());
                         if !impl_in.is_empty() { meta.implemented_in = Some(impl_in.clone()); }
                         meta.completed_at = Some(now);
+
+                        // Dry-run path: report intended move and metadata without applying changes
+                        let dry = m.get_flag("dry-run");
+                        if dry {
+                            let dst = root.join("docs").join("project").join("done")
+                                .join(plan_path.file_name().unwrap());
+                            // Ensure implemented_in key is present in preview even when git HEAD is unavailable
+                            if meta.implemented_in.is_none() { meta.implemented_in = Some(impl_in.clone()); }
+                            let out = PlanFinalizeResult {
+                                plan: dst.display().to_string(),
+                                moved_to: dst.display().to_string(),
+                                task_id,
+                                implemented_in: impl_in.clone(),
+                                bundle_out,
+                                frontmatter: meta.front_json(),
+                            };
+                            let exit = ctx.ok("dev","plans.finalize.dryrun",&out);
+                            return Ok(exit);
+                        }
+
                         write_plan_meta(&plan_path, &meta)?;
                         let dst = root.join("docs").join("project").join("done")
                             .join(plan_path.file_name().unwrap());
@@ -1703,6 +1834,195 @@ endpoint = ""
                             frontmatter: meta.front_json(),
                         };
                         let exit = ctx.ok("dev","plans.finalize",&out);
+                        Ok(exit)
+                    }
+                    Some(("pause", m)) => {
+                        let root = std::env::current_dir()?;
+                        ensure_project_plan_dirs(&root)?;
+                        let plan_opt = m.get_one::<String>("plan").cloned();
+                        let reason = m.get_one::<String>("reason").cloned();
+                        let plan_path = match plan_opt {
+                            Some(p) => PathBuf::from(p),
+                            None => pick_single_current(&root)?,
+                        };
+                        let mut meta = read_plan_meta(&plan_path)?;
+                        if let Some(r) = &reason {
+                            meta.front.insert(serde_yaml::Value::String("rationale".into()), serde_yaml::Value::String(r.clone()));
+                        }
+                        let dry = m.get_flag("dry-run");
+                        let dst = root.join("docs").join("project").join("paused")
+                            .join(plan_path.file_name().unwrap());
+                        if dry {
+                            let out = PlanPauseResult {
+                                plan: dst.display().to_string(),
+                                moved_to: dst.display().to_string(),
+                                rationale: reason.clone(),
+                                frontmatter: meta.front_json(),
+                            };
+                            let exit = ctx.ok("dev","plans.pause.dryrun",&out);
+                            return Ok(exit);
+                        }
+                        write_plan_meta(&plan_path, &meta)?;
+                        std::fs::rename(&plan_path, &dst)?;
+                        let out = PlanPauseResult {
+                            plan: dst.display().to_string(),
+                            moved_to: dst.display().to_string(),
+                            rationale: reason,
+                            frontmatter: meta.front_json(),
+                        };
+                        let exit = ctx.ok("dev","plans.pause",&out);
+                        Ok(exit)
+                    }
+                    Some(("resume", m)) => {
+                        let root = std::env::current_dir()?;
+                        ensure_project_plan_dirs(&root)?;
+                        // current must be empty
+                        let cur_dir = root.join("docs").join("project").join("current");
+                        let cur_count = std::fs::read_dir(&cur_dir).ok()
+                            .map(|it| it.filter_map(|e| e.ok())
+                                .filter(|e| e.path().extension()==Some(OsStr::new("md")))
+                                .filter(|e| e.file_name().to_string_lossy().to_lowercase().starts_with("plan-"))
+                                .count()).unwrap_or(0);
+                        if cur_count > 0 {
+                            let exit = ctx.err("dev","plans.resume","plans.current.nonempty","current/ not empty; cannot resume", Some("Finalize or pause current plan first"), 2);
+                            return Ok(exit);
+                        }
+                        let plan_opt = m.get_one::<String>("plan").cloned();
+                        let plan_path = match plan_opt {
+                            Some(p) => PathBuf::from(p),
+                            None => pick_single_paused(&root)?,
+                        };
+                        // reconciliation: verify + repo checks
+                        let plans = verify_plans(&root, None)?;
+                        let repo = crate::repo::check_repo(&root, None, false)?;
+                        let recon = serde_json::json!({
+                            "plans_ok": plans.ok,
+                            "plans_summary": plans.summary,
+                            "repo_ok": repo.ok,
+                            "repo_summary": repo.summary,
+                        });
+
+                        let dry = m.get_flag("dry-run");
+                        let dst = root.join("docs").join("project").join("current")
+                            .join(plan_path.file_name().unwrap());
+                        if dry {
+                            let out = PlanResumeResult {
+                                plan: dst.display().to_string(),
+                                moved_to: dst.display().to_string(),
+                                current_was_empty: true,
+                                reconciliation: recon,
+                            };
+                            let exit = ctx.ok("dev","plans.resume.dryrun",&out);
+                            return Ok(exit);
+                        }
+                        std::fs::rename(&plan_path, &dst)?;
+                        let out = PlanResumeResult {
+                            plan: dst.display().to_string(),
+                            moved_to: dst.display().to_string(),
+                            current_was_empty: true,
+                            reconciliation: recon,
+                        };
+                        let exit = ctx.ok("dev","plans.resume",&out);
+                        Ok(exit)
+                    }
+                    Some(("archive", m)) => {
+                        let root = std::env::current_dir()?;
+                        ensure_project_plan_dirs(&root)?;
+                        let plan = PathBuf::from(m.get_one::<String>("plan").unwrap());
+                        let reason = m.get_one::<String>("reason").cloned();
+                        let mut meta = read_plan_meta(&plan)?;
+                        if let Some(r) = &reason {
+                            meta.front.insert(serde_yaml::Value::String("rationale".into()), serde_yaml::Value::String(r.clone()));
+                        }
+                        let dry = m.get_flag("dry-run");
+                        let dst = root.join("docs").join("project").join("archived")
+                            .join(plan.file_name().unwrap());
+                        if dry {
+                            let out = PlanArchiveResult {
+                                plan: dst.display().to_string(),
+                                moved_to: dst.display().to_string(),
+                                rationale: reason.clone(),
+                                frontmatter: meta.front_json(),
+                            };
+                            let exit = ctx.ok("dev","plans.archive.dryrun",&out);
+                            return Ok(exit);
+                        }
+                        write_plan_meta(&plan, &meta)?;
+                        std::fs::rename(&plan, &dst)?;
+                        let out = PlanArchiveResult {
+                            plan: dst.display().to_string(),
+                            moved_to: dst.display().to_string(),
+                            rationale: reason,
+                            frontmatter: meta.front_json(),
+                        };
+                        let exit = ctx.ok("dev","plans.archive",&out);
+                        Ok(exit)
+                    }
+                    Some(("dump", m)) => {
+                        let root = std::env::current_dir()?;
+                        ensure_project_plan_dirs(&root)?;
+                        let plan = PathBuf::from(m.get_one::<String>("plan").unwrap());
+                        let reason = m.get_one::<String>("reason").cloned();
+                        let mut meta = read_plan_meta(&plan)?;
+                        if let Some(r) = &reason {
+                            meta.front.insert(serde_yaml::Value::String("rationale".into()), serde_yaml::Value::String(r.clone()));
+                        }
+                        let dry = m.get_flag("dry-run");
+                        let dst = root.join("docs").join("project").join("dumped")
+                            .join(plan.file_name().unwrap());
+                        if dry {
+                            let out = PlanDumpResult {
+                                plan: dst.display().to_string(),
+                                moved_to: dst.display().to_string(),
+                                rationale: reason.clone(),
+                                frontmatter: meta.front_json(),
+                            };
+                            let exit = ctx.ok("dev","plans.dump.dryrun",&out);
+                            return Ok(exit);
+                        }
+                        write_plan_meta(&plan, &meta)?;
+                        std::fs::rename(&plan, &dst)?;
+                        let out = PlanDumpResult {
+                            plan: dst.display().to_string(),
+                            moved_to: dst.display().to_string(),
+                            rationale: reason,
+                            frontmatter: meta.front_json(),
+                        };
+                        let exit = ctx.ok("dev","plans.dump",&out);
+                        Ok(exit)
+                    }
+                    Some(("requeue", m)) => {
+                        let root = std::env::current_dir()?;
+                        ensure_project_plan_dirs(&root)?;
+                        let plan_opt = m.get_one::<String>("plan").cloned();
+                        let plan = match plan_opt {
+                            Some(p) => PathBuf::from(p),
+                            None => pick_single_paused(&root)?,
+                        };
+                        let fname = plan.file_name().unwrap().to_string_lossy().to_string();
+                        let mut warnings = Vec::new();
+                        if fname.starts_with("PLAN-") {
+                            warnings.push("numbered plan in backlog not recommended".to_string());
+                        }
+                        let dry = m.get_flag("dry-run");
+                        let dst = root.join("docs").join("project").join("backlog")
+                            .join(plan.file_name().unwrap());
+                        if dry {
+                            let out = PlanRequeueResult {
+                                plan: dst.display().to_string(),
+                                moved_to: dst.display().to_string(),
+                                warnings,
+                            };
+                            let exit = ctx.ok("dev","plans.requeue.dryrun",&out);
+                            return Ok(exit);
+                        }
+                        std::fs::rename(&plan, &dst)?;
+                        let out = PlanRequeueResult {
+                            plan: dst.display().to_string(),
+                            moved_to: dst.display().to_string(),
+                            warnings,
+                        };
+                        let exit = ctx.ok("dev","plans.requeue",&out);
                         Ok(exit)
                     }
                     Some(("verify", m)) => {
@@ -1782,6 +2102,41 @@ endpoint = ""
                 about: "Finalize a plan: mark done, end task, bundle, move current→done".to_string(),
                 args_schema: schema_for!(PlanFinalizeArgs),
                 result_schema: schema_for!(PlanFinalizeResult),
+            },
+            // dev.plans.pause
+            ToolSpec {
+                name: "dev.plans.pause".to_string(),
+                about: "Pause current plan: move current→paused".to_string(),
+                args_schema: schema_for!(PlanPauseArgs),
+                result_schema: schema_for!(PlanPauseResult),
+            },
+            // dev.plans.resume
+            ToolSpec {
+                name: "dev.plans.resume".to_string(),
+                about: "Resume a paused plan: move paused→current".to_string(),
+                args_schema: schema_for!(PlanResumeArgs),
+                result_schema: schema_for!(PlanResumeResult),
+            },
+            // dev.plans.archive
+            ToolSpec {
+                name: "dev.plans.archive".to_string(),
+                about: "Archive a plan: move to archived/".to_string(),
+                args_schema: schema_for!(PlanArchiveArgs),
+                result_schema: schema_for!(PlanArchiveResult),
+            },
+            // dev.plans.dump
+            ToolSpec {
+                name: "dev.plans.dump".to_string(),
+                about: "Dump a plan: move to dumped/".to_string(),
+                args_schema: schema_for!(PlanDumpArgs),
+                result_schema: schema_for!(PlanDumpResult),
+            },
+            // dev.plans.requeue
+            ToolSpec {
+                name: "dev.plans.requeue".to_string(),
+                about: "Requeue a paused plan to backlog/".to_string(),
+                args_schema: schema_for!(PlanRequeueArgs),
+                result_schema: schema_for!(PlanRequeueResult),
             },
             // dev.plans.list
             ToolSpec {
@@ -2108,12 +2463,40 @@ struct PlanMeta {
 }
 impl PlanMeta {
     fn front_json(&self) -> serde_json::Value {
-        serde_json::to_value(&self.front.clone()).unwrap_or(serde_json::json!({}))
+        // Merge typed fields into front-matter for an up-to-date preview,
+        // so dry-run envelopes reflect intended mutations.
+        let mut m = self.front.clone();
+        let mut set = |k: &str, v: &Option<String>| {
+            if let Some(val) = v.clone() {
+                m.insert(
+                    serde_yaml::Value::String(k.into()),
+                    serde_yaml::Value::String(val),
+                );
+            }
+        };
+        set("status", &self.status);
+        set("plan_id", &self.plan_id);
+        set("slug", &self.slug);
+        set("task_id", &self.task_id);
+        set("started_at", &self.started_at);
+        set("completed_at", &self.completed_at);
+        set("implemented_in", &self.implemented_in);
+        set("source", &self.source);
+
+        serde_json::to_value(&m).unwrap_or(serde_json::json!({}))
     }
 }
 
 fn ensure_project_plan_dirs(root: &Path) -> anyhow::Result<()> {
-    for d in ["docs/project/next","docs/project/current","docs/project/done","docs/project/archived"] {
+    for d in [
+        "docs/project/next",
+        "docs/project/current",
+        "docs/project/done",
+        "docs/project/archived",
+        "docs/project/backlog",
+        "docs/project/paused",
+        "docs/project/dumped",
+    ] {
         let p = root.join(d);
         std::fs::create_dir_all(&p)?;
     }
@@ -2178,6 +2561,22 @@ fn pick_single_current(root: &Path) -> anyhow::Result<PathBuf> {
         0 => anyhow::bail!("no plan under docs/project/current"),
         1 => Ok(files[0].clone()),
         _ => anyhow::bail!("multiple plans under docs/project/current; pass --plan"),
+    }
+}
+
+fn pick_single_paused(root: &Path) -> anyhow::Result<PathBuf> {
+    let dir = root.join("docs/project/paused");
+    let files: Vec<PathBuf> = std::fs::read_dir(&dir)
+        .unwrap_or_else(|_| fs::read_dir(&dir).unwrap()) // will error anyway if missing
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| p.extension()==Some(OsStr::new("md")))
+        .filter(|p| p.file_name().map(|s| s.to_string_lossy().to_lowercase().starts_with("plan-")).unwrap_or(false))
+        .collect();
+    match files.len() {
+        0 => anyhow::bail!("no plan under docs/project/paused"),
+        1 => Ok(files[0].clone()),
+        _ => anyhow::bail!("multiple plans under docs/project/paused; pass --plan"),
     }
 }
 
