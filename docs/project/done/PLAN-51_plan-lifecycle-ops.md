@@ -1,10 +1,12 @@
 ---
-status: in-progress
+status: done
 plan_id: '51'
 slug: plan-lifecycle-ops
 task_id: TASK-20250907-plan-51-plan-lifecycle-ops-api-transactional-moves-and-front-matter-updates
 started_at: 2025-09-07T09:43:55.783987Z
 source: next
+completed_at: 2025-09-07T09:58:18.261348Z
+implemented_in: 1b2483f
 ---
 # PLAN-51 — Plan Lifecycle Ops/API: transactional moves and front‑matter updates
 
