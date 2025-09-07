@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 plan_id: '52'
 slug: analysis-entryspec-and-templates
 owner: '@docs/dri'
@@ -15,6 +15,8 @@ risk: low
 value: high
 task_id: TASK-20250907-plan-52-analysis-entryspec-templates-v0
 started_at: 2025-09-07T12:04:07.996537Z
+completed_at: 2025-09-07T12:19:27.947826Z
+implemented_in: aa1c308
 ---
 # Plan 52 — Analysis EntrySpec & Templates (v0)
 

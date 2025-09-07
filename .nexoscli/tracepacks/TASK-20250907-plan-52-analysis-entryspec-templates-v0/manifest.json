@@ -1,0 +1,20 @@
+{
+  "cline_tasks": [],
+  "counts": {
+    "cline": 0,
+    "events_lines": 36,
+    "patches": 0,
+    "status": 0
+  },
+  "created_at": "2025-09-07T12:19:27.930454Z",
+  "kind": "tracepack.task",
+  "patches": [],
+  "session_id": "SES-9487c2912c05",
+  "status_files": [],
+  "task_id": "TASK-20250907-plan-52-analysis-entryspec-templates-v0",
+  "time_range": {
+    "from": "2025-09-07T12:04:07.995722Z",
+    "to": "2025-09-07T12:19:27.779046Z"
+  },
+  "version": "0.1"
+}
