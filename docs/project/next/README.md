@@ -88,5 +88,5 @@ Provide a deterministic queue of plans to start next, respecting dependencies an
 ## Plans Index
 
 <!-- BEGIN: AUTO (id=plans-index) -->
-- TBD
+_No plan files currently listed in this folder._
 <!-- END: AUTO -->
