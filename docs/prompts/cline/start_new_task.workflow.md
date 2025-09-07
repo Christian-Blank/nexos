@@ -10,6 +10,25 @@ Output: one implementation commit (divider happens in the Finalize workflow).
 
 - First read this workflow and all referenced workflow, and create a checklist for all required steps in sequence of the full workflow. As you execute each step make sure to check off each step in the checklist after you sucessfully executed it. If helpful add clear triggers or information to your checklist for each step when they are finished and should be checked off, to not forget to check off each step one by one. 
 
+Important: DO NOT USE 'set -euo pipefail', the terminal will crash. Executes command step by step or in a single chain! Example that will fail (DO NOT DO THAT):
+
+```bash
+set -euo pipefail
+
+echo "== Commit moved plan file (mark as done with divider=4f9e445) =="
+git add --all
+git commit -m "chore(plans): mark PLAN-53 plugin-blueprint-and-refactor-v1 as done (divider=4f9e445)" || true
+git push
+
+echo "== Refresh plans indexes (optional per workflow) =="
+cargo run -p nexoscli -- dev plans index build --output json || true
+
+echo "== Commit refreshed indexes if any touched =="
+git add --all
+git commit -m "docs(project): refresh plans indexes (PLAN-53)" || true
+git push
+```
+
 - Prepare worktree (This enables parallel work in the same git repository on the same machine. [Official documentation for trouble shooting or deeper understanding of worktrees if required](https://git-scm.com/docs/git-worktree))
   * Check that repo is on main and is up to date 'git checkout main && git pull'
   * Set `git config --global push.autoSetupRemote true`

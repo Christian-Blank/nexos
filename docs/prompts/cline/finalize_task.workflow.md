@@ -5,6 +5,7 @@ Input: the single plan in docs/project/current/PLAN-*.md.
 
 ---
 
+
 ## 0) Pre‑flight
 
 Read the implementation plan and context, and review the implementation. Note or point out without judging or qualifying:
@@ -12,6 +13,25 @@ Read the implementation plan and context, and review the implementation. Note or
 * Any drift between plan and implementation and possible reasons if any
 * Possible corner cases or risks if any
 * Any observations, frictions, suggestions, ... useful for continuous improvement in code, methodology, process, or documentation.
+
+Important: DO NOT USE 'set -euo pipefail' at any point or time, the terminal will crash. Executes command step by step or in a single chain! Example that will fail (DO NOT DO THAT):
+
+```bash
+set -euo pipefail
+
+echo "== Commit moved plan file (mark as done with divider=4f9e445) =="
+git add --all
+git commit -m "chore(plans): mark PLAN-53 plugin-blueprint-and-refactor-v1 as done (divider=4f9e445)" || true
+git push
+
+echo "== Refresh plans indexes (optional per workflow) =="
+cargo run -p nexoscli -- dev plans index build --output json || true
+
+echo "== Commit refreshed indexes if any touched =="
+git add --all
+git commit -m "docs(project): refresh plans indexes (PLAN-53)" || true
+git push
+```
 
 ---
 
