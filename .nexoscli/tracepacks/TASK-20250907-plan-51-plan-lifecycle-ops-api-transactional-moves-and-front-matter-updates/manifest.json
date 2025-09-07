@@ -1,0 +1,20 @@
+{
+  "cline_tasks": [],
+  "counts": {
+    "cline": 0,
+    "events_lines": 18,
+    "patches": 0,
+    "status": 0
+  },
+  "created_at": "2025-09-07T09:58:18.243187Z",
+  "kind": "tracepack.task",
+  "patches": [],
+  "session_id": "SES-02bfb22bb564",
+  "status_files": [],
+  "task_id": "TASK-20250907-plan-51-plan-lifecycle-ops-api-transactional-moves-and-front-matter-updates",
+  "time_range": {
+    "from": "2025-09-07T09:43:55.783227Z",
+    "to": "2025-09-07T09:58:18.096088Z"
+  },
+  "version": "0.1"
+}
