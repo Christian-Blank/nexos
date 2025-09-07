@@ -1,3 +1,11 @@
+---
+status: in-progress
+plan_id: '51'
+slug: plan-lifecycle-ops
+task_id: TASK-20250907-plan-51-plan-lifecycle-ops-api-transactional-moves-and-front-matter-updates
+started_at: 2025-09-07T09:43:55.783987Z
+source: next
+---
 # PLAN-51 — Plan Lifecycle Ops/API: transactional moves and front‑matter updates
 
 Define and implement deterministic, auditable CLI operations for moving plans across lifecycle stages (start, pause, resume, finalize, archive, dump, requeue), including front‑matter updates (e.g., `implemented_in`), safety preconditions, dry‑run, and transactional behaviors. Elevate lifecycle to an explicit API with envelopes, not ad‑hoc file moves.

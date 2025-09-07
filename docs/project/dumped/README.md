@@ -78,5 +78,5 @@ Reduce cognitive overhead by pruning non‑essential plans while retaining histo
 ## Plans Index
 
 <!-- BEGIN: AUTO (id=plans-index) -->
-_No plan files currently listed in this folder._
+- [PLAN-49_scratchpad.md](./PLAN-49_scratchpad.md)
 <!-- END: AUTO -->

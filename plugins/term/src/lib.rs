@@ -82,6 +82,8 @@ impl Plugin for TermPlugin {
                 let mut fs_handle: Option<FsTopicHandle> = None;
                 if fs_topic {
                     fs_handle = Some(fs_topic_start(FsTopicCfg{ roots, excludes, hash: do_hash })?);
+                    // allow watcher to arm before running the command (notify readiness)
+                    thread::sleep(Duration::from_millis(100));
                 }
 
                 // Shell for portability
@@ -109,6 +111,8 @@ impl Plugin for TermPlugin {
 
                 // Stop watcher and emit fs.topic event if enabled
                 if let Some(h) = fs_handle {
+                    // allow any in-flight events to flush before stopping (notify delivery can be delayed)
+                    thread::sleep(Duration::from_millis(200));
                     let (path, lines, bytes, sha, from_ts, to_ts) = fs_topic_stop(h)?;
                     let _ = ctx.events.write(
                         "term",

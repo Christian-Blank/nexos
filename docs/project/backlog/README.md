@@ -81,5 +81,6 @@ Provide a staging area for ideation and refinement before formalizing into numbe
 ## Backlog Index
 
 <!-- BEGIN: AUTO (id=plans-index) -->
-- [v0_replay_assesment.md](./v0_replay_assesment.md)
+- [README.md](./README.md)
+- [v0_manual_test_plan.md](./v0_manual_test_plan.md)
 <!-- END: AUTO -->
