@@ -1,15 +1,21 @@
 ---
-status: proposed
-plan_id: "52"
-slug: "analysis-entryspec-and-templates"
-owner: "@docs/dri"
-labels: ["docs","analysis","templates","agents","readme-graph"]
-created_at: "2025-09-07T00:00:00Z"
-source: "next"
-risk: "low"
-value: "high"
+status: in-progress
+plan_id: '52'
+slug: analysis-entryspec-and-templates
+owner: '@docs/dri'
+labels:
+- docs
+- analysis
+- templates
+- agents
+- readme-graph
+created_at: 2025-09-07T00:00:00Z
+source: next
+risk: low
+value: high
+task_id: TASK-20250907-plan-52-analysis-entryspec-templates-v0
+started_at: 2025-09-07T12:04:07.996537Z
 ---
-
 # Plan 52 — Analysis EntrySpec & Templates (v0)
 
 ## 1) Problem / Why
@@ -102,6 +108,7 @@ Use **ENTRY.md** to drive a deterministic analysis. Typical outputs:
 1. Copy `_templates` → `./<yyyy-mm>_<slug>/`  
 2. Rename `ENTRY.template.md` → `ENTRY.md` and fill front‑matter  
 3. Run the Cline workflow: see `docs/prompts/cline/execute_entry.workflow.md`
+```
 
 A.2 docs/analysis/_templates/README.md
 
@@ -261,7 +268,7 @@ children: []
 flowchart TD
   A[Context A] -->|Uses| B[Context B]
   B --> C[Context C]
-
+```
 Sources of Truth Matrix
 
 Area	SSoT path(s)	Notes
@@ -293,6 +300,7 @@ children: []
 
 ## Quick Wins
 - …
+```
 
 A.4.5 docs/analysis/_templates/04-findings-gaps-recos.template.md
 

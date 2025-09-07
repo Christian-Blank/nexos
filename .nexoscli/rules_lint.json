@@ -1,0 +1,19 @@
+{
+  "errors": [
+    {
+      "code": "rules.lint.failed",
+      "message": "rules lint issues"
+    }
+  ],
+  "meta": {
+    "run_id": "48416840-eec2-4e61-a32d-eec4df0fb344",
+    "plugin": "rules",
+    "command": "lint",
+    "duration_ms": 1,
+    "context": {
+      "session_id": "SES-9487c2912c05",
+      "stage": "planning",
+      "task_id": "TASK-20250907-plan-52-analysis-entryspec-templates-v0"
+    }
+  }
+}
