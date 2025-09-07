@@ -88,5 +88,5 @@ Provide a deterministic queue of plans to start next, respecting dependencies an
 ## Plans Index
 
 <!-- BEGIN: AUTO (id=plans-index) -->
-- [PLAN-50_plan-lifecycle-cli.md](./PLAN-50_plan-lifecycle-cli.md)
+- TBD
 <!-- END: AUTO -->
