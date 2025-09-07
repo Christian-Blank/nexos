@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20250907-plan-53-cli-modularization-discoverability",
+  "title": "PLAN‑53 — CLI modularization & discoverability",
+  "stage": "planning",
+  "status": "active",
+  "created_at": "2025-09-07T12:52:34.024572Z",
+  "started_at": "2025-09-07T12:52:34.031309Z",
+  "ended_at": null,
+  "sessions": [
+    {
+      "id": "SES-5dea17a1a548",
+      "start": "2025-09-07T12:52:34.031338Z",
+      "end": null
+    }
+  ],
+  "notes": []
+}

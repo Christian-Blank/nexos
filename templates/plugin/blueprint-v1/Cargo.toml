@@ -1,0 +1,14 @@
+[package]
+name = "{{crate_name}}"
+version = "0.1.0"
+edition = "2021"
+description = "{{desc}}"
+
+[dependencies]
+nexoscli-core = { path = "../../nexoscli-core" }
+anyhow = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+schemars = { workspace = true }
+clap = { workspace = true }
+time = { workspace = true }
