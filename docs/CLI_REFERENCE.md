@@ -13,16 +13,16 @@ Commands:
   tools        Tools & schemas
   completions  Generate shell completions
   man          Print man page to stdout
-  dev          Developer utilities
-  demo         Demo plugin
-  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
-  term         Run commands with provenance (non-interactive)
-  rules        Rules management (init/lint/export)
-  issue        Issue management
   bundle       TracePack bundles
-  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
+  demo         Demo plugin
+  term         Run commands with provenance (non-interactive)
   replay       Replay/extract TracePacks from logged runs
+  issue        Issue management
+  dev          Developer utilities
+  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
   graph        Graph tools
+  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
+  rules        Rules management (init/lint/export)
   cline        Cline task history (locate/import) with idempotent ingest
   help         Print this message or the help of the given subcommand(s)
 
@@ -34,6 +34,46 @@ Options:
 ```
 
 ## Tool Specs (for agents)
+
+### `bundle.build`
+
+Build a TracePack bundle
+
+### `bundle.verify`
+
+Verify a TracePack bundle
+
+### `rules.lint`
+
+Validate rules front-matter
+
+### `rules.export`
+
+Export rules bundle
+
+### `cline.locate`
+
+Find Cline storage locations
+
+### `cline.import`
+
+Import Cline task history with idempotent ingest
+
+### `cline.correlate`
+
+Correlate Cline tasks to runs by time
+
+### `graph.check`
+
+Validate docs/exec_graph.yaml (acyclic, unique ids)
+
+### `graph.impact`
+
+List nodes impacted (downstream) by the given id
+
+### `demo.hello`
+
+Say hello
 
 ### `workflow.init`
 
@@ -71,13 +111,41 @@ List workflows (visibility index)
 
 Upsert search attributes for a workflow
 
-### `graph.check`
+### `replay.bag.verify`
 
-Validate docs/exec_graph.yaml (acyclic, unique ids)
+Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
 
-### `graph.impact`
+### `replay.verify`
 
-List nodes impacted (downstream) by the given id
+Verify a TracePack (dir or .tgz) and explain findings
+
+### `replay.normalize`
+
+Normalize events to v0.3 (from bag or events file)
+
+### `replay.schema.events`
+
+JSON Schema for events v0.3
+
+### `replay.schema.list`
+
+List available schemas
+
+### `replay.schema.get`
+
+Get schema JSON
+
+### `replay.validate`
+
+Validate bag artifacts (events/fileops) against schemas
+
+### `replay.fileops.derive`
+
+Derive fileops.ndjson from a bag's patches
+
+### `replay.export`
+
+Export bag artifacts to CSV
 
 ### `dev.init`
 
@@ -159,46 +227,6 @@ Write default .nexoscli/repo_policy.yaml
 
 Scaffold missing folder READMEs
 
-### `demo.hello`
-
-Say hello
-
-### `replay.bag.verify`
-
-Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
-
-### `replay.verify`
-
-Verify a TracePack (dir or .tgz) and explain findings
-
-### `replay.normalize`
-
-Normalize events to v0.3 (from bag or events file)
-
-### `replay.schema.events`
-
-JSON Schema for events v0.3
-
-### `replay.schema.list`
-
-List available schemas
-
-### `replay.schema.get`
-
-Get schema JSON
-
-### `replay.validate`
-
-Validate bag artifacts (events/fileops) against schemas
-
-### `replay.fileops.derive`
-
-Derive fileops.ndjson from a bag's patches
-
-### `replay.export`
-
-Export bag artifacts to CSV
-
 ### `issue.new`
 
 Create a new local issue
@@ -214,32 +242,4 @@ Show a single issue by ID
 ### `issue.close`
 
 Close an issue by ID
-
-### `rules.lint`
-
-Validate rules front-matter
-
-### `rules.export`
-
-Export rules bundle
-
-### `bundle.build`
-
-Build a TracePack bundle
-
-### `bundle.verify`
-
-Verify a TracePack bundle
-
-### `cline.locate`
-
-Find Cline storage locations
-
-### `cline.import`
-
-Import Cline task history with idempotent ingest
-
-### `cline.correlate`
-
-Correlate Cline tasks to runs by time
 

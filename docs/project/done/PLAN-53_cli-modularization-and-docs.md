@@ -1,7 +1,7 @@
 ---
 plan_id: '53'
 slug: cli-modularization-and-docs
-status: in-progress
+status: done
 owner: '@cli/dri'
 labels:
 - cli
@@ -15,6 +15,8 @@ risk: low
 value: high
 task_id: TASK-20250907-plan-53-cli-modularization-discoverability
 started_at: 2025-09-07T12:52:34.03258Z
+completed_at: 2025-09-07T15:27:12.515197Z
+implemented_in: 4f9e445
 ---
 # PLAN‑53 — CLI modularization & discoverability
 
