@@ -240,6 +240,55 @@ struct PlanStatusResult {
     status: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlansVerifyArgs {
+    #[serde(default)]
+    path: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlansVerifyItem {
+    name: String,
+    ok: bool,
+    errors: Vec<String>,
+    warnings: Vec<String>,
+    #[serde(default)]
+    touched: Vec<String>,
+    #[serde(default)]
+    count: Option<u64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlansVerifyResult {
+    ok: bool,
+    summary: String,
+    items: Vec<PlansVerifyItem>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlansIndexArgs {
+    #[serde(default)]
+    path: Option<String>,
+    #[serde(default)]
+    dry_run: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlansIndexResult {
+    ok: bool,
+    touched: Vec<String>,
+    #[serde(default)]
+    warnings: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+struct PlansIndexBuildArgs {
+    #[serde(default)]
+    path: Option<String>,
+    #[serde(default)]
+    dry_run: bool,
+}
+
 // ---------- Dev plugin ----------
 pub struct DevPlugin;
 impl DevPlugin { pub fn new() -> Self { Self } }
@@ -334,7 +383,7 @@ impl Plugin for DevPlugin {
                              .help("Aggregate repo checks and exit non-zero on failure"))
                         .arg(Arg::new("profile").long("profile").value_parser(["v0"]).help("Preselect checks and required gates; v0 = stable CI defaults"))
                         .arg(Arg::new("checks").long("checks").value_name("CSV")
-                             .help("Subset of checks: graph,plugins,config,events,tools,events-schema,events-chain,events-rotation,cline,rules (default: all)"))
+                             .help("Subset of checks: graph,plugins,config,events,tools,events-schema,events-chain,events-rotation,repo,plans,cline,rules (default: all)"))
                 )
                 // dev telemetry
                 .subcommand(
@@ -394,6 +443,18 @@ impl Plugin for DevPlugin {
                           .arg(Arg::new("plan").long("plan").required(false).value_name("PATH"))
                           .arg(Arg::new("bundle-out").long("bundle-out").required(false).value_name("PATH"))
                           .arg(Arg::new("implemented-in").long("implemented-in").required(false).value_name("SHA"))
+                      )
+                      .subcommand(
+                        Command::new("verify").about("Validate plan lifecycle folder rules")
+                          .arg(Arg::new("path").long("path").required(false).value_name("DIR"))
+                      )
+                      .subcommand(
+                        Command::new("index").about("Indexes for plan READMEs")
+                          .subcommand(
+                            Command::new("build").about("Refresh AUTO (id=plans-index) blocks in docs/project/* READMEs")
+                              .arg(Arg::new("path").long("path").required(false).value_name("DIR"))
+                              .arg(Arg::new("dry-run").long("dry-run").action(ArgAction::SetTrue))
+                          )
                       )
                 )
         )
@@ -1022,6 +1083,34 @@ endpoint = ""
                         });
                     }
 
+                    // plans (plan lifecycle invariants)
+                    if want.contains("plans") {
+                        let res = verify_plans(&cwd, None)?;
+                        let order = ["current","next","done","backlog","archived","paused","dumped"];
+                        let mut parts: Vec<String> = Vec::new();
+                        for name in order {
+                            if let Some(it) = res.items.iter().find(|x| x.name == name) {
+                                if let Some(c) = it.count { parts.push(format!("{}={}", name, c)); }
+                            }
+                        }
+                        let mut detail = if parts.is_empty() { String::new() } else { format!("counts: {}", parts.join(" ")) };
+                        if !res.ok {
+                            let mut viols: Vec<String> = Vec::new();
+                            for it in &res.items {
+                                for e in &it.errors { viols.push(format!("{}: {}", it.name, e)); }
+                            }
+                            let head = viols.into_iter().take(3).collect::<Vec<_>>().join(" | ");
+                            if detail.is_empty() { detail = format!("violations: {}", head); } else { detail = format!("{}; violations: {}", detail, head); }
+                        }
+                        checks.push(DoctorCiCheck {
+                            name: "plans".into(),
+                            ok: res.ok,
+                            detail: if detail.is_empty() { "plans OK".into() } else { detail },
+                            severity: if res.ok { "info".into() } else { "error".into() },
+                            fix: Some("Run `nexoscli dev plans verify` and fix invariants; refresh indexes with `nexoscli dev plans index build`".into()),
+                        });
+                    }
+
                     // cline (informational unless required)
                     if want.contains("cline") {
                         let mut ok = true;
@@ -1097,6 +1186,12 @@ endpoint = ""
                     }
                     if m.get_one::<String>("profile").map(|s| s == "v0").unwrap_or(false) {
                         required.insert("event_log_writable".into());
+                    }
+                    // If --checks explicitly provided and non-empty, treat selected as required
+                    let checks_explicit = m.value_source("checks") == Some(ValueSource::CommandLine)
+                        && m.get_one::<String>("checks").map(|s| !s.trim().is_empty()).unwrap_or(false);
+                    if checks_explicit {
+                        for k in &want { required.insert(k.clone()); }
                     }
 
                     // Graph and plugins are critical by default
@@ -1610,6 +1705,25 @@ endpoint = ""
                         let exit = ctx.ok("dev","plans.finalize",&out);
                         Ok(exit)
                     }
+                    Some(("verify", m)) => {
+                        let root = std::env::current_dir()?;
+                        let base = m.get_one::<String>("path").map(|s| PathBuf::from(s));
+                        let res = verify_plans(&root, base.as_deref())?;
+                        let exit = ctx.ok("dev","plans.verify",&res);
+                        Ok(exit)
+                    }
+                    Some(("index", im)) => {
+                        if let Some(("build", bm)) = im.subcommand() {
+                            let root = std::env::current_dir()?;
+                            let base = bm.get_one::<String>("path").map(|s| PathBuf::from(s));
+                            let dry = bm.get_flag("dry-run");
+                            let res = index_build(&root, base.as_deref(), dry)?;
+                            let exit = ctx.ok("dev","plans.index.build",&res);
+                            Ok(exit)
+                        } else {
+                            Ok(2)
+                        }
+                    }
                     _ => Ok(2)
                 }
             }
@@ -1689,6 +1803,20 @@ endpoint = ""
                 about: "Show the next plan candidate (docs/project/next)".to_string(),
                 args_schema: schema_for!(serde_json::Value),
                 result_schema: schema_for!(serde_json::Value),
+            },
+            // dev.plans.verify
+            ToolSpec {
+                name: "dev.plans.verify".to_string(),
+                about: "Validate plan lifecycle folder rules".to_string(),
+                args_schema: schema_for!(PlansVerifyArgs),
+                result_schema: schema_for!(PlansVerifyResult),
+            },
+            // dev.plans.index.build
+            ToolSpec {
+                name: "dev.plans.index.build".to_string(),
+                about: "Refresh AUTO (id=plans-index) blocks in docs/project/* READMEs".to_string(),
+                args_schema: schema_for!(PlansIndexBuildArgs),
+                result_schema: schema_for!(PlansIndexResult),
             },
             // repo checks
             ToolSpec {
@@ -2305,4 +2433,231 @@ fn run_cli_text(cwd: &Path, args: &[&str]) -> anyhow::Result<(i32, String)> {
     let out = Proc::new(exe).current_dir(cwd).args(args).output()?;
     let code = out.status.code().unwrap_or(-1);
     Ok((code, String::from_utf8_lossy(&out.stdout).to_string()))
+}
+
+// ===== plans verify & index helpers (PLAN-50) =====
+
+fn verify_plans(root: &Path, base: Option<&Path>) -> anyhow::Result<PlansVerifyResult> {
+    let project = base.map(|b| root.join(b)).unwrap_or_else(|| root.join("docs/project"));
+    let mut items = Vec::<PlansVerifyItem>::new();
+    let mut all_ok = true;
+
+    // current
+    {
+        let dir = project.join("current");
+        let mut i = PlansVerifyItem { name: "current".into(), ok: true, errors: vec![], warnings: vec![], touched: vec![], count: None };
+        if dir.exists() {
+            let files: Vec<_> = std::fs::read_dir(&dir)?
+                .filter_map(|e| e.ok())
+                .map(|e| e.path())
+                .filter(|p| p.extension()==Some(OsStr::new("md")))
+                .filter(|p| p.file_name().map(|s| s.to_string_lossy().to_lowercase().starts_with("plan-")).unwrap_or(false))
+                .collect();
+            i.count = Some(files.len() as u64);
+            if files.len() != 1 {
+                i.ok = false;
+                i.errors.push(format!("expected exactly 1 plan, found {}", files.len()));
+            }
+        } else {
+            i.ok = false;
+            i.errors.push("folder missing".into());
+        }
+        all_ok &= i.ok;
+        items.push(i);
+    }
+
+    // next
+    {
+        let dir = project.join("next");
+        let mut i = PlansVerifyItem { name: "next".into(), ok: true, errors: vec![], warnings: vec![], touched: vec![], count: None };
+        if dir.exists() {
+            let mut ids = std::collections::HashMap::<String, Vec<String>>::new();
+            let mut total: u64 = 0;
+            for e in std::fs::read_dir(&dir)? {
+                let p = e?.path();
+                if p.extension()!=Some(OsStr::new("md")) { continue; }
+                let fname = p.file_name().unwrap().to_string_lossy().to_string();
+                if !fname.to_lowercase().starts_with("plan-") { continue; }
+                total += 1;
+                if fname.starts_with("plan-") {
+                    i.warnings.push(format!("legacy lowercase name: {}", fname));
+                }
+                let (pid, _slug) = derive_id_slug(&p);
+                if let Some(id) = pid {
+                    ids.entry(id).or_default().push(fname);
+                }
+            }
+            i.count = Some(total);
+            for (id, files) in ids {
+                if files.len() > 1 {
+                    i.ok = false;
+                    i.errors.push(format!("duplicate plan_id {} in next/: {}", id, files.join(", ")));
+                }
+            }
+        }
+        all_ok &= i.ok;
+        items.push(i);
+    }
+
+    // done (warn-only immutability check placeholder)
+    {
+        let dir = project.join("done");
+        let mut i = PlansVerifyItem { name: "done".into(), ok: true, errors: vec![], warnings: vec![], touched: vec![], count: None };
+        if dir.exists() {
+            let cnt = std::fs::read_dir(&dir)?.filter_map(|e| e.ok()).filter(|e| e.path().extension()==Some(OsStr::new("md"))).count();
+            i.count = Some(cnt as u64);
+        }
+        items.push(i);
+    }
+
+    // backlog (warn on numbered)
+    {
+        let dir = project.join("backlog");
+        let mut i = PlansVerifyItem { name: "backlog".into(), ok: true, errors: vec![], warnings: vec![], touched: vec![], count: None };
+        if dir.exists() {
+            let mut total: u64 = 0;
+            for e in std::fs::read_dir(&dir)? {
+                let p = e?.path();
+                if p.extension()!=Some(OsStr::new("md")) { continue; }
+                total += 1;
+                let fname = p.file_name().unwrap().to_string_lossy().to_string();
+                if fname.starts_with("PLAN-") {
+                    i.warnings.push(format!("numbered plan in backlog: {}", fname));
+                }
+            }
+            i.count = Some(total);
+        }
+        items.push(i);
+    }
+
+    // archived, paused, dumped (informational)
+    for name in ["archived","paused","dumped"] {
+        let dir = project.join(name);
+        let cnt = if dir.exists() {
+            std::fs::read_dir(&dir)?.filter_map(|e| e.ok()).filter(|e| e.path().extension()==Some(OsStr::new("md"))).count()
+        } else { 0 };
+        items.push(PlansVerifyItem {
+            name: name.into(),
+            ok: true,
+            errors: vec![],
+            warnings: vec![],
+            touched: vec![],
+            count: Some(cnt as u64),
+        });
+    }
+
+    let summary = if all_ok { "plans OK".into() } else { "plans violations present".into() };
+    Ok(PlansVerifyResult { ok: all_ok, summary, items })
+}
+
+fn index_build(root: &Path, base: Option<&Path>, dry: bool) -> anyhow::Result<PlansIndexResult> {
+    let project = base.map(|b| root.join(b)).unwrap_or_else(|| root.join("docs/project"));
+    let mut touched = Vec::<String>::new();
+    let mut warnings = Vec::<String>::new();
+
+    let folders = ["next","current","done","backlog","archived","paused","dumped"];
+    for name in folders {
+        let folder = project.join(name);
+        let readme = folder.join("README.md");
+        if !readme.exists() {
+            warnings.push(format!("missing README for {}", name));
+            continue;
+        }
+        let links = render_index_for_folder(&folder, name)?;
+        let changed = update_auto_block(&readme, "plans-index", &links, dry)?;
+        if changed {
+            touched.push(readme.display().to_string());
+        }
+    }
+
+    Ok(PlansIndexResult { ok: true, touched, warnings })
+}
+
+fn render_index_for_folder(folder: &Path, name: &str) -> anyhow::Result<String> {
+    let mut entries: Vec<(String,String)> = Vec::new(); // (display, link)
+    if !folder.exists() {
+        return Ok("_No plan files currently listed in this folder._".into());
+    }
+    let mut files: Vec<_> = std::fs::read_dir(folder)?
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| p.extension()==Some(OsStr::new("md")))
+        .collect();
+    files.sort();
+
+    match name {
+        "next" => {
+            for p in files {
+                let fname = p.file_name().unwrap().to_string_lossy().to_string();
+                if !fname.to_lowercase().starts_with("plan-") { continue; }
+                entries.push((fname.clone(), format!("./{}", fname)));
+            }
+        }
+        "current" => {
+            for p in files {
+                let fname = p.file_name().unwrap().to_string_lossy().to_string();
+                if !fname.to_lowercase().starts_with("plan-") { continue; }
+                entries.push((fname.clone(), format!("./{}", fname)));
+            }
+        }
+        "done" => {
+            for p in files {
+                let fname = p.file_name().unwrap().to_string_lossy().to_string();
+                if !fname.to_lowercase().starts_with("plan-") { continue; }
+                entries.push((fname.clone(), format!("./{}", fname)));
+            }
+        }
+        "backlog" => {
+            for p in files {
+                let fname = p.file_name().unwrap().to_string_lossy().to_string();
+                if fname.starts_with("PLAN-") { continue; }
+                // list plan-like docs (non-numbered)
+                entries.push((fname.clone(), format!("./{}", fname)));
+            }
+        }
+        _ => {
+            for p in files {
+                let fname = p.file_name().unwrap().to_string_lossy().to_string();
+                if !fname.to_lowercase().starts_with("plan-") { continue; }
+                entries.push((fname.clone(), format!("./{}", fname)));
+            }
+        }
+    }
+
+    if entries.is_empty() {
+        Ok("_No plan files currently listed in this folder._".into())
+    } else {
+        let mut out = String::new();
+        for (disp, link) in entries {
+            out.push_str(&format!("- [{}]({})\n", disp, link));
+        }
+        Ok(out.trim_end().to_string())
+    }
+}
+
+fn update_auto_block(readme: &Path, id: &str, body: &str, dry: bool) -> anyhow::Result<bool> {
+    let txt = std::fs::read_to_string(readme)?;
+    let begin = format!("<!-- BEGIN: AUTO (id={}) -->", id);
+    let end = "<!-- END: AUTO -->";
+    let (start_idx, end_idx) = match (txt.find(&begin), txt.find(end)) {
+        (Some(s), Some(e)) if e > s => (s, e),
+        _ => return Ok(false), // no block; do not modify
+    };
+    // find end of begin line
+    let after_begin = start_idx + begin.len();
+    let before_end = end_idx;
+    let mut new_txt = String::new();
+    new_txt.push_str(&txt[..after_begin]);
+    new_txt.push('\n');
+    new_txt.push_str(body);
+    new_txt.push('\n');
+    new_txt.push_str(&txt[before_end..]);
+
+    if new_txt == txt {
+        return Ok(false);
+    }
+    if !dry {
+        std::fs::write(readme, new_txt.as_bytes())?;
+    }
+    Ok(true)
 }

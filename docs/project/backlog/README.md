@@ -65,6 +65,13 @@ Provide a staging area for ideation and refinement before formalizing into numbe
   ```
   nexoscli dev repo check --fix-readmes --output json
   ```
+- Plan lifecycle hygiene (Plan 50):
+  ```
+  nexoscli dev plans verify --output json
+  nexoscli dev plans index build --output json
+  nexoscli dev doctor --ci --checks plans --output json
+  ```
+  Note: backlog is advisory; the plans check reports warnings if numbered PLAN-* appears here.
 
 ## Interfaces
 

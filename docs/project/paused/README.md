@@ -72,6 +72,13 @@ Provide a clear holding area for in‑flight work that must temporarily stop whi
   ```
   nexoscli dev doctor --ci --checks repo --output json
   ```
+- Plan lifecycle hygiene (Plan 50, informational here):
+  ```
+  nexoscli dev plans verify --output json
+  nexoscli dev plans index build --output json
+  nexoscli dev doctor --ci --checks plans --output json
+  ```
+  Note: paused is advisory; the plans check includes this folder in counts but does not enforce gates here.
 
 ## Interfaces
 

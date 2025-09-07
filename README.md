@@ -175,6 +175,14 @@ cargo build --workspace
 ./target/debug/nexoscli task bundle --task TASK-* --out ./bundle.tgz
 ```
 
+### Plan Lifecycle Hygiene (Plan 50)
+
+```bash
+./target/debug/nexoscli dev plans verify --output json
+./target/debug/nexoscli dev plans index build --output json
+./target/debug/nexoscli dev doctor --ci --checks plans --output json
+```
+
 ## The Vision: Emergence Through Observation
 
 We're not building another CLI tool. We're exploring what happens when:

@@ -36,6 +36,9 @@ The dev plugin provides repository health tools, documentation generators, telem
 - Repo checks: `nexoscli dev plugins check`
 - Generate docs: `nexoscli dev docs build`
 - Telemetry report: `nexoscli dev telemetry report`
+- Plans verify: `nexoscli dev plans verify`
+- Plans index build: `nexoscli dev plans index build` (use `--dry-run` to preview; idempotent)
+- Doctor plans check: `nexoscli dev doctor --ci --checks plans`
 - Plan Lifecycle:
   - `nexoscli dev plans list|next|status`
   - `nexoscli dev plans start` (creates+starts task, updates front‑matter, moves next→current)
@@ -72,6 +75,22 @@ Aggregate events by (plugin,command) with counts, success/fail, durations, and e
 
 - Last 24h (default):
   nexoscli dev telemetry report --since 24h --output json
+
+## Plan Lifecycle Hygiene (Plan 50)
+
+- Verify lifecycle invariants:
+  ```
+  nexoscli dev plans verify --output json
+  ```
+- Build deterministic README indexes (AUTO blocks id=plans-index; relative links; idempotent):
+  ```
+  nexoscli dev plans index build --output json
+  ```
+  Use `--dry-run` to preview changes without writing.
+- CI integration (explicit required gate):
+  ```
+  nexoscli dev doctor --ci --checks plans --output json
+  ```
 
 ## Plan Lifecycle CLI
 

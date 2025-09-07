@@ -5,6 +5,22 @@ Note on Plans (PLAN-34):
 - Use the `task` commands below normally to pause/resume/stage/end/bundle as you work.
 - Finalize plans with `nexoscli dev plans finalize` (records `implemented_in`, ends task + bundle best‑effort, moves to `docs/project/done/`).
 
+Plan lifecycle checks (PLAN-50):
+- Verify lifecycle invariants deterministically:
+  ```
+  nexoscli dev plans verify --output json
+  ```
+- Build deterministic README indexes (AUTO blocks with id=plans-index) across docs/project/*:
+  ```
+  nexoscli dev plans index build --output json
+  ```
+  Use `--dry-run` to preview changes without writing; indexes are idempotent and sorted with relative links.
+- CI integration (doctor):
+  ```
+  nexoscli dev doctor --ci --checks plans --output json
+  ```
+  When `--checks plans` is provided explicitly, the plans check is treated as required and will fail CI on violations.
+
 NEXOS provides workflow engine abstraction for task lifecycle management, allowing you to run task transitions either locally or prepare Temporal workflow envelopes.
 
 ## Engine Selection

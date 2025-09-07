@@ -83,6 +83,22 @@ Provide a deterministic, observable structure for project plans, with CLI-native
 - Indexes in subfolder READMEs (id=plans-index) should list only plan files.
 - Keep diffs minimal and deterministic; no manual content inside AUTO blocks.
 
+## Hygiene & Automation (Plan 50)
+
+- Verify lifecycle invariants:
+  ```
+  nexoscli dev plans verify --output json
+  ```
+- Build deterministic README indexes (AUTO blocks id=plans-index; relative links; idempotent):
+  ```
+  nexoscli dev plans index build --output json
+  ```
+  Use `--dry-run` to preview changes without writing.
+- CI integration (explicit required gate):
+  ```
+  nexoscli dev doctor --ci --checks plans --output json
+  ```
+
 ## Checks & Gates
 
 - Repo structure and README guardrails:

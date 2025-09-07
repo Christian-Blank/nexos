@@ -32,6 +32,12 @@ The workflow plugin executes YAML specs with idempotent activities and records e
 - Upsert search attributes (repeatable --attrs)
   ./target/debug/nexoscli workflow upsert-sa --id WF-demo --attrs owner=christian --attrs priority=high --output json
 
+### Related
+
+For plan lifecycle hygiene (Plan 50) — verifying lifecycle invariants, building deterministic README indexes (AUTO blocks), and CI gating via doctor — see:
+- docs/WORKFLOWS_TASK.md (Plan lifecycle checks section)
+- plugins/dev/README.md (Plan Lifecycle Hygiene)
+
 ## Spec Schema (additions in Phase 18)
 
 Top-level:
