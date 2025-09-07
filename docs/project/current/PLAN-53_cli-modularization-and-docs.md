@@ -1,15 +1,21 @@
 ---
-plan_id: "53"
-slug: "cli-modularization-and-docs"
-status: "proposed"
-owner: "@cli/dri"
-labels: ["cli","docs","readme-graph","llm-friendliness","tests"]
-created_at: "2025-09-07T00:00:00Z"
-source: "next"
-risk: "low"
-value: "high"
+plan_id: '53'
+slug: cli-modularization-and-docs
+status: in-progress
+owner: '@cli/dri'
+labels:
+- cli
+- docs
+- readme-graph
+- llm-friendliness
+- tests
+created_at: 2025-09-07T00:00:00Z
+source: next
+risk: low
+value: high
+task_id: TASK-20250907-plan-53-cli-modularization-discoverability
+started_at: 2025-09-07T12:52:34.03258Z
 ---
-
 # PLAN‑53 — CLI modularization & discoverability
 
 > Mission alignment: reduce entropy, keep speed safe, make the CLI self‑describing for both humans and LLMs, and co‑locate tests for atomic ownership.
