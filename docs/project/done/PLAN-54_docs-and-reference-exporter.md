@@ -1,16 +1,26 @@
 ---
-plan_id: "54"
-slug: "docs-and-reference-exporter"
-status: "proposed"
-owner: "@cli/dri"
-labels: ["docs","readme-graph","llm-friendliness","introspection","tests","ci-gates"]
-created_at: "2025-09-07T00:00:00Z"
-source: "next"
-risk: "low"
-blast_radius: "internal-only"
-depends_on: ["53"]
+plan_id: '54'
+slug: docs-and-reference-exporter
+status: done
+owner: '@cli/dri'
+labels:
+- docs
+- readme-graph
+- llm-friendliness
+- introspection
+- tests
+- ci-gates
+created_at: 2025-09-07T00:00:00Z
+source: next
+risk: low
+blast_radius: internal-only
+depends_on:
+- '53'
+task_id: TASK-20250908-plan-54-deterministic-docs-generator-cli-reference-readme-auto-blocks
+started_at: 2025-09-08T00:20:01.841196Z
+completed_at: 2025-09-08T00:20:02.738697Z
+implemented_in: '4769722'
 ---
-
 # PLAN‑54 — Deterministic docs generator (CLI reference + README auto‑blocks)
 
 > **Mission:** Generate human‑grade CLI docs **from the live command tree** and keep plugin READMEs in sync via auto‑blocks. Eliminate doc drift with CI gates.

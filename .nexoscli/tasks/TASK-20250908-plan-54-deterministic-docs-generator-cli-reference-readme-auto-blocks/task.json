@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20250908-plan-54-deterministic-docs-generator-cli-reference-readme-auto-blocks",
+  "title": "PLAN‑54 — Deterministic docs generator (CLI reference + README auto‑blocks)",
+  "stage": "done",
+  "status": "ended",
+  "created_at": "2025-09-08T00:20:01.833466Z",
+  "started_at": "2025-09-08T00:20:01.84013Z",
+  "ended_at": "2025-09-08T00:20:02.577246Z",
+  "sessions": [
+    {
+      "id": "SES-9e85cf48fcf7",
+      "start": "2025-09-08T00:20:01.840154Z",
+      "end": "2025-09-08T00:20:02.577197Z"
+    }
+  ],
+  "notes": []
+}
