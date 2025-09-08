@@ -1,0 +1,6 @@
+# Migrated command files (relative paths) that must obey dual-derive and FromArgMatches parsing.
+# One path per line. See PLAN-58 for process. Managed incrementally during migrations.
+# Example:
+# plugins/<plugin>/src/cmd_*.rs
+
+plugins/dev/src/cmd_init.rs

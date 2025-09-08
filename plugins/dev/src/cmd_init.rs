@@ -8,7 +8,7 @@ use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 use nexoscli_core::plugin::CommandContext;
 use nexoscli_core::Result;
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, ClapArgs)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, clap::Args)]
 pub struct DevInitArgs {
     #[arg(long = "dry-run")]
     pub dry_run: bool,

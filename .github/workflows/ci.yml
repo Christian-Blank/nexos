@@ -27,6 +27,30 @@ jobs:
           validate(instance=data, schema=schema)
           print("Schema validation OK")
           PY
+      - name: Install ripgrep (rg)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep
+
+      - name: Check enforcement lists present
+        run: |
+          test -f .nexoscli/migrated/args.txt && test -f .nexoscli/allow/argmatches.txt
+
+      - name: Ensure plugin README commands AUTO blocks present
+        run: |
+          cargo run --quiet --bin nexoscli -- dev docs commands --apply-readmes
+          COUNT=$(rg -n --glob "plugins/*/README.md" "<!-- BEGIN: AUTO (id=commands) -->" | wc -l)
+          echo "Found AUTO blocks: $COUNT"
+          test "$COUNT" -ge 1
+
+      - name: Enforce plugin structure (strict)
+        run: |
+          cargo run --quiet --bin nexoscli -- dev plugins check --strict --output json
+
+      - name: Enforce args dual-derive and parsing bans
+        run: |
+          cargo run --quiet --bin nexoscli -- dev repo args-enforce --migrated .nexoscli/migrated/args.txt --allow-list .nexoscli/allow/argmatches.txt --output json
+
       - name: Upload test event logs
         uses: actions/upload-artifact@v4
         with:

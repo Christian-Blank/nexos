@@ -1,0 +1,6 @@
+# Temporary allow-list for imperative ArgMatches usage (get_one::<, get_flag().
+# Paths are relative; one per line. Remove entries as files migrate to dual-derive.
+# See PLAN-58 for the migration workflow.
+
+plugins/dev/src/cmd_log.rs
+plugins/dev/src/cmd_docs.rs
