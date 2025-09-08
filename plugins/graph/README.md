@@ -12,3 +12,10 @@ A NexOS CLI plugin
 - Add/rename commands in `augment_commands()` and route in `execute()`.
 - Keep outputs using the core envelope (`ctx.ok / ctx.err`) to stay machine-friendly.
 
+
+## Commands
+
+<!-- BEGIN: AUTO (id=commands) -->
+- graph check — Validate docs/exec_graph.yaml (acyclic, unique ids)
+- graph impact — List nodes impacted (downstream) by the given id
+<!-- END: AUTO -->

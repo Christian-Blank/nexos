@@ -235,3 +235,34 @@ Requeue a paused plan to docs/project/backlog for reprioritization. Warns on num
 - Prefer `--output json` for machine flows; parse `data` and `meta.context` fields.
 - All operations emit envelopes via ctx.ok/ctx.err so runs are auditable.
 - See `docs/project/README.md` for structure and guidance; prompts in `docs/prompts/cline/` for start/finalize workflows.
+
+## Commands
+
+<!-- BEGIN: AUTO (id=commands) -->
+- dev docs build — Generate CLI reference and Rules doc
+- dev docs commands — Generate CLI reference from introspection and update plugin READMEs
+- dev doctor — Environment & hygiene checks
+- dev init — Initialize .nexoscli/ (Plan/Apply, idempotent)
+- dev log rotate — Rotate .nexoscli/log/events.jsonl into timestamped segments with chain manifests
+- dev log status — Show rotation/index status
+- dev plans archive — Archive a plan: move to archived/
+- dev plans dump — Dump a plan: move to dumped/
+- dev plans finalize — Finalize a plan: mark done, end task, bundle, move current→done
+- dev plans index build — Refresh AUTO (id=plans-index) blocks in docs/project/* READMEs
+- dev plans list — List plans
+- dev plans next — Show the next plan candidate under docs/project/next
+- dev plans pause — Pause current plan: move current→paused
+- dev plans requeue — Requeue a paused plan to backlog/
+- dev plans resume — Resume a paused plan: move paused→current
+- dev plans start — Start a plan: create+start task, update front-matter, move next→current
+- dev plans status — Show plan front-matter and derived ids
+- dev plans verify — Validate plan lifecycle folder rules
+- dev plugin new — Scaffold a new plugin under plugins/<name>
+- dev plugins check — Verify structure and registration for all plugins/*
+- dev repo check — Validate structure against policy
+- dev repo policy init — Write default .nexoscli/repo_policy.yaml
+- dev repo readmes — Scaffold missing folder READMEs
+- dev schemas export — Write JSON Schemas to a directory
+- dev telemetry hai — Aggregate AI-interaction metrics from AIM streams (.nexoscli/agents/streams/*)
+- dev telemetry report — Aggregate events.jsonl → counts by command (success/fail)
+<!-- END: AUTO -->

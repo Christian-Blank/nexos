@@ -37,7 +37,7 @@ git push
       - Create a new worktree directory with a new branch `git worktree add ../nexos_task-<TASK_NO> -b task/<TASK_NO>-<TASK_NAME>`, where "nexos_task-<TASK_NO>" is the folder name, and "task/<TASK_NO>-<TASK_NAME>" is the branch name.
     If branch exists:
       - Check if worktree dir already exists: `git worktree list`
-      If worktree dir exists, switch to worktreedir, otherwise create worktree directory with existing branch: `git worktree add ../nexos_task-<TASK_NO> task/<TASK_NO>-<TASK_NAME>`
+      If worktree dir exists, switch to worktree directory via `cd ../<worktree_dir>` or where the path is, otherwise create worktree directory with existing branch: `git worktree add ../nexos_task-<TASK_NO> task/<TASK_NO>-<TASK_NAME>`
   * Finally push new branch to remote `git push -u origin task/<TASK_NO>-<TASK_NAME>`
   Worktree preparation done.
 

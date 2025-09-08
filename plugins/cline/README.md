@@ -352,3 +352,12 @@ nexoscli cline import --output json | jq '.data.imported'
 - **Transparency**: Redaction statistics reported in output
 
 For general plugin architecture and development patterns, see [../README.md](../README.md).
+
+## Commands
+
+<!-- BEGIN: AUTO (id=commands) -->
+- cline correlate — Correlate Cline tasks to runs
+- cline import — Import tasks (read-only)
+- cline locate — Find Cline storage (globalStorage/workspace)
+- cline normalize — Normalize Cline tasks → AIM streams (.nexoscli/agents/streams/Cline/<task>/messages.ndjson)
+<!-- END: AUTO -->

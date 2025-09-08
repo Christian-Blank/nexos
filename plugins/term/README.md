@@ -326,3 +326,9 @@ echo $CMD_RESULT | jq '.data.exit_code'
 - **Deployment tracking**: Deployment command audit trail
 
 For general plugin architecture and development patterns, see [../README.md](../README.md).
+
+## Commands
+
+<!-- BEGIN: AUTO (id=commands) -->
+- term run — Execute a command and capture output
+<!-- END: AUTO -->

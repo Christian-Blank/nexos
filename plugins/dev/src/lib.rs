@@ -17,6 +17,7 @@ use nexoscli_core::Result;
 mod checks;
 mod repo;
 mod cmd_log;
+mod cmd_docs;
 pub mod cmd_init;
 
 
@@ -475,6 +476,7 @@ impl Plugin for DevPlugin {
                                 .about("Generate CLI reference and Rules doc")
                                 .arg(Arg::new("open").long("open").action(ArgAction::SetTrue))
                         )
+                        .subcommand(cmd_docs::subcommand())
                 )
                 // dev schemas
                 .subcommand(
@@ -1541,6 +1543,8 @@ impl Plugin for DevPlugin {
                     let out = serde_json::json!({"written": ["docs/CLI_REFERENCE.md", "docs/RULES.md"]});
                     let code = ctx.ok("dev","docs.build",&out);
                     return Ok(code);
+                } else if let Some(("commands", m)) = dm.subcommand() {
+                    return crate::cmd_docs::run(m, ctx);
                 }
                 Ok(2)
             }

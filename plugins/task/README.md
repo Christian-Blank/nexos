@@ -128,3 +128,17 @@ Only one task can be active at a time. Starting a new task requires pausing the 
 - Context injection happens transparently via the core `CommandContext.active_task_map()` method
 - No changes required to existing plugins - context is injected automatically
 - Event counting and bundle generation use the actual events.jsonl file for accuracy
+
+## Commands
+
+<!-- BEGIN: AUTO (id=commands) -->
+- task bundle — Build a TracePack bundle for a task window
+- task end — End the current (or given) task
+- task list — List tasks
+- task new — Create a new task
+- task pause — Pause the active task
+- task resume — Resume a paused task
+- task stage — Set the stage for a task
+- task start — Start a task (make it active)
+- task status — Show task status
+<!-- END: AUTO -->

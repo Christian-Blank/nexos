@@ -533,3 +533,11 @@ nexoscli rules lint | jq '.data.validation_errors'
 - **Process Documentation**: Embed rules in development workflows
 
 For general plugin architecture and development patterns, see [../README.md](../README.md).
+
+## Commands
+
+<!-- BEGIN: AUTO (id=commands) -->
+- rules export — Export audience-specific bundle
+- rules init — Create minimal rules pack
+- rules lint — Validate rules/*.md front-matter
+<!-- END: AUTO -->

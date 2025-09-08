@@ -12,3 +12,9 @@ Demo plugin
 - Add/rename commands in `augment_commands()` and route in `execute()`.
 - Keep outputs using the core envelope (`ctx.ok / ctx.err`) to stay machine-friendly.
 
+
+## Commands
+
+<!-- BEGIN: AUTO (id=commands) -->
+- demo hello — Say hello from demo plugin
+<!-- END: AUTO -->

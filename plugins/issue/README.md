@@ -236,3 +236,13 @@ nexoscli issue list --output json | jq '.data.issues[] | select(.kind == "bug")'
 ```
 
 For general plugin architecture and development patterns, see [../README.md](../README.md).
+
+## Commands
+
+<!-- BEGIN: AUTO (id=commands) -->
+- issue close — Close an issue
+- issue import — Import issues from external sources (read-only)
+- issue list — List issues
+- issue new — Create a new issue
+- issue show — Show an issue
+<!-- END: AUTO -->

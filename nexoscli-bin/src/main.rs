@@ -1,5 +1,5 @@
 mod telemetry;
-
+mod introspect;
 use clap::{Arg, ArgAction, Command};
 use clap_complete::{generate, shells::{Bash, Zsh, Fish}};
 use clap_mangen::Man;
@@ -108,6 +108,14 @@ fn main() -> anyhow::Result<()> {
             let man = Man::new(compose_app(&registry, &config));
             man.render(&mut io::stdout())?;
         }
+        Some(("__introspect", m)) => {
+            if let Some(("clap-json", _)) = m.subcommand() {
+                let mut app2 = compose_app(&registry, &config);
+                let code = introspect::run_clap_json_from_app(app2)?;
+                telemetry::shutdown_tracing();
+                std::process::exit(code);
+            }
+        }
         Some((plugin_name, sub_matches)) => {
             let exec_span = span!(Level::INFO, "execute", plugin = plugin_name);
             let _exec_g = exec_span.enter();
@@ -179,7 +187,17 @@ fn compose_app(registry: &PluginRegistry, cfg: &Config) -> Command {
                 .about("Generate shell completions")
                 .arg(Arg::new("shell").value_parser(["bash", "zsh", "fish"]).required(true)),
         )
-        .subcommand(Command::new("man").about("Print man page to stdout"));
+        .subcommand(Command::new("man").about("Print man page to stdout"))
+        .subcommand(
+            Command::new("__introspect")
+                .about("Introspection utilities")
+                .hide(true)
+                .subcommand(
+                    Command::new("clap-json")
+                        .about("Emit clap command tree as JSON")
+                        .hide(true)
+                )
+        );
 
     // add plugin subcommands
     registry.augment_all(app)
