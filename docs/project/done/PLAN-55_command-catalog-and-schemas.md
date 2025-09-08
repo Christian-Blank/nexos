@@ -1,16 +1,27 @@
 ---
-plan_id: "55"
-slug: "command-catalog-and-schemas"
-status: "proposed"
-owner: "@cli/dri"
-labels: ["docs","catalog","json-schema","llm-friendliness","derive-enforcement","tests","ci-gates"]
-created_at: "2025-09-07T00:00:00Z"
-source: "next"
-risk: "low"
-blast_radius: "internal-only"
-depends_on: ["54"]
+plan_id: '55'
+slug: command-catalog-and-schemas
+status: done
+owner: '@cli/dri'
+labels:
+- docs
+- catalog
+- json-schema
+- llm-friendliness
+- derive-enforcement
+- tests
+- ci-gates
+created_at: 2025-09-07T00:00:00Z
+source: next
+risk: low
+blast_radius: internal-only
+depends_on:
+- '54'
+task_id: TASK-20250908-plan-55-agent-grade-command-catalog-schema-gates-commands-json-toolspec-parity
+started_at: 2025-09-08T01:15:32.683449Z
+completed_at: 2025-09-08T01:15:50.576574Z
+implemented_in: a6df198
 ---
-
 # PLAN‑55 — Agent‑grade command catalog & schema gates (commands.json + ToolSpec parity)
 
 > **Mission:** Export a machine‑readable command catalog that LLM agents can consume directly, and enforce **Args dual‑derive** + ToolSpec/schema parity across the repo.

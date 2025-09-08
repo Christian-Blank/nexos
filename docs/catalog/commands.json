@@ -1,0 +1,5926 @@
+{
+  "commands": [
+    {
+      "about": "Build a bundle (.tgz) with manifest and inputs",
+      "args": [
+        {
+          "default": null,
+          "help": "issues,docs",
+          "kind": "value",
+          "long": "include",
+          "name": "include",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "out",
+          "name": "out",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": null,
+          "name": "arg3",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "bundle build",
+      "plugin": "bundle",
+      "toolspec": {
+        "args_schema_ref": "schemas/bundle.build.args.json",
+        "name": "bundle.build",
+        "result_schema_ref": "schemas/bundle.build.result.json"
+      },
+      "usage": "nexoscli bundle build [flags]"
+    },
+    {
+      "about": "Verify a bundle",
+      "args": [
+        {
+          "default": null,
+          "help": "Also verify current filesystem files match manifest",
+          "kind": "value",
+          "long": "against",
+          "name": "against",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": null,
+          "name": "arg2",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "bundle verify",
+      "plugin": "bundle",
+      "toolspec": {
+        "args_schema_ref": "schemas/bundle.verify.args.json",
+        "name": "bundle.verify",
+        "result_schema_ref": "schemas/bundle.verify.result.json"
+      },
+      "usage": "nexoscli bundle verify [flags]"
+    },
+    {
+      "about": "Correlate Cline tasks to runs",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "dry-run",
+          "name": "dry-run",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": "5m",
+          "help": null,
+          "kind": "value",
+          "long": "pad",
+          "name": "pad",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "run-id",
+          "name": "run-id",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "since",
+          "name": "since",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "write",
+          "name": "write",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "cline correlate",
+      "plugin": "cline",
+      "toolspec": {
+        "args_schema_ref": "schemas/cline.correlate.args.json",
+        "name": "cline.correlate",
+        "result_schema_ref": "schemas/cline.correlate.result.json"
+      },
+      "usage": "nexoscli cline correlate [flags]"
+    },
+    {
+      "about": "Import tasks (read-only)",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "dry-run",
+          "name": "dry-run",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "limit",
+          "name": "limit",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "since",
+          "name": "since",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "storage",
+          "name": "storage",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "cline import",
+      "plugin": "cline",
+      "toolspec": {
+        "args_schema_ref": "schemas/cline.import.args.json",
+        "name": "cline.import",
+        "result_schema_ref": "schemas/cline.import.result.json"
+      },
+      "usage": "nexoscli cline import [flags]"
+    },
+    {
+      "about": "Find Cline storage (globalStorage/workspace)",
+      "args": [],
+      "path": "cline locate",
+      "plugin": "cline",
+      "toolspec": {
+        "args_schema_ref": "schemas/cline.locate.args.json",
+        "name": "cline.locate",
+        "result_schema_ref": "schemas/cline.locate.result.json"
+      },
+      "usage": "nexoscli cline locate [flags]"
+    },
+    {
+      "about": "Normalize Cline tasks → AIM streams (.nexoscli/agents/streams/Cline/<task>/messages.ndjson)",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "overwrite",
+          "name": "overwrite",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "since",
+          "name": "since",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "task-id",
+          "name": "task-id",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "cline normalize",
+      "plugin": "cline",
+      "toolspec": null,
+      "usage": "nexoscli cline normalize [flags]"
+    },
+    {
+      "about": "Generate shell completions",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": null,
+          "name": "arg1",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "completions",
+      "plugin": "completions",
+      "toolspec": null,
+      "usage": "nexoscli completions [flags]"
+    },
+    {
+      "about": "Say hello from demo plugin",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "name",
+          "name": "name",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "demo hello",
+      "plugin": "demo",
+      "toolspec": {
+        "args_schema_ref": "schemas/demo.hello.args.json",
+        "name": "demo.hello",
+        "result_schema_ref": "schemas/demo.hello.result.json"
+      },
+      "usage": "nexoscli demo hello [flags]"
+    },
+    {
+      "about": "Generate CLI reference and Rules doc",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "open",
+          "name": "open",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev docs build",
+      "plugin": "dev",
+      "toolspec": null,
+      "usage": "nexoscli dev docs build [flags]"
+    },
+    {
+      "about": "Generate CLI reference/catalog and update plugin READMEs",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "apply-readmes",
+          "name": "apply-readmes",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "Ensure all ToolSpecs appear in catalog and vice-versa; exit non-zero on mismatch",
+          "kind": "flag",
+          "long": "check-parity",
+          "name": "check-parity",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "out-json",
+          "name": "out-json",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "out-md",
+          "name": "out-md",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev docs commands",
+      "plugin": "dev",
+      "toolspec": null,
+      "usage": "nexoscli dev docs commands [flags]"
+    },
+    {
+      "about": "Environment & hygiene checks",
+      "args": [
+        {
+          "default": null,
+          "help": "Subset of checks: graph,plugins,config,events,tools,events-schema,events-chain,events-rotation,repo,plans,cline,rules (default: all)",
+          "kind": "value",
+          "long": "checks",
+          "name": "checks",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "Aggregate repo checks and exit non-zero on failure",
+          "kind": "flag",
+          "long": "ci",
+          "name": "ci",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": "json",
+          "help": null,
+          "kind": "value",
+          "long": "output",
+          "name": "output",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "Preselect checks and required gates; v0 = stable CI defaults",
+          "kind": "value",
+          "long": "profile",
+          "name": "profile",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "CSV of checks to enforce",
+          "kind": "value",
+          "long": "require",
+          "name": "require",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": "24h",
+          "help": null,
+          "kind": "value",
+          "long": "since",
+          "name": "since",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": "0.7",
+          "help": null,
+          "kind": "value",
+          "long": "task-coverage-min",
+          "name": "task-coverage-min",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev doctor",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.doctor.args.json",
+        "name": "dev.doctor",
+        "result_schema_ref": "schemas/dev.doctor.result.json"
+      },
+      "usage": "nexoscli dev doctor [flags]"
+    },
+    {
+      "about": "Initialize .nexoscli/ (Plan/Apply, idempotent)",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "dry-run",
+          "name": "dry-run",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "with-config",
+          "name": "with-config",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "yes",
+          "name": "yes",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev init",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.init.args.json",
+        "name": "dev.init",
+        "result_schema_ref": "schemas/dev.init.result.json"
+      },
+      "usage": "nexoscli dev init [flags]"
+    },
+    {
+      "about": "Rotate .nexoscli/log/events.jsonl into timestamped segments with chain manifests",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "daily",
+          "name": "daily",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "dry-run",
+          "name": "dry-run",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "force",
+          "name": "force",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": "5000000",
+          "help": null,
+          "kind": "value",
+          "long": "max-bytes",
+          "name": "max-bytes",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev log rotate",
+      "plugin": "dev",
+      "toolspec": null,
+      "usage": "nexoscli dev log rotate [flags]"
+    },
+    {
+      "about": "Show rotation/index status",
+      "args": [],
+      "path": "dev log status",
+      "plugin": "dev",
+      "toolspec": null,
+      "usage": "nexoscli dev log status [flags]"
+    },
+    {
+      "about": "Archive a plan: move to archived/",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "dry-run",
+          "name": "dry-run",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "plan",
+          "name": "plan",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "reason",
+          "name": "reason",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev plans archive",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.plans.archive.args.json",
+        "name": "dev.plans.archive",
+        "result_schema_ref": "schemas/dev.plans.archive.result.json"
+      },
+      "usage": "nexoscli dev plans archive [flags]"
+    },
+    {
+      "about": "Dump a plan: move to dumped/",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "dry-run",
+          "name": "dry-run",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "plan",
+          "name": "plan",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "reason",
+          "name": "reason",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev plans dump",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.plans.dump.args.json",
+        "name": "dev.plans.dump",
+        "result_schema_ref": "schemas/dev.plans.dump.result.json"
+      },
+      "usage": "nexoscli dev plans dump [flags]"
+    },
+    {
+      "about": "Finalize a plan: mark done, end task, bundle, move current→done",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "bundle-out",
+          "name": "bundle-out",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "dry-run",
+          "name": "dry-run",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "implemented-in",
+          "name": "implemented-in",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "plan",
+          "name": "plan",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev plans finalize",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.plans.finalize.args.json",
+        "name": "dev.plans.finalize",
+        "result_schema_ref": "schemas/dev.plans.finalize.result.json"
+      },
+      "usage": "nexoscli dev plans finalize [flags]"
+    },
+    {
+      "about": "Refresh AUTO (id=plans-index) blocks in docs/project/* READMEs",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "dry-run",
+          "name": "dry-run",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "path",
+          "name": "path",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev plans index build",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.plans.index.build.args.json",
+        "name": "dev.plans.index.build",
+        "result_schema_ref": "schemas/dev.plans.index.build.result.json"
+      },
+      "usage": "nexoscli dev plans index build [flags]"
+    },
+    {
+      "about": "List plans",
+      "args": [
+        {
+          "default": "all",
+          "help": null,
+          "kind": "value",
+          "long": "where",
+          "name": "where",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev plans list",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.plans.list.args.json",
+        "name": "dev.plans.list",
+        "result_schema_ref": "schemas/dev.plans.list.result.json"
+      },
+      "usage": "nexoscli dev plans list [flags]"
+    },
+    {
+      "about": "Show the next plan candidate under docs/project/next",
+      "args": [],
+      "path": "dev plans next",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.plans.next.args.json",
+        "name": "dev.plans.next",
+        "result_schema_ref": "schemas/dev.plans.next.result.json"
+      },
+      "usage": "nexoscli dev plans next [flags]"
+    },
+    {
+      "about": "Pause current plan: move current→paused",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "dry-run",
+          "name": "dry-run",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "plan",
+          "name": "plan",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "reason",
+          "name": "reason",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev plans pause",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.plans.pause.args.json",
+        "name": "dev.plans.pause",
+        "result_schema_ref": "schemas/dev.plans.pause.result.json"
+      },
+      "usage": "nexoscli dev plans pause [flags]"
+    },
+    {
+      "about": "Requeue a paused plan to backlog/",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "dry-run",
+          "name": "dry-run",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "plan",
+          "name": "plan",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev plans requeue",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.plans.requeue.args.json",
+        "name": "dev.plans.requeue",
+        "result_schema_ref": "schemas/dev.plans.requeue.result.json"
+      },
+      "usage": "nexoscli dev plans requeue [flags]"
+    },
+    {
+      "about": "Resume a paused plan: move paused→current",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "dry-run",
+          "name": "dry-run",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "plan",
+          "name": "plan",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev plans resume",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.plans.resume.args.json",
+        "name": "dev.plans.resume",
+        "result_schema_ref": "schemas/dev.plans.resume.result.json"
+      },
+      "usage": "nexoscli dev plans resume [flags]"
+    },
+    {
+      "about": "Start a plan: create+start task, update front-matter, move next→current",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "dry-run",
+          "name": "dry-run",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "plan",
+          "name": "plan",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "scope",
+          "name": "scope",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev plans start",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.plans.start.args.json",
+        "name": "dev.plans.start",
+        "result_schema_ref": "schemas/dev.plans.start.result.json"
+      },
+      "usage": "nexoscli dev plans start [flags]"
+    },
+    {
+      "about": "Show plan front-matter and derived ids",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "plan",
+          "name": "plan",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "dev plans status",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.plans.status.args.json",
+        "name": "dev.plans.status",
+        "result_schema_ref": "schemas/dev.plans.status.result.json"
+      },
+      "usage": "nexoscli dev plans status [flags]"
+    },
+    {
+      "about": "Validate plan lifecycle folder rules",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "path",
+          "name": "path",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev plans verify",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.plans.verify.args.json",
+        "name": "dev.plans.verify",
+        "result_schema_ref": "schemas/dev.plans.verify.result.json"
+      },
+      "usage": "nexoscli dev plans verify [flags]"
+    },
+    {
+      "about": "Scaffold a new plugin under plugins/<name>",
+      "args": [
+        {
+          "default": null,
+          "help": "Use external blueprint templates",
+          "kind": "value",
+          "long": "blueprint",
+          "name": "blueprint",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "desc",
+          "name": "desc",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "dry-run",
+          "name": "dry-run",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "name",
+          "name": "name",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "Attempt to register in workspace, bin Cargo.toml, and main.rs",
+          "kind": "flag",
+          "long": "register",
+          "name": "register",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "Template directory (defaults to templates/plugin/blueprint-v1)",
+          "kind": "value",
+          "long": "tpl-dir",
+          "name": "tpl-dir",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "yes",
+          "name": "yes",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev plugin new",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.plugin.new.args.json",
+        "name": "dev.plugin.new",
+        "result_schema_ref": "schemas/dev.plugin.new.result.json"
+      },
+      "usage": "nexoscli dev plugin new [flags]"
+    },
+    {
+      "about": "Verify structure and registration for all plugins/*",
+      "args": [
+        {
+          "default": null,
+          "help": "Create missing README.md with template",
+          "kind": "flag",
+          "long": "fix-readmes",
+          "name": "fix-readmes",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "Exit non-zero if any plugin has structural errors",
+          "kind": "flag",
+          "long": "strict",
+          "name": "strict",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev plugins check",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.plugins.check.args.json",
+        "name": "dev.plugins.check",
+        "result_schema_ref": "schemas/dev.plugins.check.result.json"
+      },
+      "usage": "nexoscli dev plugins check [flags]"
+    },
+    {
+      "about": "Validate structure against policy",
+      "args": [
+        {
+          "default": null,
+          "help": "Auto-create missing READMEs according to policy",
+          "kind": "flag",
+          "long": "fix-readmes",
+          "name": "fix-readmes",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "policy",
+          "name": "policy",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev repo check",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.repo.check.args.json",
+        "name": "dev.repo.check",
+        "result_schema_ref": "schemas/dev.repo.check.result.json"
+      },
+      "usage": "nexoscli dev repo check [flags]"
+    },
+    {
+      "about": "Write default .nexoscli/repo_policy.yaml",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "force",
+          "name": "force",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev repo policy init",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.repo.policy.init.args.json",
+        "name": "dev.repo.policy.init",
+        "result_schema_ref": "schemas/dev.repo.policy.init.result.json"
+      },
+      "usage": "nexoscli dev repo policy init [flags]"
+    },
+    {
+      "about": "Scaffold missing folder READMEs",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "apply",
+          "name": "apply",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "policy",
+          "name": "policy",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev repo readmes",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.repo.readmes.args.json",
+        "name": "dev.repo.readmes",
+        "result_schema_ref": "schemas/dev.repo.readmes.result.json"
+      },
+      "usage": "nexoscli dev repo readmes [flags]"
+    },
+    {
+      "about": "Write JSON Schemas to a directory",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "out",
+          "name": "out",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "dev schemas export",
+      "plugin": "dev",
+      "toolspec": null,
+      "usage": "nexoscli dev schemas export [flags]"
+    },
+    {
+      "about": "Aggregate AI-interaction metrics from AIM streams (.nexoscli/agents/streams/*)",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "since",
+          "name": "since",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev telemetry hai",
+      "plugin": "dev",
+      "toolspec": null,
+      "usage": "nexoscli dev telemetry hai [flags]"
+    },
+    {
+      "about": "Aggregate events.jsonl → counts by command (success/fail)",
+      "args": [
+        {
+          "default": null,
+          "help": "24h | 7d | RFC3339 (inclusive)",
+          "kind": "value",
+          "long": "since",
+          "name": "since",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev telemetry report",
+      "plugin": "dev",
+      "toolspec": {
+        "args_schema_ref": "schemas/dev.telemetry.report.args.json",
+        "name": "dev.telemetry.report",
+        "result_schema_ref": "schemas/dev.telemetry.report.result.json"
+      },
+      "usage": "nexoscli dev telemetry report [flags]"
+    },
+    {
+      "about": "Validate docs/exec_graph.yaml (acyclic, unique ids)",
+      "args": [
+        {
+          "default": "docs/exec_graph.yaml",
+          "help": null,
+          "kind": "value",
+          "long": "file",
+          "name": "file",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "graph check",
+      "plugin": "graph",
+      "toolspec": {
+        "args_schema_ref": "schemas/graph.check.args.json",
+        "name": "graph.check",
+        "result_schema_ref": "schemas/graph.check.result.json"
+      },
+      "usage": "nexoscli graph check [flags]"
+    },
+    {
+      "about": "List nodes impacted (downstream) by the given id",
+      "args": [
+        {
+          "default": "docs/exec_graph.yaml",
+          "help": null,
+          "kind": "value",
+          "long": "file",
+          "name": "file",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": null,
+          "name": "arg2",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "graph impact",
+      "plugin": "graph",
+      "toolspec": {
+        "args_schema_ref": "schemas/graph.impact.args.json",
+        "name": "graph.impact",
+        "result_schema_ref": "schemas/graph.impact.result.json"
+      },
+      "usage": "nexoscli graph impact [flags]"
+    },
+    {
+      "about": "Close an issue",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "reason",
+          "name": "reason",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": null,
+          "name": "arg2",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "issue close",
+      "plugin": "issue",
+      "toolspec": {
+        "args_schema_ref": "schemas/issue.close.args.json",
+        "name": "issue.close",
+        "result_schema_ref": "schemas/issue.close.result.json"
+      },
+      "usage": "nexoscli issue close [flags]"
+    },
+    {
+      "about": "Import issues from external sources (read-only)",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "dry-run",
+          "name": "dry-run",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "fixture",
+          "name": "fixture",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "from",
+          "name": "from",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "labels",
+          "name": "labels",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": "100",
+          "help": null,
+          "kind": "value",
+          "long": "limit",
+          "name": "limit",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "path",
+          "name": "path",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "repo",
+          "name": "repo",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "since",
+          "name": "since",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": "open",
+          "help": null,
+          "kind": "value",
+          "long": "state",
+          "name": "state",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "issue import",
+      "plugin": "issue",
+      "toolspec": null,
+      "usage": "nexoscli issue import [flags]"
+    },
+    {
+      "about": "List issues",
+      "args": [
+        {
+          "default": "all",
+          "help": null,
+          "kind": "value",
+          "long": "state",
+          "name": "state",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "issue list",
+      "plugin": "issue",
+      "toolspec": {
+        "args_schema_ref": "schemas/issue.list.args.json",
+        "name": "issue.list",
+        "result_schema_ref": "schemas/issue.list.result.json"
+      },
+      "usage": "nexoscli issue list [flags]"
+    },
+    {
+      "about": "Create a new issue",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "body",
+          "name": "body",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "multi",
+          "long": "labels",
+          "name": "labels",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "title",
+          "name": "title",
+          "possible_values": null,
+          "required": true,
+          "short": "t"
+        }
+      ],
+      "path": "issue new",
+      "plugin": "issue",
+      "toolspec": {
+        "args_schema_ref": "schemas/issue.new.args.json",
+        "name": "issue.new",
+        "result_schema_ref": "schemas/issue.new.result.json"
+      },
+      "usage": "nexoscli issue new [flags]"
+    },
+    {
+      "about": "Show an issue",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": null,
+          "name": "arg1",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "issue show",
+      "plugin": "issue",
+      "toolspec": {
+        "args_schema_ref": "schemas/issue.show.args.json",
+        "name": "issue.show",
+        "result_schema_ref": "schemas/issue.show.result.json"
+      },
+      "usage": "nexoscli issue show [flags]"
+    },
+    {
+      "about": "Print man page to stdout",
+      "args": [],
+      "path": "man",
+      "plugin": "man",
+      "toolspec": null,
+      "usage": "nexoscli man [flags]"
+    },
+    {
+      "about": "List registered plugins",
+      "args": [],
+      "path": "plugins",
+      "plugin": "plugins",
+      "toolspec": null,
+      "usage": "nexoscli plugins [flags]"
+    },
+    {
+      "about": "Add an annotation",
+      "args": [
+        {
+          "default": null,
+          "help": "Optional JSON object with extra fields",
+          "kind": "value",
+          "long": "attrs",
+          "name": "attrs",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "author",
+          "name": "author",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "bag",
+          "name": "bag",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "confidence",
+          "name": "confidence",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "multi",
+          "long": "label",
+          "name": "label",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "note",
+          "name": "note",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "0-based row index in events/fileops (required for events/fileops targets)",
+          "kind": "value",
+          "long": "seq",
+          "name": "seq",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": "human",
+          "help": null,
+          "kind": "value",
+          "long": "source",
+          "name": "source",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "target",
+          "name": "target",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "replay annotate add",
+      "plugin": "replay",
+      "toolspec": null,
+      "usage": "nexoscli replay annotate add [flags]"
+    },
+    {
+      "about": "List annotations",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "bag",
+          "name": "bag",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "replay annotate list",
+      "plugin": "replay",
+      "toolspec": null,
+      "usage": "nexoscli replay annotate list [flags]"
+    },
+    {
+      "about": "Build a NEXBag (TracePack v0.2)",
+      "args": [
+        {
+          "default": null,
+          "help": "Directory or .tgz/.tar.gz",
+          "kind": "value",
+          "long": "out",
+          "name": "out",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "run-id",
+          "name": "run-id",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "replay bag build",
+      "plugin": "replay",
+      "toolspec": null,
+      "usage": "nexoscli replay bag build [flags]"
+    },
+    {
+      "about": "Stream a topic from the bag",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "bag",
+          "name": "bag",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "Max lines to print",
+          "kind": "value",
+          "long": "lines",
+          "name": "lines",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "topic",
+          "name": "topic",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "replay bag cat",
+      "plugin": "replay",
+      "toolspec": null,
+      "usage": "nexoscli replay bag cat [flags]"
+    },
+    {
+      "about": "Show bag summary and counts",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "bag",
+          "name": "bag",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "replay bag info",
+      "plugin": "replay",
+      "toolspec": null,
+      "usage": "nexoscli replay bag info [flags]"
+    },
+    {
+      "about": "Verify a TracePack/NEXBag integrity",
+      "args": [
+        {
+          "default": null,
+          "help": "Path to bag dir or .tgz/.tar.gz",
+          "kind": "value",
+          "long": "bag",
+          "name": "bag",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "Optional path to .nexoscli/log/events.index.json",
+          "kind": "value",
+          "long": "index",
+          "name": "index",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "Strict mode: exact time_range equality; require digests when present",
+          "kind": "flag",
+          "long": "strict",
+          "name": "strict",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "replay bag verify",
+      "plugin": "replay",
+      "toolspec": {
+        "args_schema_ref": "schemas/replay.bag.verify.args.json",
+        "name": "replay.bag.verify",
+        "result_schema_ref": "schemas/replay.bag.verify.result.json"
+      },
+      "usage": "nexoscli replay bag verify [flags]"
+    },
+    {
+      "about": "Export CSV artifacts from a bag",
+      "args": [
+        {
+          "default": "csv",
+          "help": null,
+          "kind": "value",
+          "long": "as",
+          "name": "as",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "bag",
+          "name": "bag",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "Join annotations into exported CSVs",
+          "kind": "value",
+          "long": "join",
+          "name": "join",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "Output directory for exported files",
+          "kind": "value",
+          "long": "out",
+          "name": "out",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": "all",
+          "help": null,
+          "kind": "value",
+          "long": "what",
+          "name": "what",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "replay export",
+      "plugin": "replay",
+      "toolspec": {
+        "args_schema_ref": "schemas/replay.export.args.json",
+        "name": "replay.export",
+        "result_schema_ref": "schemas/replay.export.result.json"
+      },
+      "usage": "nexoscli replay export [flags]"
+    },
+    {
+      "about": "Export a TracePack for a run (events + patches + manifest)",
+      "args": [
+        {
+          "default": "all",
+          "help": "What to include: events,patches,status,cline,all",
+          "kind": "value",
+          "long": "include",
+          "name": "include",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "If ends with .tar.gz/.tgz -> tarball; otherwise a directory is created",
+          "kind": "value",
+          "long": "out",
+          "name": "out",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "run-id",
+          "name": "run-id",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "replay extract",
+      "plugin": "replay",
+      "toolspec": null,
+      "usage": "nexoscli replay extract [flags]"
+    },
+    {
+      "about": "Derive fileops.ndjson from bag patches",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "bag",
+          "name": "bag",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "out",
+          "name": "out",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "replay fileops derive",
+      "plugin": "replay",
+      "toolspec": {
+        "args_schema_ref": "schemas/replay.fileops.derive.args.json",
+        "name": "replay.fileops.derive",
+        "result_schema_ref": "schemas/replay.fileops.derive.result.json"
+      },
+      "usage": "nexoscli replay fileops derive [flags]"
+    },
+    {
+      "about": "Normalize events to v0.3",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "bag",
+          "name": "bag",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "events",
+          "name": "events",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "out",
+          "name": "out",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "run-id",
+          "name": "run-id",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "to",
+          "name": "to",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "update-manifest",
+          "name": "update-manifest",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "replay normalize",
+      "plugin": "replay",
+      "toolspec": {
+        "args_schema_ref": "schemas/replay.normalize.args.json",
+        "name": "replay.normalize",
+        "result_schema_ref": "schemas/replay.normalize.result.json"
+      },
+      "usage": "nexoscli replay normalize [flags]"
+    },
+    {
+      "about": "Plan steps for a run",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "run-id",
+          "name": "run-id",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "replay plan",
+      "plugin": "replay",
+      "toolspec": null,
+      "usage": "nexoscli replay plan [flags]"
+    },
+    {
+      "about": "Apply patches for a run (dry-run by default)",
+      "args": [
+        {
+          "default": "replay",
+          "help": null,
+          "kind": "value",
+          "long": "branch",
+          "name": "branch",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "cwd",
+          "name": "cwd",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "dry-run",
+          "name": "dry-run",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "run-id",
+          "name": "run-id",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "replay run",
+      "plugin": "replay",
+      "toolspec": null,
+      "usage": "nexoscli replay run [flags]"
+    },
+    {
+      "about": "Print events schema",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "version",
+          "name": "version",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "replay schema events",
+      "plugin": "replay",
+      "toolspec": {
+        "args_schema_ref": "schemas/replay.schema.events.args.json",
+        "name": "replay.schema.events",
+        "result_schema_ref": "schemas/replay.schema.events.result.json"
+      },
+      "usage": "nexoscli replay schema events [flags]"
+    },
+    {
+      "about": "Get schema JSON",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "name",
+          "name": "name",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "out",
+          "name": "out",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "version",
+          "name": "version",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "replay schema get",
+      "plugin": "replay",
+      "toolspec": {
+        "args_schema_ref": "schemas/replay.schema.get.args.json",
+        "name": "replay.schema.get",
+        "result_schema_ref": "schemas/replay.schema.get.result.json"
+      },
+      "usage": "nexoscli replay schema get [flags]"
+    },
+    {
+      "about": "List available schemas",
+      "args": [],
+      "path": "replay schema list",
+      "plugin": "replay",
+      "toolspec": {
+        "args_schema_ref": "schemas/replay.schema.list.args.json",
+        "name": "replay.schema.list",
+        "result_schema_ref": "schemas/replay.schema.list.result.json"
+      },
+      "usage": "nexoscli replay schema list [flags]"
+    },
+    {
+      "about": "Validate bag artifacts against schemas",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "bag",
+          "name": "bag",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": "all",
+          "help": null,
+          "kind": "value",
+          "long": "what",
+          "name": "what",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "replay validate",
+      "plugin": "replay",
+      "toolspec": {
+        "args_schema_ref": "schemas/replay.validate.args.json",
+        "name": "replay.validate",
+        "result_schema_ref": "schemas/replay.validate.result.json"
+      },
+      "usage": "nexoscli replay validate [flags]"
+    },
+    {
+      "about": "Verify a TracePack (dir or .tgz) and explain issues",
+      "args": [
+        {
+          "default": null,
+          "help": "Rewrite dataset card (README.md) from manifest (dir bags only)",
+          "kind": "flag",
+          "long": "fix-readme",
+          "name": "fix-readme",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": "text",
+          "help": null,
+          "kind": "value",
+          "long": "format",
+          "name": "format",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "git-check",
+          "name": "git-check",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "path",
+          "name": "path",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "skip",
+          "name": "skip",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "replay verify",
+      "plugin": "replay",
+      "toolspec": {
+        "args_schema_ref": "schemas/replay.verify.args.json",
+        "name": "replay.verify",
+        "result_schema_ref": "schemas/replay.verify.result.json"
+      },
+      "usage": "nexoscli replay verify [flags]"
+    },
+    {
+      "about": "Export audience-specific bundle",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "for",
+          "name": "for",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "out",
+          "name": "out",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "rules export",
+      "plugin": "rules",
+      "toolspec": {
+        "args_schema_ref": "schemas/rules.export.args.json",
+        "name": "rules.export",
+        "result_schema_ref": "schemas/rules.export.result.json"
+      },
+      "usage": "nexoscli rules export [flags]"
+    },
+    {
+      "about": "Create minimal rules pack",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "force",
+          "name": "force",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "rules init",
+      "plugin": "rules",
+      "toolspec": null,
+      "usage": "nexoscli rules init [flags]"
+    },
+    {
+      "about": "Validate rules/*.md front-matter",
+      "args": [],
+      "path": "rules lint",
+      "plugin": "rules",
+      "toolspec": {
+        "args_schema_ref": "schemas/rules.lint.args.json",
+        "name": "rules.lint",
+        "result_schema_ref": "schemas/rules.lint.result.json"
+      },
+      "usage": "nexoscli rules lint [flags]"
+    },
+    {
+      "about": "Build a TracePack bundle for a task window",
+      "args": [
+        {
+          "default": "all",
+          "help": "CSV from: events,patches,status,cline,all",
+          "kind": "value",
+          "long": "include",
+          "name": "include",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "name",
+          "name": "name",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "out",
+          "name": "out",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "task",
+          "name": "task",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "task bundle",
+      "plugin": "task",
+      "toolspec": null,
+      "usage": "nexoscli task bundle [flags]"
+    },
+    {
+      "about": "End the current (or given) task",
+      "args": [
+        {
+          "default": "local",
+          "help": "Execution engine for this action",
+          "kind": "value",
+          "long": "engine",
+          "name": "engine",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "task",
+          "name": "task",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "task end",
+      "plugin": "task",
+      "toolspec": null,
+      "usage": "nexoscli task end [flags]"
+    },
+    {
+      "about": "List tasks",
+      "args": [],
+      "path": "task list",
+      "plugin": "task",
+      "toolspec": null,
+      "usage": "nexoscli task list [flags]"
+    },
+    {
+      "about": "Create a new task",
+      "args": [
+        {
+          "default": null,
+          "help": "Optional explicit id (defaults to TASK-yyyymmdd-<slug>)",
+          "kind": "value",
+          "long": "id",
+          "name": "id",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "title",
+          "name": "title",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "task new",
+      "plugin": "task",
+      "toolspec": null,
+      "usage": "nexoscli task new [flags]"
+    },
+    {
+      "about": "Pause the active task",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "task",
+          "name": "task",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "task pause",
+      "plugin": "task",
+      "toolspec": null,
+      "usage": "nexoscli task pause [flags]"
+    },
+    {
+      "about": "Resume a paused task",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "name",
+          "name": "name",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "task",
+          "name": "task",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "task resume",
+      "plugin": "task",
+      "toolspec": null,
+      "usage": "nexoscli task resume [flags]"
+    },
+    {
+      "about": "Set the stage for a task",
+      "args": [
+        {
+          "default": "local",
+          "help": "Execution engine for this action",
+          "kind": "value",
+          "long": "engine",
+          "name": "engine",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "task",
+          "name": "task",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": null,
+          "name": "arg3",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "task stage",
+      "plugin": "task",
+      "toolspec": null,
+      "usage": "nexoscli task stage [flags]"
+    },
+    {
+      "about": "Start a task (make it active)",
+      "args": [
+        {
+          "default": "local",
+          "help": "Execution engine for this action",
+          "kind": "value",
+          "long": "engine",
+          "name": "engine",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "name",
+          "name": "name",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "task",
+          "name": "task",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "task start",
+      "plugin": "task",
+      "toolspec": null,
+      "usage": "nexoscli task start [flags]"
+    },
+    {
+      "about": "Show task status",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "task",
+          "name": "task",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "task status",
+      "plugin": "task",
+      "toolspec": null,
+      "usage": "nexoscli task status [flags]"
+    },
+    {
+      "about": "Execute a command and capture output",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "cwd",
+          "name": "cwd",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "Exclude globs; defaults: .git/**, .nexoscli/**, target/**, node_modules/**",
+          "kind": "value",
+          "long": "fs-exclude",
+          "name": "fs-exclude",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "Compute sha256 for Create/Modify",
+          "kind": "flag",
+          "long": "fs-hash",
+          "name": "fs-hash",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "Watch roots (repeatable). Defaults to current dir",
+          "kind": "value",
+          "long": "fs-root",
+          "name": "fs-root",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "Enable file-change topic capture during run",
+          "kind": "flag",
+          "long": "fs-topic",
+          "name": "fs-topic",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "Also print child stdout/stderr to console",
+          "kind": "flag",
+          "long": "passthrough",
+          "name": "passthrough",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "sample-kb",
+          "name": "sample-kb",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": null,
+          "name": "arg8",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "term run",
+      "plugin": "term",
+      "toolspec": null,
+      "usage": "nexoscli term run [flags]"
+    },
+    {
+      "about": "Export tools manifest (JSON)",
+      "args": [
+        {
+          "default": null,
+          "help": "Filter to one plugin",
+          "kind": "value",
+          "long": "plugin",
+          "name": "plugin",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "tools export",
+      "plugin": "tools",
+      "toolspec": null,
+      "usage": "nexoscli tools export [flags]"
+    },
+    {
+      "about": "Show version",
+      "args": [],
+      "path": "version",
+      "plugin": "version",
+      "toolspec": null,
+      "usage": "nexoscli version [flags]"
+    },
+    {
+      "about": "Create a workflow spec template",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "id",
+          "name": "id",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "Defaults to .nexoscli/workflows/<id>/spec.yaml",
+          "kind": "value",
+          "long": "out",
+          "name": "out",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "workflow init",
+      "plugin": "workflow",
+      "toolspec": {
+        "args_schema_ref": "schemas/workflow.init.args.json",
+        "name": "workflow.init",
+        "result_schema_ref": "schemas/workflow.init.result.json"
+      },
+      "usage": "nexoscli workflow init [flags]"
+    },
+    {
+      "about": "List workflows using search-attribute filters",
+      "args": [
+        {
+          "default": null,
+          "help": "e.g., 'task_queue=nexos AND owner=christian'",
+          "kind": "value",
+          "long": "filter",
+          "name": "filter",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "workflow list",
+      "plugin": "workflow",
+      "toolspec": {
+        "args_schema_ref": "schemas/workflow.list.args.json",
+        "name": "workflow.list",
+        "result_schema_ref": "schemas/workflow.list.result.json"
+      },
+      "usage": "nexoscli workflow list [flags]"
+    },
+    {
+      "about": "Plan which steps would run (idempotency-aware)",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "spec",
+          "name": "spec",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "workflow plan",
+      "plugin": "workflow",
+      "toolspec": {
+        "args_schema_ref": "schemas/workflow.plan.args.json",
+        "name": "workflow.plan",
+        "result_schema_ref": "schemas/workflow.plan.result.json"
+      },
+      "usage": "nexoscli workflow plan [flags]"
+    },
+    {
+      "about": "Query workflow runtime state",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "id",
+          "name": "id",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": "status",
+          "help": null,
+          "kind": "value",
+          "long": "name",
+          "name": "name",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "workflow query",
+      "plugin": "workflow",
+      "toolspec": {
+        "args_schema_ref": "schemas/workflow.query.args.json",
+        "name": "workflow.query",
+        "result_schema_ref": "schemas/workflow.query.result.json"
+      },
+      "usage": "nexoscli workflow query [flags]"
+    },
+    {
+      "about": "Run a workflow spec sequentially",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "allow-change-ids-drift",
+          "name": "allow-change-ids-drift",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "build-id",
+          "name": "build-id",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "dry-run",
+          "name": "dry-run",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": "local",
+          "help": null,
+          "kind": "value",
+          "long": "engine",
+          "name": "engine",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "spec",
+          "name": "spec",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "workflow run",
+      "plugin": "workflow",
+      "toolspec": {
+        "args_schema_ref": "schemas/workflow.run.args.json",
+        "name": "workflow.run",
+        "result_schema_ref": "schemas/workflow.run.result.json"
+      },
+      "usage": "nexoscli workflow run [flags]"
+    },
+    {
+      "about": "Send a signal to a running workflow",
+      "args": [
+        {
+          "default": "local",
+          "help": null,
+          "kind": "value",
+          "long": "engine",
+          "name": "engine",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "id",
+          "name": "id",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "name",
+          "name": "name",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": "{}",
+          "help": "JSON payload",
+          "kind": "value",
+          "long": "payload",
+          "name": "payload",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "workflow signal",
+      "plugin": "workflow",
+      "toolspec": {
+        "args_schema_ref": "schemas/workflow.signal.args.json",
+        "name": "workflow.signal",
+        "result_schema_ref": "schemas/workflow.signal.result.json"
+      },
+      "usage": "nexoscli workflow signal [flags]"
+    },
+    {
+      "about": "Show effects/history for a spec id (plus visibility if present)",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "id",
+          "name": "id",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "workflow status",
+      "plugin": "workflow",
+      "toolspec": {
+        "args_schema_ref": "schemas/workflow.status.args.json",
+        "name": "workflow.status",
+        "result_schema_ref": "schemas/workflow.status.result.json"
+      },
+      "usage": "nexoscli workflow status [flags]"
+    },
+    {
+      "about": "Upsert search attributes for a workflow",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "multi",
+          "long": "attrs",
+          "name": "attrs",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "id",
+          "name": "id",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "workflow upsert-sa",
+      "plugin": "workflow",
+      "toolspec": {
+        "args_schema_ref": "schemas/workflow.upsert-sa.args.json",
+        "name": "workflow.upsert-sa",
+        "result_schema_ref": "schemas/workflow.upsert-sa.result.json"
+      },
+      "usage": "nexoscli workflow upsert-sa [flags]"
+    },
+    {
+      "about": "Validate a workflow spec (schema + invariants)",
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "spec",
+          "name": "spec",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        }
+      ],
+      "path": "workflow validate",
+      "plugin": "workflow",
+      "toolspec": {
+        "args_schema_ref": "schemas/workflow.validate.args.json",
+        "name": "workflow.validate",
+        "result_schema_ref": "schemas/workflow.validate.result.json"
+      },
+      "usage": "nexoscli workflow validate [flags]"
+    }
+  ],
+  "generated_at": "2025-09-08T00:41:02.765795Z",
+  "root": "nexoscli",
+  "schema": "commands_catalog.v1",
+  "schemas": {
+    "bundle.build.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "include": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "node_id": {
+          "type": "string"
+        },
+        "out": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "node_id"
+      ],
+      "title": "BundleBuildArgs",
+      "type": "object"
+    },
+    "bundle.build.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "checksums": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "inputs": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "checksums",
+        "inputs",
+        "path"
+      ],
+      "title": "BundleBuildResult",
+      "type": "object"
+    },
+    "bundle.verify.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "against": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "BundleVerifyArgs",
+      "type": "object"
+    },
+    "bundle.verify.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "against_ok": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "archive_ok": {
+          "type": "boolean"
+        },
+        "errors": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "manifest_ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "archive_ok",
+        "errors",
+        "manifest_ok"
+      ],
+      "title": "BundleVerifyResult",
+      "type": "object"
+    },
+    "cline.correlate.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "cline.correlate.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "cline.import.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "dry_run": {
+          "default": false,
+          "type": "boolean"
+        },
+        "limit": {
+          "default": null,
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "since": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "storage": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "ImportArgs",
+      "type": "object"
+    },
+    "cline.import.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "TaskRow": {
+          "properties": {
+            "file": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "messages": {
+              "format": "uint",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "state": {
+              "type": "string"
+            },
+            "updated_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "file",
+            "id",
+            "messages",
+            "state"
+          ],
+          "type": "object"
+        }
+      },
+      "properties": {
+        "busy": {
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "changed": {
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "created": {
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "imported": {
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "invalid": {
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "persisted_dir": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "skipped": {
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "tasks": {
+          "items": {
+            "$ref": "#/definitions/TaskRow"
+          },
+          "type": "array"
+        },
+        "unchanged": {
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "busy",
+        "changed",
+        "created",
+        "imported",
+        "invalid",
+        "skipped",
+        "tasks",
+        "unchanged"
+      ],
+      "title": "ImportSummary",
+      "type": "object"
+    },
+    "cline.locate.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "dry_run": {
+          "default": false,
+          "type": "boolean"
+        },
+        "limit": {
+          "default": null,
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "since": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "storage": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "ImportArgs",
+      "type": "object"
+    },
+    "cline.locate.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Candidate": {
+          "properties": {
+            "base": {
+              "type": "string"
+            },
+            "checkpoints_dir": {
+              "type": "string"
+            },
+            "ext_id": {
+              "type": "string"
+            },
+            "latest_mtime": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "tasks_dir": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "base",
+            "checkpoints_dir",
+            "ext_id",
+            "tasks_dir"
+          ],
+          "type": "object"
+        }
+      },
+      "properties": {
+        "candidates": {
+          "items": {
+            "$ref": "#/definitions/Candidate"
+          },
+          "type": "array"
+        },
+        "hints": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "selected": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "candidates",
+        "hints"
+      ],
+      "title": "LocateResult",
+      "type": "object"
+    },
+    "demo.hello.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "HelloArgs",
+      "type": "object"
+    },
+    "demo.hello.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "message"
+      ],
+      "title": "HelloResult",
+      "type": "object"
+    },
+    "dev.doctor.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "checks": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ci": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "title": "DoctorArgs",
+      "type": "object"
+    },
+    "dev.doctor.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "DoctorCiCheck": {
+          "properties": {
+            "detail": {
+              "type": "string"
+            },
+            "fix": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "name": {
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "severity": {
+              "default": "",
+              "type": "string"
+            }
+          },
+          "required": [
+            "detail",
+            "name",
+            "ok"
+          ],
+          "type": "object"
+        }
+      },
+      "properties": {
+        "checks": {
+          "items": {
+            "$ref": "#/definitions/DoctorCiCheck"
+          },
+          "type": "array"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "checks",
+        "ok"
+      ],
+      "title": "DoctorCiResult",
+      "type": "object"
+    },
+    "dev.init.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "dry_run": {
+          "type": "boolean"
+        },
+        "with_config": {
+          "type": "boolean"
+        },
+        "yes": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "dry_run",
+        "with_config",
+        "yes"
+      ],
+      "title": "DevInitArgs",
+      "type": "object"
+    },
+    "dev.init.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "applied": {
+          "type": "boolean"
+        },
+        "planned_actions": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "applied",
+        "planned_actions"
+      ],
+      "title": "DevInitResult",
+      "type": "object"
+    },
+    "dev.plans.archive.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "dry_run": {
+          "default": false,
+          "type": "boolean"
+        },
+        "plan": {
+          "type": "string"
+        },
+        "reason": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "plan"
+      ],
+      "title": "PlanArchiveArgs",
+      "type": "object"
+    },
+    "dev.plans.archive.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "frontmatter": true,
+        "moved_to": {
+          "type": "string"
+        },
+        "plan": {
+          "type": "string"
+        },
+        "rationale": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "frontmatter",
+        "moved_to",
+        "plan"
+      ],
+      "title": "PlanArchiveResult",
+      "type": "object"
+    },
+    "dev.plans.dump.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "dry_run": {
+          "default": false,
+          "type": "boolean"
+        },
+        "plan": {
+          "type": "string"
+        },
+        "reason": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "plan"
+      ],
+      "title": "PlanDumpArgs",
+      "type": "object"
+    },
+    "dev.plans.dump.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "frontmatter": true,
+        "moved_to": {
+          "type": "string"
+        },
+        "plan": {
+          "type": "string"
+        },
+        "rationale": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "frontmatter",
+        "moved_to",
+        "plan"
+      ],
+      "title": "PlanDumpResult",
+      "type": "object"
+    },
+    "dev.plans.finalize.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "bundle_out": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "implemented_in": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "plan": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "PlanFinalizeArgs",
+      "type": "object"
+    },
+    "dev.plans.finalize.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "bundle_out": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "frontmatter": true,
+        "implemented_in": {
+          "type": "string"
+        },
+        "moved_to": {
+          "type": "string"
+        },
+        "plan": {
+          "type": "string"
+        },
+        "task_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "frontmatter",
+        "implemented_in",
+        "moved_to",
+        "plan"
+      ],
+      "title": "PlanFinalizeResult",
+      "type": "object"
+    },
+    "dev.plans.index.build.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "dry_run": {
+          "default": false,
+          "type": "boolean"
+        },
+        "path": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "PlansIndexBuildArgs",
+      "type": "object"
+    },
+    "dev.plans.index.build.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "touched": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "warnings": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "ok",
+        "touched"
+      ],
+      "title": "PlansIndexResult",
+      "type": "object"
+    },
+    "dev.plans.list.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "where": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "PlanListArgs",
+      "type": "object"
+    },
+    "dev.plans.list.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "PlanRow": {
+          "properties": {
+            "file": {
+              "type": "string"
+            },
+            "folder": {
+              "type": "string"
+            },
+            "plan_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "slug": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "status": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "file",
+            "folder"
+          ],
+          "type": "object"
+        }
+      },
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/definitions/PlanRow"
+          },
+          "type": "array"
+        },
+        "total": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "total"
+      ],
+      "title": "PlanListResult",
+      "type": "object"
+    },
+    "dev.plans.next.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "dev.plans.next.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "dev.plans.pause.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "dry_run": {
+          "default": false,
+          "type": "boolean"
+        },
+        "plan": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "PlanPauseArgs",
+      "type": "object"
+    },
+    "dev.plans.pause.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "frontmatter": true,
+        "moved_to": {
+          "type": "string"
+        },
+        "plan": {
+          "type": "string"
+        },
+        "rationale": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "frontmatter",
+        "moved_to",
+        "plan"
+      ],
+      "title": "PlanPauseResult",
+      "type": "object"
+    },
+    "dev.plans.requeue.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "dry_run": {
+          "default": false,
+          "type": "boolean"
+        },
+        "plan": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "PlanRequeueArgs",
+      "type": "object"
+    },
+    "dev.plans.requeue.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "moved_to": {
+          "type": "string"
+        },
+        "plan": {
+          "type": "string"
+        },
+        "warnings": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "moved_to",
+        "plan"
+      ],
+      "title": "PlanRequeueResult",
+      "type": "object"
+    },
+    "dev.plans.resume.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "dry_run": {
+          "default": false,
+          "type": "boolean"
+        },
+        "plan": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "PlanResumeArgs",
+      "type": "object"
+    },
+    "dev.plans.resume.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "current_was_empty": {
+          "type": "boolean"
+        },
+        "moved_to": {
+          "type": "string"
+        },
+        "plan": {
+          "type": "string"
+        },
+        "reconciliation": true
+      },
+      "required": [
+        "current_was_empty",
+        "moved_to",
+        "plan",
+        "reconciliation"
+      ],
+      "title": "PlanResumeResult",
+      "type": "object"
+    },
+    "dev.plans.start.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "dry_run": {
+          "default": false,
+          "type": "boolean"
+        },
+        "plan": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scope": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "PlanStartArgs",
+      "type": "object"
+    },
+    "dev.plans.start.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "moved_from": {
+          "type": "string"
+        },
+        "moved_to": {
+          "type": "string"
+        },
+        "picked_plan": {
+          "type": "string"
+        },
+        "plan_id": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "updated_frontmatter": true
+      },
+      "required": [
+        "moved_from",
+        "moved_to",
+        "picked_plan",
+        "plan_id",
+        "slug",
+        "task_id",
+        "title",
+        "updated_frontmatter"
+      ],
+      "title": "PlanStartResult",
+      "type": "object"
+    },
+    "dev.plans.status.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "plan": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "plan"
+      ],
+      "title": "PlanStatusArgs",
+      "type": "object"
+    },
+    "dev.plans.status.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "frontmatter": true,
+        "plan": {
+          "type": "string"
+        },
+        "plan_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "slug": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "frontmatter",
+        "plan"
+      ],
+      "title": "PlanStatusResult",
+      "type": "object"
+    },
+    "dev.plans.verify.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "path": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "PlansVerifyArgs",
+      "type": "object"
+    },
+    "dev.plans.verify.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "PlansVerifyItem": {
+          "properties": {
+            "count": {
+              "default": null,
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "errors": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "name": {
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "touched": {
+              "default": [],
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "warnings": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "errors",
+            "name",
+            "ok",
+            "warnings"
+          ],
+          "type": "object"
+        }
+      },
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/definitions/PlansVerifyItem"
+          },
+          "type": "array"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "summary": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "items",
+        "ok",
+        "summary"
+      ],
+      "title": "PlansVerifyResult",
+      "type": "object"
+    },
+    "dev.plugin.new.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "desc": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dry_run": {
+          "default": false,
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string"
+        },
+        "register": {
+          "default": false,
+          "type": "boolean"
+        },
+        "yes": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "PluginNewArgs",
+      "type": "object"
+    },
+    "dev.plugin.new.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "created_paths": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "planned_actions": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "registered": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "created_paths",
+        "planned_actions",
+        "registered"
+      ],
+      "title": "PluginNewResult",
+      "type": "object"
+    },
+    "dev.plugins.check.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "fix_readmes": {
+          "default": false,
+          "type": "boolean"
+        },
+        "strict": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "title": "PluginsCheckArgs",
+      "type": "object"
+    },
+    "dev.plugins.check.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "PluginCheck": {
+          "properties": {
+            "bin_dep_ok": {
+              "type": "boolean"
+            },
+            "crate_name_ok": {
+              "type": "boolean"
+            },
+            "errors": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "files_over_err": {
+              "default": [],
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "files_over_warn": {
+              "default": [],
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "has_cargo_toml": {
+              "type": "boolean"
+            },
+            "has_readme": {
+              "type": "boolean"
+            },
+            "has_src_lib": {
+              "type": "boolean"
+            },
+            "has_tests_dir": {
+              "default": false,
+              "type": "boolean"
+            },
+            "main_registered": {
+              "type": "boolean"
+            },
+            "plugin": {
+              "type": "string"
+            },
+            "readme_has_commands_auto": {
+              "default": false,
+              "type": "boolean"
+            },
+            "src_loc_err_over": {
+              "default": 0,
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "src_loc_warn_over": {
+              "default": 0,
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "warnings": {
+              "default": [],
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "bin_dep_ok",
+            "crate_name_ok",
+            "errors",
+            "has_cargo_toml",
+            "has_readme",
+            "has_src_lib",
+            "main_registered",
+            "plugin"
+          ],
+          "type": "object"
+        }
+      },
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/definitions/PluginCheck"
+          },
+          "type": "array"
+        },
+        "not_ok": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "ok": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "total": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "not_ok",
+        "ok",
+        "summary",
+        "total"
+      ],
+      "title": "PluginsCheckResult",
+      "type": "object"
+    },
+    "dev.repo.check.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "dev.repo.check.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "dev.repo.policy.init.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "dev.repo.policy.init.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "dev.repo.readmes.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "dev.repo.readmes.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "dev.telemetry.report.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "since": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "TelemetryReportArgs",
+      "type": "object"
+    },
+    "dev.telemetry.report.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "ErrorCodeRow": {
+          "properties": {
+            "count": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "error_code": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "count",
+            "error_code"
+          ],
+          "type": "object"
+        },
+        "SlowRow": {
+          "properties": {
+            "command": {
+              "type": "string"
+            },
+            "count": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "p90_ms": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "plugin": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "command",
+            "count",
+            "p90_ms",
+            "plugin"
+          ],
+          "type": "object"
+        },
+        "TelemetryByCommand": {
+          "properties": {
+            "avg_ms": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "command": {
+              "type": "string"
+            },
+            "count": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "fail": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "p50_ms": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "p90_ms": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "plugin": {
+              "type": "string"
+            },
+            "success": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "command",
+            "count",
+            "fail",
+            "plugin",
+            "success"
+          ],
+          "type": "object"
+        }
+      },
+      "properties": {
+        "by_command": {
+          "items": {
+            "$ref": "#/definitions/TelemetryByCommand"
+          },
+          "type": "array"
+        },
+        "errors_by_code": {
+          "items": {
+            "$ref": "#/definitions/ErrorCodeRow"
+          },
+          "type": "array"
+        },
+        "slowest_commands": {
+          "items": {
+            "$ref": "#/definitions/SlowRow"
+          },
+          "type": "array"
+        },
+        "total_events": {
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "window_start": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "by_command",
+        "errors_by_code",
+        "slowest_commands",
+        "total_events"
+      ],
+      "title": "TelemetryReport",
+      "type": "object"
+    },
+    "graph.check.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "file": {
+          "default": "docs/exec_graph.yaml",
+          "type": "string"
+        }
+      },
+      "title": "GraphCheckArgs",
+      "type": "object"
+    },
+    "graph.check.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "acyclic": {
+          "type": "boolean"
+        },
+        "errors": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "node_count": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "unique_ids": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "acyclic",
+        "errors",
+        "node_count",
+        "unique_ids"
+      ],
+      "title": "CheckSummary",
+      "type": "object"
+    },
+    "graph.impact.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "file": {
+          "default": "docs/exec_graph.yaml",
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "GraphImpactArgs",
+      "type": "object"
+    },
+    "graph.impact.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "impacted": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "impacted"
+      ],
+      "title": "GraphImpactResult",
+      "type": "object"
+    },
+    "issue.close.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "reason": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "CloseArgs",
+      "type": "object"
+    },
+    "issue.close.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "state"
+      ],
+      "title": "CloseResult",
+      "type": "object"
+    },
+    "issue.list.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "state": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "title": "IssueListArgs",
+      "type": "object"
+    },
+    "issue.list.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Issue": {
+          "properties": {
+            "body": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "created_at": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "labels": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "state": {
+              "$ref": "#/definitions/IssueState"
+            },
+            "title": {
+              "type": "string"
+            },
+            "updated_at": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "created_at",
+            "id",
+            "labels",
+            "state",
+            "title",
+            "updated_at"
+          ],
+          "type": "object"
+        },
+        "IssueState": {
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "type": "string"
+        }
+      },
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/definitions/Issue"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "title": "IssueListResult",
+      "type": "object"
+    },
+    "issue.new.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "body": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "labels": {
+          "default": null,
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "title": "IssueNewArgs",
+      "type": "object"
+    },
+    "issue.new.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "IssueState": {
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "type": "string"
+        }
+      },
+      "properties": {
+        "body": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "labels": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "state": {
+          "$ref": "#/definitions/IssueState"
+        },
+        "title": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "created_at",
+        "id",
+        "labels",
+        "state",
+        "title",
+        "updated_at"
+      ],
+      "title": "Issue",
+      "type": "object"
+    },
+    "issue.show.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "ShowArgs",
+      "type": "object"
+    },
+    "issue.show.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "IssueState": {
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "type": "string"
+        }
+      },
+      "properties": {
+        "body": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "labels": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "state": {
+          "$ref": "#/definitions/IssueState"
+        },
+        "title": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "created_at",
+        "id",
+        "labels",
+        "state",
+        "title",
+        "updated_at"
+      ],
+      "title": "Issue",
+      "type": "object"
+    },
+    "replay.bag.verify.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "bag": {
+          "type": "string"
+        },
+        "index": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "strict": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "bag"
+      ],
+      "title": "BagVerifyArgs",
+      "type": "object"
+    },
+    "replay.bag.verify.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "BagVerifyIssue": {
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            },
+            "path": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "properties": {
+        "bag_dir": {
+          "type": "string"
+        },
+        "chain_ok": {
+          "default": null,
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "count": {
+          "default": null,
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "counts": true,
+        "events": true,
+        "first_seq": {
+          "default": null,
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "index_check": {
+          "default": null
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/definitions/BagVerifyIssue"
+          },
+          "type": "array"
+        },
+        "last_seq": {
+          "default": null,
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "manifest_schema": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "bag_dir",
+        "counts",
+        "events",
+        "issues",
+        "ok"
+      ],
+      "title": "BagVerifySummary",
+      "type": "object"
+    },
+    "replay.export.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "replay.export.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "replay.fileops.derive.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "bag": {
+          "type": "string"
+        },
+        "out": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "bag"
+      ],
+      "title": "FileopsDeriveArgs",
+      "type": "object"
+    },
+    "replay.fileops.derive.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "bag": {
+          "type": "string"
+        },
+        "lines": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "out": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "bag",
+        "lines",
+        "out"
+      ],
+      "title": "FileopsDeriveResult",
+      "type": "object"
+    },
+    "replay.normalize.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "bag": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "events": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "out": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "run_id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "to": {
+          "type": "string"
+        },
+        "update_manifest": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "to"
+      ],
+      "title": "NormalizeArgs",
+      "type": "object"
+    },
+    "replay.normalize.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "in_lines": {
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "out": {
+          "type": "string"
+        },
+        "out_lines": {
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "run_id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "schema": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "in_lines",
+        "out",
+        "out_lines",
+        "schema",
+        "sha256"
+      ],
+      "title": "NormalizeResult",
+      "type": "object"
+    },
+    "replay.schema.events.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "version"
+      ],
+      "title": "SchemaArgs",
+      "type": "object"
+    },
+    "replay.schema.events.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "example": true,
+        "kind": {
+          "type": "string"
+        },
+        "schema": true,
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "example",
+        "kind",
+        "schema",
+        "version"
+      ],
+      "title": "SchemaResult",
+      "type": "object"
+    },
+    "replay.schema.get.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "out": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "SchemaGetArgs",
+      "type": "object"
+    },
+    "replay.schema.get.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "bytes": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "written": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "bytes",
+        "id",
+        "name",
+        "version"
+      ],
+      "title": "SchemaGetResult",
+      "type": "object"
+    },
+    "replay.schema.list.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "replay.schema.list.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "SchemaRow": {
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "id",
+            "name",
+            "version"
+          ],
+          "type": "object"
+        }
+      },
+      "properties": {
+        "schemas": {
+          "items": {
+            "$ref": "#/definitions/SchemaRow"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "schemas"
+      ],
+      "title": "SchemaListResult",
+      "type": "object"
+    },
+    "replay.validate.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "bag": {
+          "type": "string"
+        },
+        "what": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "bag"
+      ],
+      "title": "ValidateArgs",
+      "type": "object"
+    },
+    "replay.validate.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "ArtifactReport": {
+          "properties": {
+            "errors": {
+              "default": [],
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "invalid": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "lines": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "valid": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "invalid",
+            "lines",
+            "ok",
+            "valid"
+          ],
+          "type": "object"
+        }
+      },
+      "properties": {
+        "bag": {
+          "type": "string"
+        },
+        "events": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ArtifactReport"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "fileops": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ArtifactReport"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "summary_ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "bag",
+        "summary_ok"
+      ],
+      "title": "ValidateResult",
+      "type": "object"
+    },
+    "replay.verify.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "format": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "git_check": {
+          "default": false,
+          "type": "boolean"
+        },
+        "path": {
+          "type": "string"
+        },
+        "skip": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "VerifyArgs",
+      "type": "object"
+    },
+    "replay.verify.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "ArtifactReport": {
+          "properties": {
+            "errors": {
+              "default": [],
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "invalid": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "lines": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "valid": {
+              "format": "uint64",
+              "minimum": 0.0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "invalid",
+            "lines",
+            "ok",
+            "valid"
+          ],
+          "type": "object"
+        },
+        "Finding": {
+          "properties": {
+            "check": {
+              "type": "string"
+            },
+            "hint": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "level": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "check",
+            "level",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "properties": {
+        "cline_coverage": {
+          "default": null
+        },
+        "counts_match": {
+          "default": null
+        },
+        "events": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ArtifactReport"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "fileops": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ArtifactReport"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "findings": {
+          "items": {
+            "$ref": "#/definitions/Finding"
+          },
+          "type": "array"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "patches_check": {
+          "default": null,
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "run_id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "suggestions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "totals": true
+      },
+      "required": [
+        "findings",
+        "ok",
+        "totals"
+      ],
+      "title": "VerifyReport",
+      "type": "object"
+    },
+    "rules.export.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "audience": {
+          "type": "string"
+        },
+        "out": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "audience"
+      ],
+      "title": "ExportArgs",
+      "type": "object"
+    },
+    "rules.export.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "rules.lint.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "rules.lint.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "LintIssue": {
+          "properties": {
+            "file": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "file",
+            "message"
+          ],
+          "type": "object"
+        }
+      },
+      "properties": {
+        "files": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/definitions/LintIssue"
+          },
+          "type": "array"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "files",
+        "issues",
+        "ok"
+      ],
+      "title": "LintResult",
+      "type": "object"
+    },
+    "workflow.init.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "workflow.init.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "workflow.list.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "workflow.list.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "Visibility": {
+          "properties": {
+            "attempts": {
+              "default": 0,
+              "format": "uint32",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "build_id": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "failed": {
+              "default": 0,
+              "format": "uint",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "id": {
+              "type": "string"
+            },
+            "last_step": {
+              "default": null,
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "memo": {
+              "additionalProperties": true,
+              "default": {},
+              "type": "object"
+            },
+            "ran": {
+              "default": 0,
+              "format": "uint",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "search_attributes": {
+              "additionalProperties": true,
+              "default": {},
+              "type": "object"
+            },
+            "skipped": {
+              "default": 0,
+              "format": "uint",
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "started_at": {
+              "type": "string"
+            },
+            "state": {
+              "type": "string"
+            },
+            "updated_at": {
+              "default": "",
+              "type": "string"
+            },
+            "used_change_ids": {
+              "default": [],
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "id",
+            "started_at",
+            "state"
+          ],
+          "type": "object"
+        }
+      },
+      "items": {
+        "$ref": "#/definitions/Visibility"
+      },
+      "title": "Array_of_Visibility",
+      "type": "array"
+    },
+    "workflow.plan.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "workflow.plan.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "definitions": {
+        "PlanRow": {
+          "properties": {
+            "activity": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "step_id": {
+              "type": "string"
+            },
+            "would_run": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "activity",
+            "reason",
+            "step_id",
+            "would_run"
+          ],
+          "type": "object"
+        }
+      },
+      "properties": {
+        "spec_id": {
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/definitions/PlanRow"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "spec_id",
+        "steps"
+      ],
+      "title": "PlanSummary",
+      "type": "object"
+    },
+    "workflow.query.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "workflow.query.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "attempts": {
+          "default": 0,
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "build_id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "failed": {
+          "default": 0,
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "last_step": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "memo": {
+          "additionalProperties": true,
+          "default": {},
+          "type": "object"
+        },
+        "ran": {
+          "default": 0,
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "search_attributes": {
+          "additionalProperties": true,
+          "default": {},
+          "type": "object"
+        },
+        "skipped": {
+          "default": 0,
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "started_at": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "",
+          "type": "string"
+        },
+        "used_change_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "started_at",
+        "state"
+      ],
+      "title": "Visibility",
+      "type": "object"
+    },
+    "workflow.run.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "workflow.run.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "failed": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "finished_at": {
+          "type": "string"
+        },
+        "ran": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "skipped": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "spec_id": {
+          "type": "string"
+        },
+        "started_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "failed",
+        "finished_at",
+        "ran",
+        "skipped",
+        "spec_id",
+        "started_at"
+      ],
+      "title": "RunSummary",
+      "type": "object"
+    },
+    "workflow.signal.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "workflow.signal.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "workflow.status.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "workflow.status.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "workflow.upsert-sa.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "workflow.upsert-sa.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "attempts": {
+          "default": 0,
+          "format": "uint32",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "build_id": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "failed": {
+          "default": 0,
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "last_step": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "memo": {
+          "additionalProperties": true,
+          "default": {},
+          "type": "object"
+        },
+        "ran": {
+          "default": 0,
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "search_attributes": {
+          "additionalProperties": true,
+          "default": {},
+          "type": "object"
+        },
+        "skipped": {
+          "default": 0,
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "started_at": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "",
+          "type": "string"
+        },
+        "used_change_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "started_at",
+        "state"
+      ],
+      "title": "Visibility",
+      "type": "object"
+    },
+    "workflow.validate.args.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AnyValue"
+    },
+    "workflow.validate.result.json": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "properties": {
+        "change_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "errors": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "spec_id": {
+          "type": "string"
+        },
+        "step_count": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "change_ids",
+        "errors",
+        "spec_id",
+        "step_count",
+        "warnings"
+      ],
+      "title": "ValidateReport",
+      "type": "object"
+    }
+  },
+  "version": "0.1.0"
+}

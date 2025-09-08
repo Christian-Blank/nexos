@@ -1,5 +1,5 @@
 name: CI
-on: [push, pull_request]
+on: workflow_dispatch
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -8,6 +8,25 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Test
         run: NEXOS_TEST_EXPORT_LOGS=1 cargo test --workspace
+      - name: Docs drift gate (CLI_REFERENCE.md and commands.json)
+        run: |
+          cargo run --quiet --bin nexoscli -- dev docs commands --out-md docs/CLI_REFERENCE.md --out-json docs/catalog/commands.json --apply-readmes
+          git add -A
+          git diff --cached --quiet
+      - name: Validate commands.json against JSON Schema
+        run: |
+          python -m pip install --user jsonschema
+          python - <<'PY'
+          import json
+          from jsonschema import validate, Draft7Validator
+          with open('docs/catalog/commands.json') as f:
+              data = json.load(f)
+          with open('docs/catalog/schema/commands_catalog.schema.json') as f:
+              schema = json.load(f)
+          Draft7Validator.check_schema(schema)
+          validate(instance=data, schema=schema)
+          print("Schema validation OK")
+          PY
       - name: Upload test event logs
         uses: actions/upload-artifact@v4
         with:

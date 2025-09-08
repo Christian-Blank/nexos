@@ -436,6 +436,13 @@ impl Plugin for DevPlugin {
                            .arg(Arg::new("policy").long("policy").required(false).value_name("PATH"))
                            .arg(Arg::new("apply").long("apply").action(ArgAction::SetTrue))
                       )
+                      .subcommand(
+                         Command::new("args-enforce").about("Enforce dual-derive and ban ArgMatches parsing (scoped)")
+                           .arg(Arg::new("migrated").long("migrated").required(false).value_name("PATH")
+                                .help("File with list of relative file paths (one per line) to enforce derives for"))
+                           .arg(Arg::new("allow-list").long("allow-list").required(false).value_name("PATH")
+                                .help("File with list of relative file paths allowed to use ArgMatches imperative parsing"))
+                      )
                 )
                 // dev log
                 .subcommand(cmd_log::subcommand())
@@ -917,6 +924,92 @@ impl Plugin for DevPlugin {
                         let res = crate::repo::check_repo(&root, pol.as_deref(), apply)?;
                         let exit = ctx.ok("dev","repo.readmes",&res);
                         return Ok(exit);
+                    }
+                    Some(("args-enforce", em)) => {
+                        use std::collections::HashSet;
+                        let root = std::env::current_dir()?;
+                        let migrated_path = em.get_one::<String>("migrated").map(|s| root.join(s));
+                        let allow_path = em.get_one::<String>("allow-list").map(|s| root.join(s));
+
+                        let read_list = |p: Option<&PathBuf>| -> HashSet<String> {
+                            match p {
+                                Some(path) => {
+                                    std::fs::read_to_string(path).ok()
+                                        .map(|s| s.lines()
+                                            .map(|l| l.trim().to_string())
+                                            .filter(|l| !l.is_empty() && !l.starts_with('#'))
+                                            .collect::<HashSet<_>>())
+                                        .unwrap_or_default()
+                                }
+                                None => HashSet::new()
+                            }
+                        };
+                        let migrated: HashSet<String> = read_list(migrated_path.as_ref());
+                        let allow: HashSet<String> = read_list(allow_path.as_ref());
+
+                        let plugins_dir = root.join("plugins");
+                        let mut stack: Vec<PathBuf> = vec![];
+                        if plugins_dir.exists() { stack.push(plugins_dir); }
+
+                        let mut violations: Vec<serde_json::Value> = vec![];
+                        let mut derive_missing: Vec<String> = vec![];
+
+                        while let Some(dir) = stack.pop() {
+                            for ent in std::fs::read_dir(&dir)? {
+                                let ent = ent?;
+                                let p = ent.path();
+                                if ent.file_type()?.is_dir() {
+                                    stack.push(p);
+                                } else if p.extension() == Some(OsStr::new("rs")) {
+                                    if let Some(fname) = p.file_name().and_then(|s| s.to_str()) {
+                                        if !fname.starts_with("cmd_") { continue; }
+                                    } else { continue; }
+                                    let rel = p.strip_prefix(&root).unwrap_or(&p).display().to_string();
+                                    let txt = std::fs::read_to_string(&p).unwrap_or_default();
+
+                                    // Imperative ArgMatches parsing banned unless allow-listed
+                                    if !allow.contains(&rel) {
+                                        if txt.contains("get_one::<") || txt.contains("get_flag(") {
+                                            violations.push(serde_json::json!({"file": rel, "reason": "imperative ArgMatches parsing (get_one/get_flag)"}));
+                                        }
+                                    }
+
+                                    // Derive enforcement for migrated files (Args + JsonSchema + Ser/De)
+                                    if migrated.contains(&rel) {
+                                        let has_derive = txt.contains("#[derive(")
+                                            && txt.contains("clap::Args")
+                                            && txt.contains("JsonSchema")
+                                            && txt.contains("Serialize")
+                                            && txt.contains("Deserialize");
+                                        if !has_derive {
+                                            derive_missing.push(rel.clone());
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if !violations.is_empty() || !derive_missing.is_empty() {
+                            let out = serde_json::json!({
+                                "ok": false,
+                                "violations": violations,
+                                "derive_missing": derive_missing
+                            });
+                            let exit = ctx.err("dev","repo.args-enforce","repo.args.invalid",
+                                &format!("violations={} derive_missing={}", 
+                                    out["violations"].as_array().map(|a| a.len()).unwrap_or(0),
+                                    out["derive_missing"].as_array().map(|a| a.len()).unwrap_or(0)
+                                ),
+                                Some("Migrate to #[derive(Args, JsonSchema, Serialize, Deserialize)] and avoid ArgMatches imperative parsing or list file in allow-list"),
+                                2);
+                            return Ok(exit);
+                        } else {
+                            let out = serde_json::json!({
+                                "ok": true
+                            });
+                            let exit = ctx.ok("dev","repo.args-enforce",&out);
+                            return Ok(exit);
+                        }
                     }
                     _ => Ok(2),
                 }

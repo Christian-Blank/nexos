@@ -1,0 +1,17 @@
+{
+  "id": "TASK-20250908-plan-55-agent-grade-command-catalog-schema-gates-commands-json-toolspec-parity",
+  "title": "PLAN‑55 — Agent‑grade command catalog & schema gates (commands.json + ToolSpec parity)",
+  "stage": "done",
+  "status": "ended",
+  "created_at": "2025-09-08T01:15:32.674952Z",
+  "started_at": "2025-09-08T01:15:32.682081Z",
+  "ended_at": "2025-09-08T01:15:50.409829Z",
+  "sessions": [
+    {
+      "id": "SES-1fb2e501c7c6",
+      "start": "2025-09-08T01:15:32.682119Z",
+      "end": "2025-09-08T01:15:50.40975Z"
+    }
+  ],
+  "notes": []
+}
