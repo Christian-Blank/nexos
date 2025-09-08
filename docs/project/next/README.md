@@ -88,5 +88,5 @@ Provide a deterministic queue of plans to start next, respecting dependencies an
 ## Plans Index
 
 <!-- BEGIN: AUTO (id=plans-index) -->
-_No plan files currently listed in this folder._
+- [PLAN-55_command-catalog-and-schemas.md](./PLAN-55_command-catalog-and-schemas.md)
 <!-- END: AUTO -->

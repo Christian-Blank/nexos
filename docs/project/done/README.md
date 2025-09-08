@@ -102,6 +102,7 @@ Preserve finalized plans with their recorded metadata (implemented_in, completed
 - [PLAN-51_plan-lifecycle-ops.md](./PLAN-51_plan-lifecycle-ops.md)
 - [PLAN-52_analysis-entryspec-and-templates.md](./PLAN-52_analysis-entryspec-and-templates.md)
 - [PLAN-53_cli-modularization-and-docs.md](./PLAN-53_cli-modularization-and-docs.md)
+- [PLAN-54_docs-and-reference-exporter.md](./PLAN-54_docs-and-reference-exporter.md)
 - [plan-26_contract_freeze.md](./plan-26_contract_freeze.md)
 - [plan-27_doctor_checks.md](./plan-27_doctor_checks.md)
 - [plan-28_doctor-events-schema.md](./plan-28_doctor-events-schema.md)
