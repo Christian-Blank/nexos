@@ -1058,6 +1058,35 @@
       "usage": "nexoscli dev plugins check [flags]"
     },
     {
+      "about": "Enforce dual-derive and ban ArgMatches parsing (scoped)",
+      "args": [
+        {
+          "default": null,
+          "help": "File with list of relative file paths allowed to use ArgMatches imperative parsing",
+          "kind": "value",
+          "long": "allow-list",
+          "name": "allow-list",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": "File with list of relative file paths (one per line) to enforce derives for",
+          "kind": "value",
+          "long": "migrated",
+          "name": "migrated",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
+      "path": "dev repo args-enforce",
+      "plugin": "dev",
+      "toolspec": null,
+      "usage": "nexoscli dev repo args-enforce [flags]"
+    },
+    {
       "about": "Validate structure against policy",
       "args": [
         {

@@ -1,3 +1,228 @@
+Patches for updated Plan, we want to use Postgres
+
+Great catch—let’s switch everything over to Postgres for Temporal. Below is a drop‑in update to the plan you pasted, replacing SQLite with a clean Postgres setup and keeping Python 3.13 + uv. I’ve kept the structure identical so you can copy/paste the files.
+
+⸻
+
+1) docs/project/next/PLAN-56_temporal-v0-git-files-to-md.md (updated for Postgres)
+
+---
+id: 56
+title: "Temporal v0: list files of last commit on main → write Markdown to repo"
+status: next
+owner: "@temporal/dri"
+created: 2025-09-08
+depends_on: [53,54,55]
+out_of_scope:
+  - Committing the generated file (done in Plan 57)
+  - Telemetry refactor (follow-up)
+goal: >
+  Prove end-to-end Temporal integration by running a CLI activity that uses git + filesystem:
+  resolve last commit on main, list files, write a Markdown doc back into the repo.
+success_metrics:
+  - temporal: outbox → drainer → worker → activity path executes successfully
+  - artifact: docs/commits/<sha>.md exists with N≥1 lines
+  - rerun: idempotent step in workflow skips when inputs unchanged
+  - local-only: same command works via local engine (no Temporal)
+  - infra: Temporal server persists state in **Postgres** (not SQLite)
+deliverables:
+  - plugins/git: `git last-commit-files` + `git last-commit-files-md`
+  - workflow spec: `.nexoscli/workflows/WF-temporal-v0/spec.yaml`
+  - adapters/temporal-worker: Python 3.13 + uv, typed
+  - **docker-compose.temporal.postgres.yml**: Postgres + Temporal + UI + worker + drainer (standalone)
+acceptance_criteria:
+  - [ ] `cargo build` succeeds including `plugins/git`
+  - [ ] `./target/debug/nexoscli git last-commit-files --branch main --mode diff` returns JSON with {commit, files[]}
+  - [ ] `./target/debug/nexoscli git last-commit-files-md --branch main --out docs/commits/{sha}.md` writes a Markdown file
+  - [ ] `./target/debug/nexoscli workflow run --spec .nexoscli/workflows/WF-temporal-v0/spec.yaml --engine temporal --output json` emits outbox files
+  - [ ] `uv run --project adapters/temporal-worker nexos-temporal-drain` + worker produces the Markdown file
+  - [ ] Re-run with same inputs is idempotent (workflow shows “idempotent match” for the step)
+  - [ ] Temporal runs against **Postgres** and remains healthy across container restarts
+plan:
+  - A) Add `plugins/git` (two commands; JSON envelopes; ToolSpecs)
+  - B) Add workflow spec `WF-temporal-v0`
+  - C) Upgrade adapters/temporal-worker to Python 3.13 + uv; keep types
+  - D) Supply **docker-compose.temporal.postgres.yml** for Postgres-backed Temporal + UI + worker + drainer
+risks:
+  - Non-main default branch → mitigated by `--branch` flag, default=main with fallback to HEAD
+  - Git not present in PATH inside containers → worker/drainer install `git`
+  - File permissions on bind mounts → instruct running compose on repo root with proper UID/GID
+  - Postgres boot order → temporal depends_on postgres; healthcheck ensures readiness
+
+
+⸻
+
+2) plugins/git (unchanged from your plan)
+
+Keep exactly as in the plan you pasted. No DB involvement here.
+
+⸻
+
+3) Minimal workflow spec (unchanged)
+
+.nexoscli/workflows/WF-temporal-v0/spec.yaml — same as in your paste (no DB coupling).
+
+⸻
+
+4) Temporal bridge tweaks (Python 3.13 + uv, typed)
+
+Keep the pyproject.toml change you already had (Python 3.13, typing-extensions, mypy/ruff optional). No DB code changes are needed in worker/drainer—the Temporal server handles storage via Postgres.
+
+⸻
+
+5) Standalone Temporal stack with Postgres (drop-in compose)
+
+Create docker-compose.temporal.postgres.yml at the repo root:
+
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      - POSTGRES_USER=temporal
+      - POSTGRES_PASSWORD=temporal
+      - POSTGRES_DB=temporal
+    ports:
+      - "5432:5432"
+    volumes:
+      - temporal_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  temporal:
+    image: temporalio/auto-setup:1.23
+    environment:
+      # Switch from sqlite → **postgresql**
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_SEEDS=postgres
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - LOG_LEVEL=info
+      # Optional: enable default dynamic config
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development.yaml
+    ports:
+      - "7233:7233"   # Temporal frontend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "127.0.0.1:7233", "cluster", "health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  temporal-ui:
+    image: temporalio/ui:latest
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+    ports:
+      - "8233:8080"   # Temporal UI
+    depends_on:
+      - temporal
+
+  worker:
+    image: python:3.13-slim
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace:cached
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_NAMESPACE=default
+      - TEMPORAL_TASK_QUEUE=nexos
+      - NEXOSCLI_BIN=/workspace/target/debug/nexoscli
+    command: >
+      sh -lc "
+        set -e
+        apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git && rm -rf /var/lib/apt/lists/* &&
+        curl -LsSf https://astral.sh/uv/install.sh | sh -s -- --yes --bin-dir /usr/local/bin &&
+        uv run --project adapters/temporal-worker nexos-temporal-worker
+      "
+    depends_on:
+      - temporal
+
+  drainer:
+    image: python:3.13-slim
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace:cached
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_NAMESPACE=default
+      - TEMPORAL_TASK_QUEUE=nexos
+    command: >
+      sh -lc "
+        set -e
+        apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git && rm -rf /var/lib/apt/lists/* &&
+        curl -LsSf https://astral.sh/uv/install.sh | sh -s -- --yes --bin-dir /usr/local/bin &&
+        uv run --project adapters/temporal-worker nexos-temporal-drain --outbox .nexoscli/engine/outbox
+      "
+    depends_on:
+      - temporal
+      - worker
+
+volumes:
+  temporal_pg_data:
+
+What changed vs. the SQLite compose
+	•	Added a Postgres service with persistent volume temporal_pg_data.
+	•	Set DB=postgresql and Postgres connection envs on the Temporal service.
+	•	Kept UI, worker, drainer the same, but ensured git is installed and uv is the default Python runner.
+
+Notes
+	•	The temporalio/auto-setup image will create both temporal and temporal_visibility DBs as needed using the temporal superuser.
+	•	You must have a local nexoscli binary at target/debug/nexoscli before starting the stack (or adjust NEXOSCLI_BIN).
+
+⸻
+
+6) Runbook (Postgres)
+
+# 0) Build the CLI so the worker can shell out to it
+cargo build --workspace
+
+# 1) Bring up Postgres + Temporal + UI + worker + drainer
+docker compose -f docker-compose.temporal.postgres.yml up -d postgres temporal temporal-ui worker drainer
+
+# 2) Sanity-check Temporal (UI)
+#    http://localhost:8233
+
+# 3) Produce outbox envelopes (from repo root, host shell)
+./target/debug/nexoscli workflow run \
+  --spec .nexoscli/workflows/WF-temporal-v0/spec.yaml \
+  --engine temporal \
+  --output json
+
+# 4) The drainer consumes envelopes → worker runs activity → Markdown appears
+ls docs/commits/
+
+Restart behavior: because Temporal persists to Postgres, docker compose down && up will retain workflow history and state.
+
+⸻
+
+7) PLAN‑57 (AI Changelog) — unchanged, but compatible
+
+Your stub PLAN‑57 stands as‑is; no DB changes required. It’ll run atop the same Temporal+Postgres stack.
+
+⸻
+
+Why Postgres here?
+	•	We align with your stack preference and ensure durable, restart‑safe state for Temporal beyond ephemeral dev cycles.
+	•	Keeps telemetry concerns separate (we’ll refactor that later per your note), and it doesn’t affect the Python bridge or Rust plugins.
+
+⸻
+
+Quick diff (if helpful)
+	•	Replace your previous docker-compose.temporal.yml with the new docker-compose.temporal.postgres.yml above.
+	•	Update the PLAN‑56 doc’s Deliverables/Acceptance to explicitly call out Postgres (already reflected).
+
+If you want, I can also prep a ready‑to‑apply patch (git diff) that adds the compose file and updated PLAN‑56 doc.
+
+======= Original Plan ====
+
 Fantastic—this is exactly the kind of “tight, first win” we want for Temporal. Below you’ll find:
 	1.	PLAN‑56 (ready to drop into docs/project/next/)
 	2.	A minimal Git/FS plugin (plugins/git) that implements the v0 use case

@@ -240,7 +240,7 @@ Requeue a paused plan to docs/project/backlog for reprioritization. Warns on num
 
 <!-- BEGIN: AUTO (id=commands) -->
 - dev docs build — Generate CLI reference and Rules doc
-- dev docs commands — Generate CLI reference from introspection and update plugin READMEs
+- dev docs commands — Generate CLI reference/catalog and update plugin READMEs
 - dev doctor — Environment & hygiene checks
 - dev init — Initialize .nexoscli/ (Plan/Apply, idempotent)
 - dev log rotate — Rotate .nexoscli/log/events.jsonl into timestamped segments with chain manifests
@@ -259,6 +259,7 @@ Requeue a paused plan to docs/project/backlog for reprioritization. Warns on num
 - dev plans verify — Validate plan lifecycle folder rules
 - dev plugin new — Scaffold a new plugin under plugins/<name>
 - dev plugins check — Verify structure and registration for all plugins/*
+- dev repo args-enforce — Enforce dual-derive and ban ArgMatches parsing (scoped)
 - dev repo check — Validate structure against policy
 - dev repo policy init — Write default .nexoscli/repo_policy.yaml
 - dev repo readmes — Scaffold missing folder READMEs

@@ -88,5 +88,17 @@ Provide a deterministic queue of plans to start next, respecting dependencies an
 ## Plans Index
 
 <!-- BEGIN: AUTO (id=plans-index) -->
-- [PLAN-55_command-catalog-and-schemas.md](./PLAN-55_command-catalog-and-schemas.md)
+- [PLAN-58_repo-structure-gates-and-enforcement.md](./PLAN-58_repo-structure-gates-and-enforcement.md) (depends_on: [55])
+- [PLAN-59_migrate-demo-plugin.md](./PLAN-59_migrate-demo-plugin.md) (depends_on: [58])
+- [PLAN-60_migrate-graph-plugin.md](./PLAN-60_migrate-graph-plugin.md) (depends_on: [58])
+- [PLAN-61_migrate-rules-plugin.md](./PLAN-61_migrate-rules-plugin.md) (depends_on: [58])
+- [PLAN-62_migrate-term-plugin.md](./PLAN-62_migrate-term-plugin.md) (depends_on: [58])
+- [PLAN-63_migrate-issue-plugin.md](./PLAN-63_migrate-issue-plugin.md) (depends_on: [58])
+- [PLAN-64_migrate-cline-plugin.md](./PLAN-64_migrate-cline-plugin.md) (depends_on: [58])
+- [PLAN-65_migrate-workflow-plugin.md](./PLAN-65_migrate-workflow-plugin.md) (depends_on: [58])
+- [PLAN-66_migrate-replay-plugin.md](./PLAN-66_migrate-replay-plugin.md) (depends_on: [58])
+- [PLAN-67_migrate-task-plugin.md](./PLAN-67_migrate-task-plugin.md) (depends_on: [58])
+- [PLAN-68_migrate-bundle-plugin.md](./PLAN-68_migrate-bundle-plugin.md) (depends_on: [58])
+- [PLAN-69_dev-plugin-completion-and-cleanup.md](./PLAN-69_dev-plugin-completion-and-cleanup.md) (depends_on: [58])
+- [PLAN-70_repo-wide-hardening-and-finalize.md](./PLAN-70_repo-wide-hardening-and-finalize.md) (depends_on: [58,59,60,61,62,63,64,65,66,67,68,69])
 <!-- END: AUTO -->
