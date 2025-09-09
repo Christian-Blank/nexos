@@ -1,6 +1,6 @@
-use clap::{Arg, ArgMatches, Command};
-use serde::{Deserialize, Serialize};
+use clap::{ArgMatches, Command};
 use schemars::{schema_for, JsonSchema};
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
@@ -8,23 +8,8 @@ use std::path::PathBuf;
 use nexoscli_core::plugin::{CommandContext, Plugin, ToolSpec};
 use nexoscli_core::Result;
 
-#[derive(Debug, Deserialize)]
-struct ExecGraph {
-    #[allow(dead_code)]
-    id: String,
-    nodes: Vec<Node>,
-}
-
-#[derive(Debug, Deserialize)]
-struct Node {
-    id: String,
-    #[serde(default)]
-    #[serde(rename = "type")]
-    #[allow(dead_code)]
-    kind: Option<String>,
-    #[serde(default)]
-    deps: Vec<String>, // dependencies this node relies on
-}
+mod cmd_check;
+mod cmd_impact;
 
 pub struct GraphPlugin;
 
@@ -51,62 +36,15 @@ impl Plugin for GraphPlugin {
         app.subcommand(
             Command::new("graph")
                 .about("Graph tools")
-                .subcommand(
-                    Command::new("check")
-                        .about("Validate docs/exec_graph.yaml (acyclic, unique ids)")
-                        .arg(
-                            Arg::new("file")
-                                .long("file")
-                                .value_name("PATH")
-                                .default_value("docs/exec_graph.yaml"),
-                        ),
-                )
-                .subcommand(
-                    Command::new("impact")
-                        .about("List nodes impacted (downstream) by the given id")
-                        .arg(Arg::new("id").required(true))
-                        .arg(
-                            Arg::new("file")
-                                .long("file")
-                                .value_name("PATH")
-                                .default_value("docs/exec_graph.yaml"),
-                        ),
-                ),
+                .subcommand(cmd_check::subcommand())
+                .subcommand(cmd_impact::subcommand()),
         )
     }
 
     fn execute(&self, sub_matches: &ArgMatches, ctx: &CommandContext) -> Result<i32> {
         match sub_matches.subcommand() {
-            Some(("check", m)) => {
-                let path = m.get_one::<String>("file").unwrap();
-                let g = load_graph(path)?;
-                let summary = check_graph(&g);
-                let exit = if summary.errors.is_empty() {
-                    ctx.ok("graph", "check", &summary)
-                } else {
-                    ctx.err(
-                        "graph",
-                        "check",
-                        "graph.invalid",
-                        "graph has errors",
-                        Some("fix errors listed in data.errors"),
-                        2,
-                    )
-                };
-                Ok(exit)
-            }
-            Some(("impact", m)) => {
-                let path = m.get_one::<String>("file").unwrap();
-                let id = m.get_one::<String>("id").unwrap();
-                let g = load_graph(path)?;
-                let impacted = impact(&g, id);
-                let exit = ctx.ok(
-                    "graph",
-                    "impact",
-                    &serde_json::json!({ "id": id, "impacted": impacted }),
-                );
-                Ok(exit)
-            }
+            Some(("check", m)) => cmd_check::run(m, ctx),
+            Some(("impact", m)) => cmd_impact::run(m, ctx),
             _ => Ok(2),
         }
     }
@@ -116,56 +54,51 @@ impl Plugin for GraphPlugin {
             ToolSpec {
                 name: "graph.check".to_string(),
                 about: "Validate docs/exec_graph.yaml (acyclic, unique ids)".to_string(),
-                args_schema: schema_for!(GraphCheckArgs),
+                args_schema: schema_for!(cmd_check::GraphCheckArgs),
                 result_schema: schema_for!(CheckSummary),
             },
             ToolSpec {
                 name: "graph.impact".to_string(),
                 about: "List nodes impacted (downstream) by the given id".to_string(),
-                args_schema: schema_for!(GraphImpactArgs),
-                result_schema: schema_for!(GraphImpactResult),
+                args_schema: schema_for!(cmd_impact::GraphImpactArgs),
+                result_schema: schema_for!(cmd_impact::GraphImpactResult),
             },
         ]
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-struct GraphCheckArgs {
-    #[serde(default = "default_graph_file")]
-    pub file: String,
+#[derive(Debug, Deserialize)]
+pub(crate) struct ExecGraph {
+    #[allow(dead_code)]
+    id: String,
+    nodes: Vec<Node>,
 }
 
-fn default_graph_file() -> String {
-    "docs/exec_graph.yaml".to_string()
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-struct GraphImpactArgs {
-    pub id: String,
-    #[serde(default = "default_graph_file")]
-    pub file: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-struct GraphImpactResult {
-    pub id: String,
-    pub impacted: Vec<String>,
-}
-
-fn load_graph(path: &str) -> anyhow::Result<ExecGraph> {
-    let bytes = fs::read(PathBuf::from(path))?;
-    Ok(serde_yaml::from_slice(&bytes)?)
+#[derive(Debug, Deserialize)]
+pub(crate) struct Node {
+    id: String,
+    #[serde(default)]
+    #[serde(rename = "type")]
+    #[allow(dead_code)]
+    kind: Option<String>,
+    #[serde(default)]
+    deps: Vec<String>, // dependencies this node relies on
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-struct CheckSummary {
+pub(crate) struct CheckSummary {
     node_count: usize,
     unique_ids: bool,
     acyclic: bool,
     errors: Vec<String>,
 }
 
-fn check_graph(g: &ExecGraph) -> CheckSummary {
+pub(crate) fn load_graph(path: &str) -> anyhow::Result<ExecGraph> {
+    let bytes = fs::read(PathBuf::from(path))?;
+    Ok(serde_yaml::from_slice(&bytes)?)
+}
+
+pub(crate) fn check_graph(g: &ExecGraph) -> CheckSummary {
     let mut errors = vec![];
     // unique ids
     let mut seen = HashSet::new();
@@ -233,7 +166,7 @@ fn check_graph(g: &ExecGraph) -> CheckSummary {
     }
 }
 
-fn impact(g: &ExecGraph, root: &str) -> Vec<String> {
+pub(crate) fn impact(g: &ExecGraph, root: &str) -> Vec<String> {
     // downstream = who depends on root: build reverse adjacency dep->dependents
     let mut rev: HashMap<&str, Vec<&str>> = HashMap::new();
     for n in &g.nodes {

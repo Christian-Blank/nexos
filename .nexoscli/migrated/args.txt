@@ -5,3 +5,5 @@
 
 plugins/dev/src/cmd_init.rs
 plugins/demo/src/cmd_hello.rs
+plugins/graph/src/cmd_check.rs
+plugins/graph/src/cmd_impact.rs
