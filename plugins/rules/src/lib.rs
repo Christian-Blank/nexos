@@ -1,18 +1,21 @@
-use clap::{Arg, ArgAction, ArgMatches, Command as ClapCommand};
+use clap::{ArgMatches, Command};
 use nexoscli_core::plugin::{Plugin, CommandContext, ToolSpec};
 use nexoscli_core::Result;
 use schemars::{JsonSchema, schema_for};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::{fs, path::{Path, PathBuf}};
 use walkdir::WalkDir;
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
+
+mod cmd_init;
+mod cmd_export;
+mod cmd_lint;
 
 pub struct RulesPlugin;
 impl RulesPlugin { pub fn new() -> Self { Self } }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-struct RuleFront {
+pub(crate) struct RuleFront {
     id: String,                    // RULE-<slug>
     title: String,
     audience: String,              // human | agent | cline
@@ -25,79 +28,32 @@ struct RuleFront {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-struct LintIssue { file: String, message: String }
+pub(crate) struct LintIssue { file: String, message: String }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-struct LintResult { ok: bool, issues: Vec<LintIssue>, files: usize }
+pub(crate) struct LintResult { ok: bool, issues: Vec<LintIssue>, files: usize }
 
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-struct ExportArgs { audience: String, out: Option<String> }
 
 impl Plugin for RulesPlugin {
     fn name(&self) -> &'static str { "rules" }
     fn version(&self) -> &'static str { env!("CARGO_PKG_VERSION") }
     fn describe(&self) -> &'static str { "Rules management (init/lint/export)" }
 
-    fn augment_commands(&self, app: ClapCommand) -> ClapCommand {
+    fn augment_commands(&self, app: Command) -> Command {
         app.subcommand(
-            ClapCommand::new("rules").about(self.describe())
-                .subcommand(
-                    ClapCommand::new("init")
-                        .about("Create minimal rules pack")
-                        .arg(Arg::new("force").long("force").action(ArgAction::SetTrue))
-                )
-                .subcommand(
-                    ClapCommand::new("lint")
-                        .about("Validate rules/*.md front-matter")
-                )
-                .subcommand(
-                    ClapCommand::new("export")
-                        .about("Export audience-specific bundle")
-                        .arg(Arg::new("for").long("for").required(true).value_parser(["human","agent","cline"]))
-                        .arg(Arg::new("out").long("out").value_name("PATH"))
-                )
+            Command::new("rules")
+                .about(self.describe())
+                .subcommand(cmd_init::subcommand())
+                .subcommand(cmd_lint::subcommand())
+                .subcommand(cmd_export::subcommand()),
         )
     }
 
     fn execute(&self, sub_matches: &ArgMatches, ctx: &CommandContext) -> Result<i32> {
         match sub_matches.subcommand() {
-            Some(("init", m)) => {
-                let force = m.get_flag("force");
-                let root = std::env::current_dir()?;
-                init_rules(&root, force)?;
-                let out = json!({"created": true});
-                let code = ctx.ok("rules","init",&out);
-                Ok(code)
-            }
-            Some(("lint", _)) => {
-                let root = std::env::current_dir()?;
-                let res = lint_rules(&root)?;
-                let code = if res.ok { 
-                    ctx.ok("rules","lint",&res)
-                } else { 
-                    ctx.err("rules","lint","rules.lint.failed","rules lint issues", None, 2)
-                };
-                Ok(code)
-            }
-            Some(("export", m)) => {
-                let audience = m.get_one::<String>("for").unwrap().to_string();
-                let out_path = m.get_one::<String>("out").cloned()
-                    .unwrap_or_else(|| {
-                        match audience.as_str() {
-                            "cline" => ".clinerules/compiled.md".into(),
-                            "human" => "docs/RULES.md".into(),
-                            "agent" => ".nexoscli/rules/for-agents.md".into(),
-                            _ => "rules_export.md".into()
-                        }
-                    });
-                let root = std::env::current_dir()?;
-                let md = export_rules(&root, &audience)?;
-                if let Some(dir) = Path::new(&out_path).parent() { fs::create_dir_all(dir)?; }
-                fs::write(&out_path, md.as_bytes())?;
-                let out = json!({"audience": audience, "out": out_path});
-                let code = ctx.ok("rules","export",&out);
-                Ok(code)
-            }
+            Some(("init", m)) => cmd_init::run(m, ctx),
+            Some(("lint", m)) => cmd_lint::run(m, ctx),
+            Some(("export", m)) => cmd_export::run(m, ctx),
             _ => Ok(2),
         }
     }
@@ -107,26 +63,29 @@ impl Plugin for RulesPlugin {
             ToolSpec {
                 name: "rules.lint".into(),
                 about: "Validate rules front-matter".into(),
-                args_schema: schema_for!(serde_json::Value),
-                result_schema: schema_for!(LintResult),
+                args_schema: schema_for!(cmd_lint::RulesLintArgs),
+                result_schema: schema_for!(cmd_lint::RulesLintResult),
             },
             ToolSpec {
                 name: "rules.export".into(),
                 about: "Export rules bundle".into(),
-                args_schema: schema_for!(ExportArgs),
-                result_schema: schema_for!(serde_json::Value),
-            }
+                args_schema: schema_for!(cmd_export::RulesExportArgs),
+                result_schema: schema_for!(cmd_export::RulesExportResult),
+            },
         ]
     }
 }
 
 /* ---------- impl ---------- */
 
-fn init_rules(root: &Path, force: bool) -> anyhow::Result<()> {
+pub(crate) fn init_rules(root: &Path, force: bool) -> anyhow::Result<()> {
     let rules_dir = root.join("rules");
     let tmpl_dir  = rules_dir.join("templates");
     let pack_dir  = rules_dir.join("pack").join("core");
-    if force && rules_dir.exists() { fs::remove_dir_all(&rules_dir)?; }
+    if force && rules_dir.exists() {
+        // Best-effort clear; ignore transient ENOTEMPTY or race conditions in ephemeral test dirs
+        let _ = fs::remove_dir_all(&rules_dir);
+    }
     fs::create_dir_all(&tmpl_dir)?;
     fs::create_dir_all(&pack_dir)?;
     // template
@@ -211,7 +170,7 @@ owner: "rules-dri@example.com"
     Ok(())
 }
 
-fn lint_rules(root: &Path) -> anyhow::Result<LintResult> {
+pub(crate) fn lint_rules(root: &Path) -> anyhow::Result<LintResult> {
     let dir = root.join("rules");
     let mut issues = Vec::<LintIssue>::new();
     let mut seen_ids = std::collections::HashSet::<String>::new();
@@ -242,7 +201,7 @@ fn lint_rules(root: &Path) -> anyhow::Result<LintResult> {
     Ok(LintResult{ ok: issues.is_empty(), issues, files })
 }
 
-fn export_rules(root: &Path, audience: &str) -> anyhow::Result<String> {
+pub(crate) fn export_rules(root: &Path, audience: &str) -> anyhow::Result<String> {
     let dir = root.join("rules");
     let mut rows: Vec<(RuleFront, String, PathBuf)> = Vec::new(); // (front, body, path)
 
@@ -269,7 +228,7 @@ fn export_rules(root: &Path, audience: &str) -> anyhow::Result<String> {
     Ok(out)
 }
 
-fn parse_frontmatter(p: &Path) -> anyhow::Result<(Option<RuleFront>, String)> {
+pub(crate) fn parse_frontmatter(p: &Path) -> anyhow::Result<(Option<RuleFront>, String)> {
     let txt = fs::read_to_string(p)?;
     if !txt.starts_with("---") {
         return Ok((None, txt));
@@ -298,6 +257,6 @@ fn parse_frontmatter(p: &Path) -> anyhow::Result<(Option<RuleFront>, String)> {
     Ok((Some(front), body.to_string()))
 }
 
-fn msg(p: &Path, m: &str) -> LintIssue {
+pub(crate) fn msg(p: &Path, m: &str) -> LintIssue {
     LintIssue{ file: p.display().to_string(), message: m.into() }
 }

@@ -1,16 +1,23 @@
 ---
-plan_id: "61"
-slug: "migrate-rules-plugin"
-status: "proposed"
-owner: "@cli/dri"
-labels: ["plugins","blueprint-v1","derive","tests","docs"]
-created_at: "2025-09-08T00:00:00Z"
-source: "next"
-risk: "low"
-blast_radius: "internal-only"
-depends_on: ["58"]
+plan_id: '61'
+slug: migrate-rules-plugin
+status: done
+owner: '@cli/dri'
+labels:
+- plugins
+- blueprint-v1
+- derive
+- tests
+- docs
+created_at: 2025-09-08T00:00:00Z
+source: next
+risk: low
+blast_radius: internal-only
+depends_on:
+- '58'
+completed_at: 2025-09-09T04:28:24.174795Z
+implemented_in: f525d96
 ---
-
 # PLAN‑61 — Migrate rules plugin to Plugin Blueprint v1
 
 Mission: Convert the rules plugin to modular `cmd_*` structure with dual‑derive Args, ToolSpecs, tests, and README AUTO updates to align with Blueprint v1 and Plans 53–55.

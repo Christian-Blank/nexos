@@ -13,17 +13,17 @@ Commands:
   tools        Tools & schemas
   completions  Generate shell completions
   man          Print man page to stdout
-  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
-  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
-  bundle       TracePack bundles
-  dev          Developer utilities
-  cline        Cline task history (locate/import) with idempotent ingest
-  term         Run commands with provenance (non-interactive)
-  rules        Rules management (init/lint/export)
-  demo         Demo plugin
   issue        Issue management
   graph        Graph tools
+  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
+  demo         Demo plugin
   replay       Replay/extract TracePacks from logged runs
+  cline        Cline task history (locate/import) with idempotent ingest
+  bundle       TracePack bundles
+  term         Run commands with provenance (non-interactive)
+  rules        Rules management (init/lint/export)
+  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
+  dev          Developer utilities
   help         Print this message or the help of the given subcommand(s)
 
 Options:
@@ -35,57 +35,45 @@ Options:
 
 ## Tool Specs (for agents)
 
-### `issue.new`
+### `graph.check`
 
-Create a new local issue
+Validate docs/exec_graph.yaml (acyclic, unique ids)
 
-### `issue.list`
+### `graph.impact`
 
-List issues (optionally by state)
+List nodes impacted (downstream) by the given id
 
-### `issue.show`
+### `bundle.build`
 
-Show a single issue by ID
+Build a TracePack bundle
 
-### `issue.close`
+### `bundle.verify`
 
-Close an issue by ID
+Verify a TracePack bundle
 
-### `replay.bag.verify`
+### `cline.locate`
 
-Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
+Find Cline storage locations
 
-### `replay.verify`
+### `cline.import`
 
-Verify a TracePack (dir or .tgz) and explain findings
+Import Cline task history with idempotent ingest
 
-### `replay.normalize`
+### `cline.correlate`
 
-Normalize events to v0.3 (from bag or events file)
+Correlate Cline tasks to runs by time
 
-### `replay.schema.events`
+### `rules.lint`
 
-JSON Schema for events v0.3
+Validate rules front-matter
 
-### `replay.schema.list`
+### `rules.export`
 
-List available schemas
+Export rules bundle
 
-### `replay.schema.get`
+### `demo.hello`
 
-Get schema JSON
-
-### `replay.validate`
-
-Validate bag artifacts (events/fileops) against schemas
-
-### `replay.fileops.derive`
-
-Derive fileops.ndjson from a bag's patches
-
-### `replay.export`
-
-Export bag artifacts to CSV
+Say hello
 
 ### `workflow.init`
 
@@ -122,38 +110,6 @@ List workflows (visibility index)
 ### `workflow.upsert-sa`
 
 Upsert search attributes for a workflow
-
-### `graph.check`
-
-Validate docs/exec_graph.yaml (acyclic, unique ids)
-
-### `graph.impact`
-
-List nodes impacted (downstream) by the given id
-
-### `demo.hello`
-
-Say hello
-
-### `cline.locate`
-
-Find Cline storage locations
-
-### `cline.import`
-
-Import Cline task history with idempotent ingest
-
-### `cline.correlate`
-
-Correlate Cline tasks to runs by time
-
-### `bundle.build`
-
-Build a TracePack bundle
-
-### `bundle.verify`
-
-Verify a TracePack bundle
 
 ### `dev.init`
 
@@ -235,11 +191,55 @@ Write default .nexoscli/repo_policy.yaml
 
 Scaffold missing folder READMEs
 
-### `rules.lint`
+### `replay.bag.verify`
 
-Validate rules front-matter
+Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
 
-### `rules.export`
+### `replay.verify`
 
-Export rules bundle
+Verify a TracePack (dir or .tgz) and explain findings
+
+### `replay.normalize`
+
+Normalize events to v0.3 (from bag or events file)
+
+### `replay.schema.events`
+
+JSON Schema for events v0.3
+
+### `replay.schema.list`
+
+List available schemas
+
+### `replay.schema.get`
+
+Get schema JSON
+
+### `replay.validate`
+
+Validate bag artifacts (events/fileops) against schemas
+
+### `replay.fileops.derive`
+
+Derive fileops.ndjson from a bag's patches
+
+### `replay.export`
+
+Export bag artifacts to CSV
+
+### `issue.new`
+
+Create a new local issue
+
+### `issue.list`
+
+List issues (optionally by state)
+
+### `issue.show`
+
+Show a single issue by ID
+
+### `issue.close`
+
+Close an issue by ID
 

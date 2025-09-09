@@ -2234,8 +2234,8 @@
           "default": null,
           "help": null,
           "kind": "value",
-          "long": "for",
-          "name": "for",
+          "long": "audience",
+          "name": "audience",
           "possible_values": null,
           "required": true,
           "short": null
@@ -5479,45 +5479,42 @@
       "required": [
         "audience"
       ],
-      "title": "ExportArgs",
+      "title": "RulesExportArgs",
       "type": "object"
     },
     "rules.export.result.json": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AnyValue"
+      "properties": {
+        "audience": {
+          "type": "string"
+        },
+        "out": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "audience",
+        "out"
+      ],
+      "title": "RulesExportResult",
+      "type": "object"
     },
     "rules.lint.args.json": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AnyValue"
+      "title": "RulesLintArgs",
+      "type": "object"
     },
     "rules.lint.result.json": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "definitions": {
-        "LintIssue": {
-          "properties": {
-            "file": {
-              "type": "string"
-            },
-            "message": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "file",
-            "message"
-          ],
-          "type": "object"
-        }
-      },
       "properties": {
         "files": {
-          "format": "uint",
+          "format": "uint32",
           "minimum": 0.0,
           "type": "integer"
         },
         "issues": {
           "items": {
-            "$ref": "#/definitions/LintIssue"
+            "type": "string"
           },
           "type": "array"
         },
@@ -5530,7 +5527,7 @@
         "issues",
         "ok"
       ],
-      "title": "LintResult",
+      "title": "RulesLintResult",
       "type": "object"
     },
     "workflow.init.args.json": {
