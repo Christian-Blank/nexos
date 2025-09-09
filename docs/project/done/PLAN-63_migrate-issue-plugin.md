@@ -1,7 +1,7 @@
 ---
 plan_id: '63'
 slug: migrate-issue-plugin
-status: in-progress
+status: done
 owner: '@cli/dri'
 labels:
 - plugins
@@ -17,6 +17,8 @@ depends_on:
 - '58'
 task_id: TASK-20250909-plan-63-migrate-issue-plugin-to-plugin-blueprint-v1
 started_at: 2025-09-09T13:46:51.723041Z
+completed_at: 2025-09-09T15:03:19.90818Z
+implemented_in: '0278341'
 ---
 # PLAN‑63 — Migrate issue plugin to Plugin Blueprint v1
 

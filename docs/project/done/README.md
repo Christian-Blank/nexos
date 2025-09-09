@@ -109,6 +109,7 @@ Preserve finalized plans with their recorded metadata (implemented_in, completed
 - [PLAN-60_migrate-graph-plugin.md](./PLAN-60_migrate-graph-plugin.md)
 - [PLAN-61_migrate-rules-plugin.md](./PLAN-61_migrate-rules-plugin.md)
 - [PLAN-62_migrate-term-plugin.md](./PLAN-62_migrate-term-plugin.md)
+- [PLAN-63_migrate-issue-plugin.md](./PLAN-63_migrate-issue-plugin.md)
 - [plan-26_contract_freeze.md](./plan-26_contract_freeze.md)
 - [plan-27_doctor_checks.md](./plan-27_doctor_checks.md)
 - [plan-28_doctor-events-schema.md](./plan-28_doctor-events-schema.md)
