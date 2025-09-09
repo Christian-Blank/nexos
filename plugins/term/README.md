@@ -330,5 +330,5 @@ For general plugin architecture and development patterns, see [../README.md](../
 ## Commands
 
 <!-- BEGIN: AUTO (id=commands) -->
-- term run — Execute a command and capture output
+- term run — Args for `term run` using dual-derive and typed parsing. Notes: - `command` is captured as trailing var-args (Vec<String>) to preserve current multi-word behavior, and then joined via super::sh_join for execution. - `fs_root` and `fs_exclude` accept a single string which can be CSV or whitespace-separated; we normalize to Vec<PathBuf>/Vec<String>
 <!-- END: AUTO -->

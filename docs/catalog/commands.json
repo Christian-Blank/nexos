@@ -2552,8 +2552,18 @@
       "usage": "nexoscli task status [flags]"
     },
     {
-      "about": "Execute a command and capture output",
+      "about": "Args for `term run` using dual-derive and typed parsing. Notes: - `command` is captured as trailing var-args (Vec<String>) to preserve current multi-word behavior, and then joined via super::sh_join for execution. - `fs_root` and `fs_exclude` accept a single string which can be CSV or whitespace-separated; we normalize to Vec<PathBuf>/Vec<String>",
       "args": [
+        {
+          "default": null,
+          "help": "Trailing positional args forming the command to run (joined for shell)",
+          "kind": "multi",
+          "long": null,
+          "name": "arg1",
+          "possible_values": null,
+          "required": true,
+          "short": null
+        },
         {
           "default": null,
           "help": null,
@@ -2566,7 +2576,7 @@
         },
         {
           "default": null,
-          "help": "Exclude globs; defaults: .git/**, .nexoscli/**, target/**, node_modules/**",
+          "help": null,
           "kind": "value",
           "long": "fs-exclude",
           "name": "fs-exclude",
@@ -2576,7 +2586,7 @@
         },
         {
           "default": null,
-          "help": "Compute sha256 for Create/Modify",
+          "help": null,
           "kind": "flag",
           "long": "fs-hash",
           "name": "fs-hash",
@@ -2586,7 +2596,7 @@
         },
         {
           "default": null,
-          "help": "Watch roots (repeatable). Defaults to current dir",
+          "help": null,
           "kind": "value",
           "long": "fs-root",
           "name": "fs-root",
@@ -2596,7 +2606,7 @@
         },
         {
           "default": null,
-          "help": "Enable file-change topic capture during run",
+          "help": null,
           "kind": "flag",
           "long": "fs-topic",
           "name": "fs-topic",
@@ -2606,7 +2616,7 @@
         },
         {
           "default": null,
-          "help": "Also print child stdout/stderr to console",
+          "help": null,
           "kind": "flag",
           "long": "passthrough",
           "name": "passthrough",
@@ -2622,16 +2632,6 @@
           "name": "sample-kb",
           "possible_values": null,
           "required": false,
-          "short": null
-        },
-        {
-          "default": null,
-          "help": null,
-          "kind": "value",
-          "long": null,
-          "name": "arg8",
-          "possible_values": null,
-          "required": true,
           "short": null
         }
       ],

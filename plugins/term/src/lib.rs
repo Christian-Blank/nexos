@@ -8,6 +8,8 @@ use globset::{Glob, GlobSetBuilder};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use std::{fs, io::{Write, Read}, path::{Path, PathBuf}, sync::mpsc, thread, time::Duration};
 
+mod cmd_run;
+
 pub struct TermPlugin;
 impl TermPlugin { pub fn new() -> Self { Self } }
 
@@ -39,111 +41,19 @@ impl Plugin for TermPlugin {
     fn augment_commands(&self, app: Command) -> Command {
         app.subcommand(
           Command::new("term").about(self.describe())
-            .subcommand(
-              Command::new("run")
-                .about("Execute a command and capture output")
-                .arg(Arg::new("cmd").num_args(1..).trailing_var_arg(true).required(true))
-                .arg(Arg::new("cwd").long("cwd").value_name("DIR"))
-                .arg(Arg::new("sample-kb").long("sample-kb").value_parser(clap::value_parser!(usize)))
-                .arg(Arg::new("passthrough").long("passthrough").action(ArgAction::SetTrue)
-                    .help("Also print child stdout/stderr to console"))
-                .arg(Arg::new("fs-topic").long("fs-topic").action(ArgAction::SetTrue)
-                    .help("Enable file-change topic capture during run"))
-                .arg(Arg::new("fs-root").long("fs-root").num_args(1..).value_name("PATH")
-                    .help("Watch roots (repeatable). Defaults to current dir"))
-                .arg(Arg::new("fs-exclude").long("fs-exclude").num_args(1..).value_name("GLOB")
-                    .help("Exclude globs; defaults: .git/**, .nexoscli/**, target/**, node_modules/**"))
-                .arg(Arg::new("fs-hash").long("fs-hash").action(ArgAction::SetTrue)
-                    .help("Compute sha256 for Create/Modify"))
-            )
+            .subcommand(cmd_run::subcommand())
         )
     }
 
     fn execute(&self, m: &ArgMatches, ctx: &CommandContext) -> Result<i32> {
         match m.subcommand() {
-            Some(("run", mm)) => {
-                let args: Vec<String> = mm.get_many::<String>("cmd").unwrap().cloned().collect();
-                let cwd = mm.get_one::<String>("cwd").cloned()
-                    .unwrap_or(std::env::current_dir()?.to_string_lossy().to_string());
-                let sample = *mm.get_one::<usize>("sample-kb").unwrap_or(&64);
-                let passthrough = mm.get_flag("passthrough");
-
-                // FS topic flags
-                let fs_topic = mm.get_flag("fs-topic");
-                let roots: Vec<PathBuf> = mm.get_many::<String>("fs-root")
-                    .map(|vals| vals.map(PathBuf::from).collect())
-                    .unwrap_or_else(|| vec![]);
-                let excludes: Vec<String> = mm.get_many::<String>("fs-exclude")
-                    .map(|vals| vals.cloned().collect())
-                    .unwrap_or_else(|| vec![]);
-                let do_hash = mm.get_flag("fs-hash");
-
-                // Start watcher before spawning child
-                let mut fs_handle: Option<FsTopicHandle> = None;
-                if fs_topic {
-                    fs_handle = Some(fs_topic_start(FsTopicCfg{ roots, excludes, hash: do_hash })?);
-                    // allow watcher to arm before running the command (notify readiness)
-                    thread::sleep(Duration::from_millis(100));
-                }
-
-                // Shell for portability
-                let joined = sh_join(&args);
-                let mut cmd = if cfg!(target_os = "windows") {
-                    let mut c = StdCommand::new("cmd");
-                    c.arg("/C").arg(&joined);
-                    c
-                } else {
-                    let mut c = StdCommand::new("sh");
-                    c.arg("-lc").arg(&joined);
-                    c
-                };
-                let output = cmd.current_dir(&cwd).output()?;
-
-                let (stdout_sample, stdout_sha256) = digest_and_sample(&output.stdout, sample);
-                let (stderr_sample, stderr_sha256) = digest_and_sample(&output.stderr, sample);
-                if passthrough {
-                    use std::io::Write;
-                    let _ = std::io::stdout().write_all(&output.stdout);
-                    let _ = std::io::stderr().write_all(&output.stderr);
-                }
-
-                let exit_code = output.status.code().unwrap_or(-1);
-
-                // Stop watcher and emit fs.topic event if enabled
-                if let Some(h) = fs_handle {
-                    // allow any in-flight events to flush before stopping (notify delivery can be delayed)
-                    thread::sleep(Duration::from_millis(200));
-                    let (path, lines, bytes, sha, from_ts, to_ts) = fs_topic_stop(h)?;
-                    let _ = ctx.events.write(
-                        "term",
-                        "fs.topic",
-                        &serde_json::json!({
-                            "file": path.display().to_string(),
-                            "lines": lines,
-                            "bytes": bytes,
-                            "sha256": sha,
-                            "from_ts": from_ts,
-                            "to_ts": to_ts
-                        }),
-                        0, None, None, None
-                    );
-                }
-
-                let data = RunResult {
-                    cmd: joined.clone(), cwd: cwd.clone(), exit_code,
-                    stdout_sha256, stderr_sha256, stdout_sample, stderr_sample
-                };
-                // Always return success with data, regardless of child process exit code
-                // The exit code is part of the captured data, not a plugin error
-                ctx.ok("term","run",&data);
-                Ok(exit_code)  // Return the child's exit code as the plugin's exit code
-            }
+            Some(("run", m)) => cmd_run::run(m, ctx),
             _ => Ok(ctx.err("term", "unknown", "term.unknown", "unknown term command", None, 2))
         }
     }
 }
 
-fn sh_join(parts: &[String]) -> String {
+pub(crate) fn sh_join(parts: &[String]) -> String {
     // minimal escaping
     parts.iter().map(|s| {
         if s.chars().all(|c| c.is_ascii_alphanumeric() || "-_./:".contains(c)) { s.clone() }
@@ -151,7 +61,7 @@ fn sh_join(parts: &[String]) -> String {
     }).collect::<Vec<_>>().join(" ")
 }
 
-fn digest_and_sample(bytes: &[u8], kb: usize) -> (String, String) {
+pub(crate) fn digest_and_sample(bytes: &[u8], kb: usize) -> (String, String) {
     use sha2::{Digest, Sha256};
     let mut h = Sha256::new(); h.update(bytes);
     let sha = format!("sha256:{:x}", h.finalize());
@@ -163,13 +73,13 @@ fn digest_and_sample(bytes: &[u8], kb: usize) -> (String, String) {
 // ----------------- FS Topic implementation -----------------
 
 #[derive(Clone)]
-struct FsTopicCfg {
+pub(crate) struct FsTopicCfg {
     roots: Vec<PathBuf>,
     excludes: Vec<String>,
     hash: bool,
 }
 
-struct FsTopicHandle {
+pub(crate) struct FsTopicHandle {
     path: PathBuf,
     join: Option<std::thread::JoinHandle<(u64,u64,String,String)>>, // (lines, bytes, from_ts, to_ts)
     stop_tx: Option<std::sync::mpsc::Sender<()>>,
@@ -200,7 +110,7 @@ fn sha256_file(p: &Path) -> Option<String> {
     Some(format!("sha256:{:x}", h.finalize()))
 }
 
-fn fs_topic_start(cfg: FsTopicCfg) -> anyhow::Result<FsTopicHandle> {
+pub(crate) fn fs_topic_start(cfg: FsTopicCfg) -> anyhow::Result<FsTopicHandle> {
     let out_path = open_fileops_path()?;
     let (tx_ev, rx_ev) = mpsc::channel();
     let (tx_stop, rx_stop) = mpsc::channel::<()>();
@@ -359,7 +269,7 @@ fn fs_topic_start(cfg: FsTopicCfg) -> anyhow::Result<FsTopicHandle> {
     Ok(FsTopicHandle{ path: out_path, join: Some(join), stop_tx: Some(tx_stop) })
 }
 
-fn fs_topic_stop(mut h: FsTopicHandle) -> anyhow::Result<(PathBuf, u64, u64, String, String, String)> {
+pub(crate) fn fs_topic_stop(mut h: FsTopicHandle) -> anyhow::Result<(PathBuf, u64, u64, String, String, String)> {
     if let Some(tx) = h.stop_tx.take() { let _ = tx.send(()); }
     let (lines, bytes, from_ts, to_ts) = h.join.take().unwrap().join().unwrap();
     let sha = sha256_file(&h.path).unwrap_or_else(|| "sha256:0".into());

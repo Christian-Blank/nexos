@@ -2,15 +2,18 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::atomic::{AtomicU64, Ordering};
 use serde_json;
 
 fn mktemp() -> PathBuf {
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
     let mut p = std::env::temp_dir();
     let ts = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("clock went backwards")
-        .as_millis();
-    p.push(format!("nexos_rules_smoke_{}", ts));
+        .as_micros(); // finer granularity than millis
+    let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+    p.push(format!("nexos_rules_smoke_{}_{}", ts, n));
     fs::create_dir_all(&p).expect("failed to create temp dir");
     p
 }

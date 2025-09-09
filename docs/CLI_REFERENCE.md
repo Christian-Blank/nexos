@@ -13,17 +13,17 @@ Commands:
   tools        Tools & schemas
   completions  Generate shell completions
   man          Print man page to stdout
-  issue        Issue management
-  graph        Graph tools
-  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
-  demo         Demo plugin
-  replay       Replay/extract TracePacks from logged runs
-  cline        Cline task history (locate/import) with idempotent ingest
   bundle       TracePack bundles
+  graph        Graph tools
+  dev          Developer utilities
+  replay       Replay/extract TracePacks from logged runs
+  issue        Issue management
+  task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
   term         Run commands with provenance (non-interactive)
   rules        Rules management (init/lint/export)
   workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
-  dev          Developer utilities
+  cline        Cline task history (locate/import) with idempotent ingest
+  demo         Demo plugin
   help         Print this message or the help of the given subcommand(s)
 
 Options:
@@ -35,14 +35,6 @@ Options:
 
 ## Tool Specs (for agents)
 
-### `graph.check`
-
-Validate docs/exec_graph.yaml (acyclic, unique ids)
-
-### `graph.impact`
-
-List nodes impacted (downstream) by the given id
-
 ### `bundle.build`
 
 Build a TracePack bundle
@@ -51,29 +43,21 @@ Build a TracePack bundle
 
 Verify a TracePack bundle
 
-### `cline.locate`
+### `issue.new`
 
-Find Cline storage locations
+Create a new local issue
 
-### `cline.import`
+### `issue.list`
 
-Import Cline task history with idempotent ingest
+List issues (optionally by state)
 
-### `cline.correlate`
+### `issue.show`
 
-Correlate Cline tasks to runs by time
+Show a single issue by ID
 
-### `rules.lint`
+### `issue.close`
 
-Validate rules front-matter
-
-### `rules.export`
-
-Export rules bundle
-
-### `demo.hello`
-
-Say hello
+Close an issue by ID
 
 ### `workflow.init`
 
@@ -110,6 +94,66 @@ List workflows (visibility index)
 ### `workflow.upsert-sa`
 
 Upsert search attributes for a workflow
+
+### `demo.hello`
+
+Say hello
+
+### `replay.bag.verify`
+
+Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
+
+### `replay.verify`
+
+Verify a TracePack (dir or .tgz) and explain findings
+
+### `replay.normalize`
+
+Normalize events to v0.3 (from bag or events file)
+
+### `replay.schema.events`
+
+JSON Schema for events v0.3
+
+### `replay.schema.list`
+
+List available schemas
+
+### `replay.schema.get`
+
+Get schema JSON
+
+### `replay.validate`
+
+Validate bag artifacts (events/fileops) against schemas
+
+### `replay.fileops.derive`
+
+Derive fileops.ndjson from a bag's patches
+
+### `replay.export`
+
+Export bag artifacts to CSV
+
+### `graph.check`
+
+Validate docs/exec_graph.yaml (acyclic, unique ids)
+
+### `graph.impact`
+
+List nodes impacted (downstream) by the given id
+
+### `cline.locate`
+
+Find Cline storage locations
+
+### `cline.import`
+
+Import Cline task history with idempotent ingest
+
+### `cline.correlate`
+
+Correlate Cline tasks to runs by time
 
 ### `dev.init`
 
@@ -191,55 +235,11 @@ Write default .nexoscli/repo_policy.yaml
 
 Scaffold missing folder READMEs
 
-### `replay.bag.verify`
+### `rules.lint`
 
-Verify a TracePack/NEXBag integrity; checks events stats/digests and optional rotation index continuity
+Validate rules front-matter
 
-### `replay.verify`
+### `rules.export`
 
-Verify a TracePack (dir or .tgz) and explain findings
-
-### `replay.normalize`
-
-Normalize events to v0.3 (from bag or events file)
-
-### `replay.schema.events`
-
-JSON Schema for events v0.3
-
-### `replay.schema.list`
-
-List available schemas
-
-### `replay.schema.get`
-
-Get schema JSON
-
-### `replay.validate`
-
-Validate bag artifacts (events/fileops) against schemas
-
-### `replay.fileops.derive`
-
-Derive fileops.ndjson from a bag's patches
-
-### `replay.export`
-
-Export bag artifacts to CSV
-
-### `issue.new`
-
-Create a new local issue
-
-### `issue.list`
-
-List issues (optionally by state)
-
-### `issue.show`
-
-Show a single issue by ID
-
-### `issue.close`
-
-Close an issue by ID
+Export rules bundle
 

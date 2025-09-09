@@ -1,16 +1,23 @@
 ---
-plan_id: "62"
-slug: "migrate-term-plugin"
-status: "proposed"
-owner: "@cli/dri"
-labels: ["plugins","blueprint-v1","derive","tests","docs"]
-created_at: "2025-09-08T00:00:00Z"
-source: "next"
-risk: "low"
-blast_radius: "internal-only"
-depends_on: ["58"]
+plan_id: '62'
+slug: migrate-term-plugin
+status: done
+owner: '@cli/dri'
+labels:
+- plugins
+- blueprint-v1
+- derive
+- tests
+- docs
+created_at: 2025-09-08T00:00:00Z
+source: next
+risk: low
+blast_radius: internal-only
+depends_on:
+- '58'
+completed_at: 2025-09-09T04:56:04.847563Z
+implemented_in: 45c3e5e
 ---
-
 # PLAN‑62 — Migrate term plugin to Plugin Blueprint v1
 
 Mission: Convert the term plugin to modular `cmd_*` structure with dual‑derive Args, tests, and README AUTO updates. Decide agent‑exposure (ToolSpec) for `term run` explicitly to avoid accidental complexity in catalog.
