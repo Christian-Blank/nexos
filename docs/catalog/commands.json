@@ -4549,7 +4549,6 @@
           "type": "string"
         },
         "reason": {
-          "default": null,
           "type": [
             "string",
             "null"
@@ -4583,13 +4582,12 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "properties": {
         "state": {
-          "default": null,
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         }
       },
+      "required": [
+        "state"
+      ],
       "title": "IssueListArgs",
       "type": "object"
     },
@@ -4662,14 +4660,12 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "properties": {
         "body": {
-          "default": null,
           "type": [
             "string",
             "null"
           ]
         },
         "labels": {
-          "default": null,
           "items": {
             "type": "string"
           },

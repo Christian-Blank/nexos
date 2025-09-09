@@ -17,7 +17,7 @@ Read the implementation plan and context, and review the implementation. Note or
 Important: DO NOT USE 'set -euo pipefail' at any point or time, the terminal will crash. Executes command step by step or in a single chain! Example that will fail (DO NOT DO THAT):
 
 ```bash
-set -euo pipefail
+set -euo pipefail # ALSO NO set -e!!!
 
 echo "== Commit moved plan file (mark as done with divider=4f9e445) =="
 git add --all

@@ -11,3 +11,8 @@ plugins/rules/src/cmd_init.rs
 plugins/rules/src/cmd_export.rs
 plugins/rules/src/cmd_lint.rs
 plugins/term/src/cmd_run.rs
+plugins/issue/src/cmd_new.rs
+plugins/issue/src/cmd_list.rs
+plugins/issue/src/cmd_show.rs
+plugins/issue/src/cmd_close.rs
+plugins/issue/src/cmd_import.rs

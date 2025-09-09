@@ -13,7 +13,7 @@ Output: one implementation commit (divider happens in the Finalize workflow).
 Important: DO NOT USE 'set -euo pipefail', the terminal will crash. Executes command step by step or in a single chain! Example that will fail (DO NOT DO THAT):
 
 ```bash
-set -euo pipefail
+set -euo pipefail # ALSO NO set -e!!!
 
 echo "== Commit moved plan file (mark as done with divider=4f9e445) =="
 git add --all

@@ -13,17 +13,17 @@ Commands:
   tools        Tools & schemas
   completions  Generate shell completions
   man          Print man page to stdout
-  bundle       TracePack bundles
-  graph        Graph tools
-  dev          Developer utilities
-  replay       Replay/extract TracePacks from logged runs
-  issue        Issue management
+  cline        Cline task history (locate/import) with idempotent ingest
   task         Tasks: new/start/pause/resume/stage/status/list/end/bundle
   term         Run commands with provenance (non-interactive)
-  rules        Rules management (init/lint/export)
-  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
-  cline        Cline task history (locate/import) with idempotent ingest
+  dev          Developer utilities
   demo         Demo plugin
+  rules        Rules management (init/lint/export)
+  graph        Graph tools
+  workflow     Local workflow runner with idempotent activities, signals, timeouts, and visibility
+  replay       Replay/extract TracePacks from logged runs
+  bundle       TracePack bundles
+  issue        Issue management
   help         Print this message or the help of the given subcommand(s)
 
 Options:
@@ -34,70 +34,6 @@ Options:
 ```
 
 ## Tool Specs (for agents)
-
-### `bundle.build`
-
-Build a TracePack bundle
-
-### `bundle.verify`
-
-Verify a TracePack bundle
-
-### `issue.new`
-
-Create a new local issue
-
-### `issue.list`
-
-List issues (optionally by state)
-
-### `issue.show`
-
-Show a single issue by ID
-
-### `issue.close`
-
-Close an issue by ID
-
-### `workflow.init`
-
-Create a workflow spec template
-
-### `workflow.plan`
-
-Plan (idempotency-aware)
-
-### `workflow.validate`
-
-Validate a workflow spec (schema + invariants)
-
-### `workflow.run`
-
-Run a workflow spec sequentially
-
-### `workflow.status`
-
-Show effects, history, visibility
-
-### `workflow.signal`
-
-Send a signal to a running workflow
-
-### `workflow.query`
-
-Query workflow runtime state
-
-### `workflow.list`
-
-List workflows (visibility index)
-
-### `workflow.upsert-sa`
-
-Upsert search attributes for a workflow
-
-### `demo.hello`
-
-Say hello
 
 ### `replay.bag.verify`
 
@@ -135,25 +71,21 @@ Derive fileops.ndjson from a bag's patches
 
 Export bag artifacts to CSV
 
-### `graph.check`
+### `issue.new`
 
-Validate docs/exec_graph.yaml (acyclic, unique ids)
+Create a new local issue
 
-### `graph.impact`
+### `issue.list`
 
-List nodes impacted (downstream) by the given id
+List issues (optionally by state)
 
-### `cline.locate`
+### `issue.show`
 
-Find Cline storage locations
+Show a single issue by ID
 
-### `cline.import`
+### `issue.close`
 
-Import Cline task history with idempotent ingest
-
-### `cline.correlate`
-
-Correlate Cline tasks to runs by time
+Close an issue by ID
 
 ### `dev.init`
 
@@ -235,6 +167,18 @@ Write default .nexoscli/repo_policy.yaml
 
 Scaffold missing folder READMEs
 
+### `demo.hello`
+
+Say hello
+
+### `graph.check`
+
+Validate docs/exec_graph.yaml (acyclic, unique ids)
+
+### `graph.impact`
+
+List nodes impacted (downstream) by the given id
+
 ### `rules.lint`
 
 Validate rules front-matter
@@ -242,4 +186,60 @@ Validate rules front-matter
 ### `rules.export`
 
 Export rules bundle
+
+### `bundle.build`
+
+Build a TracePack bundle
+
+### `bundle.verify`
+
+Verify a TracePack bundle
+
+### `workflow.init`
+
+Create a workflow spec template
+
+### `workflow.plan`
+
+Plan (idempotency-aware)
+
+### `workflow.validate`
+
+Validate a workflow spec (schema + invariants)
+
+### `workflow.run`
+
+Run a workflow spec sequentially
+
+### `workflow.status`
+
+Show effects, history, visibility
+
+### `workflow.signal`
+
+Send a signal to a running workflow
+
+### `workflow.query`
+
+Query workflow runtime state
+
+### `workflow.list`
+
+List workflows (visibility index)
+
+### `workflow.upsert-sa`
+
+Upsert search attributes for a workflow
+
+### `cline.locate`
+
+Find Cline storage locations
+
+### `cline.import`
+
+Import Cline task history with idempotent ingest
+
+### `cline.correlate`
+
+Correlate Cline tasks to runs by time
 

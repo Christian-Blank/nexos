@@ -1,16 +1,23 @@
 ---
-plan_id: "63"
-slug: "migrate-issue-plugin"
-status: "proposed"
-owner: "@cli/dri"
-labels: ["plugins","blueprint-v1","derive","tests","docs"]
-created_at: "2025-09-08T00:00:00Z"
-source: "next"
-risk: "low"
-blast_radius: "internal-only"
-depends_on: ["58"]
+plan_id: '63'
+slug: migrate-issue-plugin
+status: in-progress
+owner: '@cli/dri'
+labels:
+- plugins
+- blueprint-v1
+- derive
+- tests
+- docs
+created_at: 2025-09-08T00:00:00Z
+source: next
+risk: low
+blast_radius: internal-only
+depends_on:
+- '58'
+task_id: TASK-20250909-plan-63-migrate-issue-plugin-to-plugin-blueprint-v1
+started_at: 2025-09-09T13:46:51.723041Z
 ---
-
 # PLAN‑63 — Migrate issue plugin to Plugin Blueprint v1
 
 Mission: Convert the issue plugin to modular `cmd_*` structure with dual‑derive Args/Result, ToolSpecs alignment, tests, and README AUTO updates. Ensure commands remain agent‑grade where appropriate.
