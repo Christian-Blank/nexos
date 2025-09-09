@@ -88,7 +88,6 @@ Provide a deterministic queue of plans to start next, respecting dependencies an
 ## Plans Index
 
 <!-- BEGIN: AUTO (id=plans-index) -->
-- [PLAN-62_migrate-term-plugin.md](./PLAN-62_migrate-term-plugin.md)
 - [PLAN-63_migrate-issue-plugin.md](./PLAN-63_migrate-issue-plugin.md)
 - [PLAN-64_migrate-cline-plugin.md](./PLAN-64_migrate-cline-plugin.md)
 - [PLAN-65_migrate-workflow-plugin.md](./PLAN-65_migrate-workflow-plugin.md)
