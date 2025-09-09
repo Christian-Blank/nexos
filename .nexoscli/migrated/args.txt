@@ -4,3 +4,4 @@
 # plugins/<plugin>/src/cmd_*.rs
 
 plugins/dev/src/cmd_init.rs
+plugins/demo/src/cmd_hello.rs

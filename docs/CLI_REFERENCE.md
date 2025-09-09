@@ -256,7 +256,7 @@ nexoscli demo hello [flags]
 
 | Flag | Type | Required | Default | Description |
 |------|------|----------|---------|-------------|
-| --name | value | no | — |  |
+| --name | value | no | — | Optional recipient name |
 
 
 
