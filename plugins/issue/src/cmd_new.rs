@@ -6,7 +6,7 @@ use std::fs;
 use nexoscli_core::plugin::CommandContext;
 use nexoscli_core::Result;
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Args)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, clap::Args)]
 pub struct IssueNewArgs {
     #[arg(long, short = 't')]
     pub title: String,

@@ -1,4 +1,4 @@
-use clap::{Arg, ArgAction, ArgMatches, Command as ClapCommand};
+use clap::{ArgMatches, Command as ClapCommand};
 use nexoscli_core::{plugin::{Plugin, CommandContext, ToolSpec}, Result};
 use schemars::{JsonSchema, schema_for};
 use serde::{Deserialize, Serialize};
@@ -9,6 +9,11 @@ use walkdir::WalkDir;
 mod correlation;
 mod normalize;
 
+mod cmd_locate;
+mod cmd_import;
+mod cmd_correlate;
+mod cmd_normalize;
+
 pub struct ClinePlugin;
 impl ClinePlugin { pub fn new() -> Self { Self } }
 
@@ -18,7 +23,7 @@ const EDITORS_DEFAULT_LINUX: &[&str] = &["Code","Code - Insiders","VSCodium","co
 const EDITORS_DEFAULT_WIN: &[&str] = &["Code","Code - Insiders","VSCodium","Cursor","Windsurf"];
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-struct Candidate {
+pub(crate) struct Candidate {
     base: PathBuf,       // .../User/globalStorage
     ext_id: String,      // extension id
     tasks_dir: PathBuf,  // base/ext_id/tasks
@@ -27,22 +32,10 @@ struct Candidate {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-struct LocateResult {
+pub(crate) struct LocateResult {
     selected: Option<PathBuf>,
     candidates: Vec<Candidate>,
     hints: Vec<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-struct ImportArgs {
-    #[serde(default)]
-    storage: Option<String>, // explicit path or "auto"
-    #[serde(default)]
-    since: Option<String>,   // "24h" | "7d" | RFC3339
-    #[serde(default)]
-    limit: Option<u64>,
-    #[serde(default)]
-    dry_run: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -60,7 +53,7 @@ struct NormalizedTask {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-struct TaskRow {
+pub(crate) struct TaskRow {
     id: String,
     #[serde(skip_serializing_if="Option::is_none")]
     updated_at: Option<String>,
@@ -70,7 +63,7 @@ struct TaskRow {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, JsonSchema)]
-struct ImportSummary {
+pub(crate) struct ImportSummary {
     imported: u64,    // total imported (passed filters)
     skipped: u64,     // skipped by since filter
     created: u64,
@@ -102,117 +95,20 @@ impl Plugin for ClinePlugin {
     fn augment_commands(&self, app: ClapCommand) -> ClapCommand {
         app.subcommand(
             ClapCommand::new("cline").about(self.describe())
-            .subcommand(ClapCommand::new("locate").about("Find Cline storage (globalStorage/workspace)"))
-            .subcommand(
-                ClapCommand::new("import").about("Import tasks (read-only)")
-                    .arg(Arg::new("storage").long("storage").value_name("PATH|auto"))
-                    .arg(Arg::new("since").long("since").value_name("WINDOW"))
-                    .arg(Arg::new("limit").long("limit").value_parser(clap::value_parser!(u64)))
-                    .arg(Arg::new("dry-run").long("dry-run").action(ArgAction::SetTrue))
-            )
-            .subcommand(
-                ClapCommand::new("normalize").about("Normalize Cline tasks → AIM streams (.nexoscli/agents/streams/Cline/<task>/messages.ndjson)")
-                    .arg(Arg::new("since").long("since").value_name("WINDOW"))
-                    .arg(Arg::new("task-id").long("task-id").value_name("ID"))
-                    .arg(Arg::new("overwrite").long("overwrite").action(ArgAction::SetTrue))
-            )
-            .subcommand(
-                ClapCommand::new("correlate").about("Correlate Cline tasks to runs")
-                    .arg(Arg::new("run-id").long("run-id").value_name("RUN"))
-                    .arg(Arg::new("since").long("since").value_name("WINDOW"))
-                    .arg(Arg::new("pad").long("pad").value_name("DUR").default_value("5m"))
-                    .arg(Arg::new("write").long("write").action(ArgAction::SetTrue))
-                    .arg(Arg::new("dry-run").long("dry-run").action(ArgAction::SetTrue))
-            )
+                .subcommand(cmd_locate::subcommand())
+                .subcommand(cmd_import::subcommand())
+                .subcommand(cmd_normalize::subcommand())
+                .subcommand(cmd_correlate::subcommand())
         )
     }
 
     fn execute(&self, m: &ArgMatches, ctx: &CommandContext) -> Result<i32> {
         match m.subcommand() {
-            Some(("locate", _)) => {
-                let (cands, selected, hints) = locate_all();
-                let result = LocateResult {
-                    selected: selected.clone(),
-                    candidates: cands,
-                    hints,
-                };
-                let exit = ctx.ok("cline","locate",&result);
-                Ok(exit)
-            }
-            Some(("import", sm)) => {
-                let since_ts = parse_since(sm.get_one::<String>("since"));
-                let limit = *sm.get_one::<u64>("limit").unwrap_or(&0);
-                let dry = sm.get_flag("dry-run");
-                let storage = match sm.get_one::<String>("storage") {
-                    Some(s) if s != "auto" => PathBuf::from(s),
-                    _ => {
-                        let (_cands, selected, _hints) = locate_all();
-                        selected.ok_or_else(|| anyhow::anyhow!("no Cline tasks dir found; run `nexoscli cline locate` or pass --storage <path>"))?
-                    }
-                };
-                if !storage.exists() {
-                    return Err(anyhow::anyhow!("storage not found: {}", storage.display()).into());
-                }
-
-                // ingest
-                let outdir = PathBuf::from(".nexoscli").join("cline").join("tasks");
-                let mut summary = import_tasks(&storage, since_ts, &outdir, limit, dry)?;
-                summary.persisted_dir = Some(outdir.display().to_string());
-
-                let exit = if dry {
-                    ctx.ok("cline","import.dryrun",&summary)
-                } else {
-                    ctx.ok("cline","import",&summary)
-                };
-                Ok(exit)
-            }
-            Some(("normalize", m)) => {
-                let dot = std::env::current_dir()?.join(".nexoscli");
-                let since = parse_since(m.get_one::<String>("since"));
-                let overwrite = m.get_flag("overwrite");
-                let only_task = m.get_one::<String>("task-id").map(|s| s.as_str());
-                let sum = crate::normalize::normalize_since(&dot, since, overwrite, only_task)?;
-                return Ok(ctx.ok("cline","normalize",&serde_json::to_value(sum)?));
-            }
-            Some(("correlate", m)) => {
-                let dot = std::env::current_dir()?.join(".nexoscli");
-                let pad = crate::correlation::parse_pad(m.get_one::<String>("pad"));
-                // best-effort ensure AIM streams exist
-                let _ = crate::normalize::normalize_since(&dot, None, false, None);
-
-                if let Some(run) = m.get_one::<String>("run-id") {
-                    let rec = crate::correlation::correlate_run(&dot, run, pad)?;
-                    // attach message stats
-                    let msg_stats = correlate_messages_for_run(&dot, &rec);
-                    let mut v = serde_json::to_value(&rec)?;
-                    if let Some(obj) = v.as_object_mut() {
-                        obj.insert("msg_stats".into(), msg_stats);
-                    }
-                    if m.get_flag("write") {
-                        crate::correlation::persist_record(&dot, &rec)?;
-                        // persist sibling messages summary
-                        let corr_dir = dot.join("cline").join("corr");
-                        std::fs::create_dir_all(&corr_dir).ok();
-                        std::fs::write(corr_dir.join(format!("{}.messages.json", rec.run_id)), serde_json::to_vec_pretty(&v)?)?;
-                    }
-                    return Ok(ctx.ok("cline","correlate.one",&v));
-                } else {
-                    let since = crate::correlation::parse_since(m.get_one::<String>("since"));
-                    let write = m.get_flag("write");
-                    let (sum, recs) = crate::correlation::correlate_since(&dot, since, pad, write)?;
-                    // compute message coverage
-                    let mut with_msgs: u64 = 0;
-                    for r in &recs {
-                        let stats = correlate_messages_for_run(&dot, r);
-                        if stats.get("messages_in_window").and_then(|x| x.as_u64()).unwrap_or(0) > 0 { with_msgs += 1; }
-                    }
-                    let msg_cov = if recs.is_empty() { 1.0 } else { with_msgs as f64 / recs.len() as f64 };
-                    return Ok(ctx.ok("cline","correlate",&serde_json::json!({
-                        "summary": sum, "count": recs.len(), "message_coverage": msg_cov
-                    })));
-                }
-            }
-            _ => Err(anyhow::anyhow!("unknown cline command").into()),
+            Some(("locate", sm))    => cmd_locate::run(sm, ctx),
+            Some(("import", sm))    => cmd_import::run(sm, ctx),
+            Some(("normalize", sm)) => cmd_normalize::run(sm, ctx),
+            Some(("correlate", sm)) => cmd_correlate::run(sm, ctx),
+            _ => Ok(2),
         }
     }
 
@@ -221,19 +117,19 @@ impl Plugin for ClinePlugin {
             ToolSpec {
                 name: "cline.locate".to_string(),
                 about: "Find Cline storage locations".to_string(),
-                args_schema: schema_for!(ImportArgs),
+                args_schema: schema_for!(cmd_locate::LocateArgs),
                 result_schema: schema_for!(LocateResult),
             },
             ToolSpec {
                 name: "cline.import".to_string(),
                 about: "Import Cline task history with idempotent ingest".to_string(),
-                args_schema: schema_for!(ImportArgs),
+                args_schema: schema_for!(cmd_import::ImportArgs),
                 result_schema: schema_for!(ImportSummary),
             },
             ToolSpec {
                 name: "cline.correlate".to_string(),
                 about: "Correlate Cline tasks to runs by time".to_string(),
-                args_schema: schema_for!(serde_json::Value),
+                args_schema: schema_for!(cmd_correlate::CorrelateArgs),
                 result_schema: schema_for!(serde_json::Value),
             },
         ]
@@ -242,7 +138,7 @@ impl Plugin for ClinePlugin {
 
 /* ---------- Discovery ---------- */
 
-fn locate_all() -> (Vec<Candidate>, Option<PathBuf>, Vec<String>) {
+pub(crate) fn locate_all() -> (Vec<Candidate>, Option<PathBuf>, Vec<String>) {
     let mut hints = Vec::new();
 
     // 1) explicit env override
@@ -339,7 +235,7 @@ fn locate_all() -> (Vec<Candidate>, Option<PathBuf>, Vec<String>) {
     (cands, selected, hints)
 }
 
-fn newest_mtime(dir: &Path) -> Option<OffsetDateTime> {
+pub(crate) fn newest_mtime(dir: &Path) -> Option<OffsetDateTime> {
     if !dir.exists() { return None; }
     let mut best = None;
     for ent in WalkDir::new(dir).min_depth(1).max_depth(2).into_iter().flatten() {
@@ -354,7 +250,7 @@ fn newest_mtime(dir: &Path) -> Option<OffsetDateTime> {
     best
 }
 
-fn parse_since(s: Option<&String>) -> Option<OffsetDateTime> {
+pub(crate) fn parse_since(s: Option<&String>) -> Option<OffsetDateTime> {
     match s {
         None => None,
         Some(s) if s.ends_with('h') => s[..s.len()-1].parse::<i64>().ok().map(|h| OffsetDateTime::now_utc() - Duration::hours(h)),
@@ -365,7 +261,7 @@ fn parse_since(s: Option<&String>) -> Option<OffsetDateTime> {
 
 /* ---------- Import (idempotent) ---------- */
 
-fn import_tasks(tasks_dir: &Path, since: Option<OffsetDateTime>, outdir: &Path, limit: u64, dry_run: bool) -> anyhow::Result<ImportSummary> {
+pub(crate) fn import_tasks(tasks_dir: &Path, since: Option<OffsetDateTime>, outdir: &Path, limit: u64, dry_run: bool) -> anyhow::Result<ImportSummary> {
     if !dry_run {
         fs::create_dir_all(outdir)?;
     }
@@ -567,7 +463,7 @@ fn save_index(outdir: &Path, idx: &Index) -> anyhow::Result<()> {
 }
 
 /* -------- helper: correlate AIM messages within run window -------- */
-fn correlate_messages_for_run(dot: &std::path::Path, rec: &crate::correlation::CorrRecord) -> serde_json::Value {
+pub(crate) fn correlate_messages_for_run(dot: &std::path::Path, rec: &crate::correlation::CorrRecord) -> serde_json::Value {
     // derive window
     let start = time::OffsetDateTime::parse(&rec.window.start, &time::format_description::well_known::Rfc3339).ok();
     let end   = time::OffsetDateTime::parse(&rec.window.end, &time::format_description::well_known::Rfc3339).ok();

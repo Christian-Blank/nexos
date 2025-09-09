@@ -6,7 +6,7 @@ use std::fs;
 use nexoscli_core::plugin::CommandContext;
 use nexoscli_core::Result;
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Args)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, clap::Args)]
 pub struct IssueListArgs {
     #[arg(long, value_parser = ["open", "closed", "all"], default_value = "all")]
     pub state: String, // "open" | "closed" | "all"

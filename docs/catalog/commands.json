@@ -194,7 +194,48 @@
     },
     {
       "about": "Find Cline storage (globalStorage/workspace)",
-      "args": [],
+      "args": [
+        {
+          "default": null,
+          "help": null,
+          "kind": "flag",
+          "long": "dry-run",
+          "name": "dry-run",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "limit",
+          "name": "limit",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "since",
+          "name": "since",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        },
+        {
+          "default": null,
+          "help": null,
+          "kind": "value",
+          "long": "storage",
+          "name": "storage",
+          "possible_values": null,
+          "required": false,
+          "short": null
+        }
+      ],
       "path": "cline locate",
       "plugin": "cline",
       "toolspec": {
@@ -3085,7 +3126,36 @@
     },
     "cline.correlate.args.json": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AnyValue"
+      "properties": {
+        "dry_run": {
+          "type": "boolean"
+        },
+        "pad": {
+          "type": "string"
+        },
+        "run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "since": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "write": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "dry_run",
+        "pad",
+        "write"
+      ],
+      "title": "CorrelateArgs",
+      "type": "object"
     },
     "cline.correlate.result.json": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -3095,11 +3165,9 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "properties": {
         "dry_run": {
-          "default": false,
           "type": "boolean"
         },
         "limit": {
-          "default": null,
           "format": "uint64",
           "minimum": 0.0,
           "type": [
@@ -3108,20 +3176,21 @@
           ]
         },
         "since": {
-          "default": null,
           "type": [
             "string",
             "null"
           ]
         },
         "storage": {
-          "default": null,
           "type": [
             "string",
             "null"
           ]
         }
       },
+      "required": [
+        "dry_run"
+      ],
       "title": "ImportArgs",
       "type": "object"
     },
@@ -3226,11 +3295,9 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "properties": {
         "dry_run": {
-          "default": false,
           "type": "boolean"
         },
         "limit": {
-          "default": null,
           "format": "uint64",
           "minimum": 0.0,
           "type": [
@@ -3239,21 +3306,22 @@
           ]
         },
         "since": {
-          "default": null,
           "type": [
             "string",
             "null"
           ]
         },
         "storage": {
-          "default": null,
           "type": [
             "string",
             "null"
           ]
         }
       },
-      "title": "ImportArgs",
+      "required": [
+        "dry_run"
+      ],
+      "title": "LocateArgs",
       "type": "object"
     },
     "cline.locate.result.json": {

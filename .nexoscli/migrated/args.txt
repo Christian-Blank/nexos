@@ -16,3 +16,7 @@ plugins/issue/src/cmd_list.rs
 plugins/issue/src/cmd_show.rs
 plugins/issue/src/cmd_close.rs
 plugins/issue/src/cmd_import.rs
+plugins/cline/src/cmd_locate.rs
+plugins/cline/src/cmd_import.rs
+plugins/cline/src/cmd_correlate.rs
+plugins/cline/src/cmd_normalize.rs
