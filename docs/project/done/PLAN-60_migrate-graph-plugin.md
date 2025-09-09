@@ -1,16 +1,23 @@
 ---
-plan_id: "60"
-slug: "migrate-graph-plugin"
-status: "proposed"
-owner: "@cli/dri"
-labels: ["plugins","blueprint-v1","derive","tests","docs"]
-created_at: "2025-09-08T00:00:00Z"
-source: "next"
-risk: "low"
-blast_radius: "internal-only"
-depends_on: ["58"]
+plan_id: '60'
+slug: migrate-graph-plugin
+status: done
+owner: '@cli/dri'
+labels:
+- plugins
+- blueprint-v1
+- derive
+- tests
+- docs
+created_at: 2025-09-08T00:00:00Z
+source: next
+risk: low
+blast_radius: internal-only
+depends_on:
+- '58'
+completed_at: 2025-09-09T03:31:45.059486Z
+implemented_in: fed6a29
 ---
-
 # PLAN‑60 — Migrate graph plugin to Plugin Blueprint v1
 
 Mission: Convert the graph plugin to the modular `cmd_*` structure with dual‑derive Args, ToolSpecs, tests, and README AUTO updates. This ensures graph commands are agent‑grade and schema‑documented.

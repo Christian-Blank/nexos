@@ -1,0 +1,12 @@
+{
+  "id": "ISS-0028",
+  "title": "Follow-up: Resolve rules lint failures",
+  "body": "rules lint currently fails (rules.lint.failed). Audit rules/pack/* front-matter and update to satisfy lint; ensure RFC3339 last_reviewed and required fields; rerun lint and export.",
+  "labels": [
+    "[\"plan\"",
+    "\"followup\"]"
+  ],
+  "state": "open",
+  "created_at": "2025-09-09T03:33:12.27285Z",
+  "updated_at": "2025-09-09T03:33:12.27285Z"
+}
