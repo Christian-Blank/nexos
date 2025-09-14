@@ -1,6 +1,6 @@
 ---
 schema: readme.v0
-title: "NexOS"
+title: "NexOS V0"
 summary: "Contracts-first CLI with deterministic envelopes, events, and replay."
 kind: root
 owner: "@core/dri"
@@ -32,6 +32,8 @@ auto:
   dir_tree_depth: 0
 ---
 # NEXOS: The System That Builds The System
+
+IMPORTANT: This is the v0 version of Nexos, and is replaced through the main version. This is not under active development.
 
 <!-- BEGIN: AUTO (id=children) -->
 _Auto-generated children list from front‑matter or glob._
